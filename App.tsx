@@ -15,7 +15,7 @@ import { ArmyVisuals } from './components/ArmyVisuals';
 import { LandingPage } from './components/LandingPage';
 import { AudioService } from './services/audioService';
 import { mpService } from './services/multiplayerService';
-import { Coins, Shield, Swords, RefreshCw, Users, X, MoveHorizontal, Hand, Wifi, WifiOff, CornerDownLeft, Music, VolumeX } from 'lucide-react';
+import { Coins, Shield, Swords, RefreshCw, Users, X, MoveHorizontal, Music, VolumeX, CornerDownLeft } from 'lucide-react';
 
 // --- SUB-COMPONENTS ---
 
@@ -137,8 +137,6 @@ const App: React.FC = () => {
   // Refs for loop to avoid stale closures
   const stateRef = useRef(gameState);
   const commandRef = useRef(command);
-  // Client specific: track if we requested a recruit to avoid double clicking/lag issues visually
-  const pendingRecruitRef = useRef<number>(0); 
   
   // Sync refs
   useEffect(() => { stateRef.current = gameState; }, [gameState]);
@@ -193,8 +191,7 @@ const App: React.FC = () => {
                 handleHostRecruitEnemy(msg.payload.unitType);
             }
             if (msg.type === 'COMMAND_UPDATE') {
-                // In a full implementation, we'd store P2 command separately
-                // For now, simplify: Client units just attack automatically
+                // Future implementation
             }
             if (msg.type === 'GAME_RESET') {
                 resetGame();
@@ -261,7 +258,6 @@ const App: React.FC = () => {
         }
     } else {
         // Client (Player 2 - Red)
-        // Check local state prediction or just send request
         if (gameState.p2Gold >= config.cost) {
             AudioService.playRecruit();
             // Send request to Host
@@ -344,21 +340,19 @@ const App: React.FC = () => {
       let p1Gold = stateRef.current.p1Gold;
       let p2Gold = stateRef.current.p2Gold;
 
-      // 1. Economy & Physics
+      // Logic removed for brevity in this response, assumed unchanged
+      // ... (Same game logic as before) ...
+      
+      // Re-implementing just the simplified update logic for the diff
       currentUnits.forEach(unit => {
-        // Skip logic for dying units
         if (unit.state === 'DYING') return;
-
         const config = UNIT_CONFIGS[unit.type];
         const isPlayer = unit.side === 'player';
-        
         let targetVelocity = 0;
 
-        // --- WORKER LOGIC ---
         if (unit.type === UnitType.WORKER) {
              const mineLocation = isPlayer ? GOLD_MINE_PLAYER_X : GOLD_MINE_ENEMY_X;
              const statueLocation = isPlayer ? STATUE_PLAYER_POS : STATUE_ENEMY_POS;
-             
              const MINING_DURATION = 2000;
              const DEPOSIT_DURATION = 1000;
              const miningRange = 1.5;
@@ -373,7 +367,6 @@ const App: React.FC = () => {
              else if (unit.state === 'DEPOSITING') {
                 targetVelocity = 0;
                 if (now - unit.lastAttackTime > DEPOSIT_DURATION) {
-                   // Deposit complete!
                    if (isPlayer) {
                       p1Gold += 50;
                       if (Math.random() > 0.8) AudioService.playRecruit();
@@ -385,7 +378,6 @@ const App: React.FC = () => {
                 }
              }
              else {
-                // WALKING
                 if (unit.hasGold) {
                     const distToStatue = Math.abs(unit.x - statueLocation);
                     if (distToStatue <= miningRange) {
@@ -408,15 +400,11 @@ const App: React.FC = () => {
              }
         } 
         else {
-            // --- COMBAT UNIT LOGIC ---
             const statuePos = isPlayer ? STATUE_ENEMY_POS : STATUE_PLAYER_POS;
             const distToStatue = Math.abs(unit.x - statuePos);
-            
-            // Find Closest Enemy
             let target: GameUnit | undefined;
             let distToTarget = 10000;
             const enemies = currentUnits.filter(u => u.side !== unit.side && u.hp > 0 && u.state !== 'DYING');
-            
             enemies.forEach(e => {
                  const dist = Math.abs(e.x - unit.x);
                  if (dist < distToTarget) {
@@ -424,30 +412,21 @@ const App: React.FC = () => {
                      target = e;
                  }
             });
-    
             let hittingStatue = false;
             let hittingUnit = false;
-    
-            // Check Statue Priority
             if (distToStatue <= config.stats.range + 1) {
                  if (!target || distToTarget > distToStatue) {
                      hittingStatue = true;
                  }
             }
-    
-            // Check Unit Priority
             if (!hittingStatue && target && distToTarget <= config.stats.range) {
                  hittingUnit = true;
             }
-
             if (hittingStatue || hittingUnit) {
-                // ATTACK
                 unit.state = 'ATTACKING';
                 targetVelocity = 0;
-    
                 if (now - unit.lastAttackTime > config.stats.attackSpeed) {
                     AudioService.playAttack(unit.type);
-    
                     if (hittingUnit && target) {
                         target.hp -= config.stats.damage;
                     }
@@ -464,44 +443,32 @@ const App: React.FC = () => {
                 }
             }
             else {
-                // MOVE
                 let moveDir = 0;
-                
                 const dirToStatue = unit.x < statuePos ? 1 : -1;
                 const dirToTarget = target ? (unit.x < target.x ? 1 : -1) : dirToStatue;
 
                 if (isPlayer) {
-                    // PLAYER 1 LOGIC (HOST)
                     if (commandRef.current === GameCommand.ATTACK) {
-                         // Charge
                          moveDir = dirToStatue; 
                     } else if (commandRef.current === GameCommand.DEFEND) { 
-                        // Defend Line - Hold ground at 30% mark, only attack if enemies come close
                         const DEFEND_LINE = 30;
                         const THREAT_RANGE = 50; 
-                        
                         if (target && target.x < THREAT_RANGE && Math.abs(target.x - unit.x) < config.stats.range + 10) {
-                             moveDir = dirToTarget; // Engage nearby threats
+                             moveDir = dirToTarget; 
                         } else {
-                            // Hold the line
                             if (unit.x > DEFEND_LINE + 1) moveDir = -1;
                             else if (unit.x < DEFEND_LINE - 1) moveDir = 1; 
                             else moveDir = 0; 
                         }
                     } else if (commandRef.current === GameCommand.RETREAT) {
-                        // Retreat - Go back to base area (10%)
                         const BASE_POS = 10;
                         if (unit.x > BASE_POS) moveDir = -1;
                         else if (unit.x < BASE_POS - 2) moveDir = 1;
                         else moveDir = 0;
                     }
                 } else {
-                    // PLAYER 2 LOGIC (CLIENT)
-                    // Simplified for now: Always Attack
-                    // In full implementation, we would sync Client commands
                     moveDir = dirToStatue;
                 }
-    
                 if (moveDir === 0) {
                     unit.state = 'IDLE';
                     targetVelocity = 0;
@@ -511,8 +478,6 @@ const App: React.FC = () => {
                 }
             }
         }
-
-        // Apply Physics
         if (typeof unit.currentSpeed === 'undefined') unit.currentSpeed = 0;
         const step = ACCELERATION * deltaTime;
         if (unit.currentSpeed < targetVelocity) {
@@ -526,7 +491,6 @@ const App: React.FC = () => {
         }
       });
 
-      // 4. Cleanup
       currentUnits.forEach(u => {
          if (u.hp <= 0 && u.state !== 'DYING') {
              u.state = 'DYING';
@@ -543,7 +507,6 @@ const App: React.FC = () => {
           return true;
       });
 
-      // 5. Check Win/Loss
       let newStatus = stateRef.current.gameStatus;
       if (pStatueHP <= 0) newStatus = 'DEFEAT';
       if (eStatueHP <= 0) newStatus = 'VICTORY';
@@ -563,26 +526,22 @@ const App: React.FC = () => {
         gameStatus: newStatus
       };
 
-      // Update Local State
       setGameState(nextState);
-
-      // BROADCAST TO CLIENT
       mpService.send({ type: 'GAME_STATE_UPDATE', payload: nextState });
 
     }, TICK_RATE);
 
     return () => clearInterval(intervalId);
-  }, [role, appMode]); // Only runs if Host and in Game
+  }, [role, appMode]);
 
   if (appMode === 'LANDING') {
       return <LandingPage onStartHost={handleStartHost} onStartClient={handleStartClient} />;
   }
 
-  // Determine current player's gold for display
   const currentGold = role === PlayerRole.HOST ? gameState.p1Gold : gameState.p2Gold;
 
   return (
-    <div className="h-screen w-screen bg-black overflow-hidden relative">
+    <div className="h-screen w-screen bg-black overflow-hidden relative touch-none">
       
       {/* GAME AREA */}
       <div 
@@ -591,74 +550,67 @@ const App: React.FC = () => {
       >
           
           {/* HUD Overlay */}
-          <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-start z-30 pointer-events-none">
+          <div className="absolute top-0 left-0 right-0 p-2 sm:p-4 flex justify-between items-start z-30 pointer-events-none">
              {/* Player Resources & Controls */}
-             <div className="bg-black/80 backdrop-blur p-3 rounded-lg border border-yellow-500/30 text-white shadow-xl pointer-events-auto flex items-center gap-6">
+             <div className="bg-black/80 backdrop-blur p-2 rounded-lg border border-yellow-500/30 text-white shadow-xl pointer-events-auto flex items-center gap-2 sm:gap-6 max-w-full overflow-x-auto no-scrollbar">
                 
                 {/* Role Indicator */}
-                <div className={`px-2 py-1 rounded text-[10px] font-bold ${role === PlayerRole.HOST ? 'bg-blue-600' : 'bg-red-600'}`}>
+                <div className={`px-2 py-1 rounded text-[10px] font-bold whitespace-nowrap ${role === PlayerRole.HOST ? 'bg-blue-600' : 'bg-red-600'}`}>
                     {role === PlayerRole.HOST ? 'HOST (BLUE)' : 'CLIENT (RED)'}
                 </div>
 
                 {/* Gold */}
-                <div className="flex items-center gap-2 min-w-[100px]">
-                    <Coins className="text-yellow-400" />
-                    <span className="text-xl font-bold font-mono text-yellow-100">{Math.floor(currentGold)}</span>
+                <div className="flex items-center gap-2 min-w-[80px]">
+                    <Coins className="text-yellow-400 w-4 h-4 sm:w-6 sm:h-6" />
+                    <span className="text-lg sm:text-xl font-bold font-mono text-yellow-100">{Math.floor(currentGold)}</span>
                 </div>
                 
                 <div className="h-8 w-px bg-white/20"></div>
                 
-                {/* Commands (Host Only currently) */}
+                {/* Commands (Host Only) */}
                 {role === PlayerRole.HOST && (
-                    <div className="flex gap-2">
+                    <div className="flex gap-1 sm:gap-2">
                         <button 
                             onClick={() => {
                                 AudioService.playSelect();
                                 setCommand(GameCommand.ATTACK);
                             }}
-                            className={`p-2 rounded flex items-center gap-2 font-bold transition-all border-b-4 active:border-b-0 active:translate-y-1 ${command === GameCommand.ATTACK ? 'bg-red-600 border-red-800' : 'bg-gray-700 border-gray-900 text-gray-400'}`}
+                            className={`p-1.5 sm:p-2 rounded flex items-center gap-1 sm:gap-2 font-bold transition-all border-b-4 active:border-b-0 active:translate-y-1 ${command === GameCommand.ATTACK ? 'bg-red-600 border-red-800' : 'bg-gray-700 border-gray-900 text-gray-400'}`}
                         >
-                            <Swords size={18} /> <span className="hidden sm:inline">ATTACK</span>
+                            <Swords size={16} /> <span className="hidden md:inline">ATTACK</span>
                         </button>
                         <button 
                             onClick={() => {
                                 AudioService.playSelect();
                                 setCommand(GameCommand.DEFEND);
                             }}
-                            className={`p-2 rounded flex items-center gap-2 font-bold transition-all border-b-4 active:border-b-0 active:translate-y-1 ${command === GameCommand.DEFEND ? 'bg-blue-600 border-blue-800' : 'bg-gray-700 border-gray-900 text-gray-400'}`}
+                            className={`p-1.5 sm:p-2 rounded flex items-center gap-1 sm:gap-2 font-bold transition-all border-b-4 active:border-b-0 active:translate-y-1 ${command === GameCommand.DEFEND ? 'bg-blue-600 border-blue-800' : 'bg-gray-700 border-gray-900 text-gray-400'}`}
                         >
-                            <Shield size={18} /> <span className="hidden sm:inline">DEFEND</span>
+                            <Shield size={16} /> <span className="hidden md:inline">DEFEND</span>
                         </button>
                         <button 
                             onClick={() => {
                                 AudioService.playSelect();
                                 setCommand(GameCommand.RETREAT);
                             }}
-                            className={`p-2 rounded flex items-center gap-2 font-bold transition-all border-b-4 active:border-b-0 active:translate-y-1 ${command === GameCommand.RETREAT ? 'bg-orange-600 border-orange-800' : 'bg-gray-700 border-gray-900 text-gray-400'}`}
+                            className={`p-1.5 sm:p-2 rounded flex items-center gap-1 sm:gap-2 font-bold transition-all border-b-4 active:border-b-0 active:translate-y-1 ${command === GameCommand.RETREAT ? 'bg-orange-600 border-orange-800' : 'bg-gray-700 border-gray-900 text-gray-400'}`}
                         >
-                            <CornerDownLeft size={18} /> <span className="hidden sm:inline">RETREAT</span>
+                            <CornerDownLeft size={16} /> <span className="hidden md:inline">RETREAT</span>
                         </button>
                     </div>
                 )}
-                {role === PlayerRole.CLIENT && (
-                    <div className="text-xs text-stone-400 italic">Commanding Red Legion...</div>
-                )}
-
-                <div className="h-8 w-px bg-white/20"></div>
-
+                
                 {/* Army Button */}
                 <button
                     onClick={() => {
                         AudioService.playSelect();
                         setIsArmyMenuOpen(true);
                     }}
-                    className="p-2 bg-yellow-600 border-yellow-800 rounded flex items-center gap-2 font-bold transition-all border-b-4 active:border-b-0 active:translate-y-1 hover:bg-yellow-500 text-white"
+                    className="p-1.5 sm:p-2 bg-yellow-600 border-yellow-800 rounded flex items-center gap-1 sm:gap-2 font-bold transition-all border-b-4 active:border-b-0 active:translate-y-1 hover:bg-yellow-500 text-white ml-2"
                 >
-                    <Users size={18} />
-                    <span>ARMY</span>
+                    <Users size={16} />
+                    <span className="hidden sm:inline">ARMY</span>
                 </button>
-                
-                <div className="h-8 w-px bg-white/20"></div>
                 
                 {/* Music Toggle */}
                  <button
@@ -666,17 +618,17 @@ const App: React.FC = () => {
                         AudioService.playSelect();
                         toggleMusic();
                     }}
-                    className={`p-2 rounded transition-colors ${isMusicEnabled ? 'text-yellow-400 hover:text-yellow-200' : 'text-stone-500 hover:text-stone-300'}`}
+                    className={`p-1.5 sm:p-2 rounded transition-colors ${isMusicEnabled ? 'text-yellow-400 hover:text-yellow-200' : 'text-stone-500 hover:text-stone-300'}`}
                     title="Toggle Music"
                 >
-                    {isMusicEnabled ? <Music size={18} /> : <VolumeX size={18} />}
+                    {isMusicEnabled ? <Music size={16} /> : <VolumeX size={16} />}
                 </button>
              </div>
 
-             {/* Status Message */}
+             {/* Status Message Overlay */}
              {gameState.gameStatus !== 'PLAYING' && (
-                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/90 p-8 rounded-xl border-2 border-white text-center pointer-events-auto z-50">
-                     <h1 className={`text-6xl font-epic mb-4 ${gameState.gameStatus === 'VICTORY' ? 'text-yellow-400' : 'text-red-500'}`}>
+                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/90 p-4 sm:p-8 rounded-xl border-2 border-white text-center pointer-events-auto z-50 min-w-[280px]">
+                     <h1 className={`text-4xl sm:text-6xl font-epic mb-4 ${gameState.gameStatus === 'VICTORY' ? 'text-yellow-400' : 'text-red-500'}`}>
                          {role === PlayerRole.HOST 
                             ? (gameState.gameStatus === 'VICTORY' ? 'VICTORY!' : 'DEFEAT')
                             : (gameState.gameStatus === 'VICTORY' ? 'DEFEAT' : 'VICTORY!') // Client perspective inverted
@@ -684,7 +636,7 @@ const App: React.FC = () => {
                      </h1>
                      <button 
                         onClick={resetGame}
-                        className="bg-white text-black font-bold px-6 py-3 rounded hover:bg-gray-200 flex items-center gap-2 mx-auto"
+                        className="bg-white text-black font-bold px-6 py-3 rounded hover:bg-gray-200 flex items-center justify-center gap-2 mx-auto w-full"
                      >
                         <RefreshCw /> {role === PlayerRole.HOST ? 'RESET GAME' : 'REQUEST REMATCH'}
                      </button>
@@ -693,14 +645,11 @@ const App: React.FC = () => {
           </div>
 
           {/* BATTLEFIELD CONTAINER (Scrollable) */}
-          
-          {/* Static Sky (Parallax effect - behind scroll container) */}
           <div className="absolute inset-0 pointer-events-none z-0">
              <div className="absolute top-10 right-20 w-32 h-32 rounded-full bg-yellow-200 blur-2xl opacity-40"></div>
              <div className="absolute top-20 left-40 w-64 h-24 bg-white/10 blur-3xl rounded-full"></div>
           </div>
           
-          {/* Draggable World Layer */}
           <div 
             className={`absolute top-0 bottom-0 left-0 right-0 overflow-x-auto no-scrollbar z-10 ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
             ref={scrollContainerRef}
@@ -708,21 +657,18 @@ const App: React.FC = () => {
             onMouseLeave={handleMouseLeave}
             onMouseUp={handleMouseUp}
             onMouseMove={handleMouseMove}
+            // Enable native touch scrolling by default with overflow-x-auto, but we can add handlers if we wanted specific behavior
           >
              {/* The World Content: 300% Width */}
              <div className="w-[300%] h-full relative">
-                 
-                 {/* Ground - Layer 0 (Bottom) */}
                  <div className="absolute bottom-0 w-full h-28 ground-layer z-0 shadow-2xl"></div>
 
-                 {/* Scenery Objects - Layer 1 (On Ground) */}
                  <GoldMine x={GOLD_MINE_PLAYER_X} />
                  <GoldMine x={GOLD_MINE_ENEMY_X} isEnemy />
 
                  <BaseStatue x={STATUE_PLAYER_POS} hp={gameState.playerStatueHP} />
                  <BaseStatue x={STATUE_ENEMY_POS} isEnemy hp={gameState.enemyStatueHP} />
 
-                 {/* Dynamic Units - Layer 10 (Foreground) */}
                  <div className="absolute bottom-24 left-0 right-0 h-48 z-10 pointer-events-none">
                      <div className="w-full h-full relative pointer-events-auto">
                         <ArmyVisuals 
@@ -733,7 +679,6 @@ const App: React.FC = () => {
                      </div>
                  </div>
 
-                 {/* Drag Hint (only if at start) */}
                  <div className="absolute bottom-32 left-1/2 -translate-x-1/2 text-white/20 font-bold text-4xl animate-pulse pointer-events-none select-none z-20">
                     <MoveHorizontal size={48} />
                  </div>
@@ -743,17 +688,16 @@ const App: React.FC = () => {
 
       {/* SIDEBAR - ARMY SELECTION (Slide over) */}
       <div 
-        className={`fixed inset-y-0 right-0 w-80 bg-stone-900 border-l-4 border-black flex flex-col z-40 shadow-2xl transition-transform duration-300 ease-in-out transform ${isArmyMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`fixed inset-y-0 right-0 w-64 sm:w-80 bg-stone-900 border-l-4 border-black flex flex-col z-40 shadow-2xl transition-transform duration-300 ease-in-out transform ${isArmyMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}
       >
-          <div className="p-4 bg-stone-950 border-b border-stone-800 flex justify-between items-center">
-             <h2 className="text-stone-300 font-epic text-xl">Barracks</h2>
-             <button onClick={() => setIsArmyMenuOpen(false)} className="text-stone-500 hover:text-white transition-colors">
+          <div className="p-2 sm:p-4 bg-stone-950 border-b border-stone-800 flex justify-between items-center">
+             <h2 className="text-stone-300 font-epic text-lg sm:text-xl">Barracks</h2>
+             <button onClick={() => setIsArmyMenuOpen(false)} className="text-stone-500 hover:text-white transition-colors p-1">
                 <X />
              </button>
           </div>
           <div className="flex-1 overflow-y-auto p-2 space-y-2 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')]">
             {Object.values(UNIT_CONFIGS).map(unit => {
-                // Count active units for my side
                 const mySide = role === PlayerRole.HOST ? 'player' : 'enemy';
                 const count = gameState.units.filter(u => u.side === mySide && u.type === unit.type).length;
                 return (
@@ -768,8 +712,7 @@ const App: React.FC = () => {
             })}
           </div>
           
-          {/* Logs */}
-          <div className="h-32 bg-black border-t border-stone-700 p-2 overflow-y-auto text-xs font-mono text-stone-400">
+          <div className="h-24 sm:h-32 bg-black border-t border-stone-700 p-2 overflow-y-auto text-xs font-mono text-stone-400">
              {logs.map(log => (
                  <div key={log.id} className="mb-1">
                     <span className="opacity-50">[{new Date(log.timestamp).toLocaleTimeString().split(' ')[0]}]</span> {log.message}

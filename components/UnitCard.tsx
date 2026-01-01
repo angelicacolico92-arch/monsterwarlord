@@ -20,10 +20,10 @@ export const UnitCard: React.FC<UnitCardProps> = ({ unit, count, canAfford, onRe
       `}
       onClick={() => canAfford && onRecruit(unit.type)}
     >
-      <div className="flex items-center gap-3">
-        {/* Unit Icon Container - Gold Border style */}
+      <div className="flex items-center gap-2 sm:gap-3">
+        {/* Unit Icon Container */}
         <div className={`
-            h-16 w-16 flex-shrink-0 rounded bg-gradient-to-br from-blue-200 to-blue-400 border-2 
+            h-12 w-12 sm:h-16 sm:w-16 flex-shrink-0 rounded bg-gradient-to-br from-blue-200 to-blue-400 border-2 
             ${canAfford ? 'border-yellow-500' : 'border-gray-700'} 
             flex items-center justify-center overflow-hidden
         `}>
@@ -33,13 +33,13 @@ export const UnitCard: React.FC<UnitCardProps> = ({ unit, count, canAfford, onRe
         {/* Info */}
         <div className="flex-1 min-w-0">
             <div className="flex justify-between items-start">
-                <h3 className="text-sm font-bold font-epic text-yellow-100 truncate">{unit.name}</h3>
-                <span className="text-xs font-mono bg-black/40 px-1 rounded text-white">{count}</span>
+                <h3 className="text-xs sm:text-sm font-bold font-epic text-yellow-100 truncate">{unit.name}</h3>
+                <span className="text-[10px] sm:text-xs font-mono bg-black/40 px-1 rounded text-white">{count}</span>
             </div>
             
-            <p className="text-[10px] text-stone-300 leading-tight truncate mb-1">{unit.description}</p>
+            <p className="hidden sm:block text-[10px] text-stone-300 leading-tight truncate mb-1">{unit.description}</p>
             
-            <div className="flex items-center gap-2 text-[10px] text-stone-400">
+            <div className="flex items-center gap-2 text-[10px] text-stone-400 mt-1 sm:mt-0">
                 <span className="flex items-center gap-0.5"><span className="text-red-400">⚔</span> {unit.stats.damage}</span>
                 <span className="flex items-center gap-0.5"><span className="text-green-400">❤</span> {unit.stats.hp}</span>
             </div>
@@ -47,10 +47,10 @@ export const UnitCard: React.FC<UnitCardProps> = ({ unit, count, canAfford, onRe
         
         {/* Cost Button Area */}
         <div className="flex flex-col items-end justify-center pl-2 border-l border-white/10">
-            <div className={`text-sm font-bold ${canAfford ? 'text-yellow-400' : 'text-gray-500'}`}>
+            <div className={`text-xs sm:text-sm font-bold ${canAfford ? 'text-yellow-400' : 'text-gray-500'}`}>
                 {unit.cost} 
             </div>
-            <div className="text-[10px] text-gray-400 uppercase tracking-wider">Gold</div>
+            <div className="text-[8px] sm:text-[10px] text-gray-400 uppercase tracking-wider">Gold</div>
         </div>
       </div>
     </div>
