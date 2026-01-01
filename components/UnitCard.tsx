@@ -7,9 +7,12 @@ interface UnitCardProps {
   count: number;
   canAfford: boolean;
   onRecruit: (type: UnitType) => void;
+  variant?: 'BLUE' | 'RED';
 }
 
-export const UnitCard: React.FC<UnitCardProps> = ({ unit, count, canAfford, onRecruit }) => {
+export const UnitCard: React.FC<UnitCardProps> = ({ unit, count, canAfford, onRecruit, variant = 'BLUE' }) => {
+  const isRed = variant === 'RED';
+  
   return (
     <div 
       className={`
@@ -23,11 +26,12 @@ export const UnitCard: React.FC<UnitCardProps> = ({ unit, count, canAfford, onRe
       <div className="flex items-center gap-2 sm:gap-3">
         {/* Unit Icon Container */}
         <div className={`
-            h-12 w-12 sm:h-16 sm:w-16 flex-shrink-0 rounded bg-gradient-to-br from-blue-200 to-blue-400 border-2 
+            h-12 w-12 sm:h-16 sm:w-16 flex-shrink-0 rounded border-2 
+            ${isRed ? 'bg-gradient-to-br from-red-300 to-red-500' : 'bg-gradient-to-br from-blue-200 to-blue-400'}
             ${canAfford ? 'border-yellow-500' : 'border-gray-700'} 
             flex items-center justify-center overflow-hidden
         `}>
-             <StickmanRender type={unit.type} scale={0.7} color="#000" />
+             <StickmanRender type={unit.type} scale={0.7} color="#000" isPlayer={!isRed} />
         </div>
 
         {/* Info */}

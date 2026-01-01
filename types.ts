@@ -46,20 +46,22 @@ export interface PlayerState {
   population: number;
 }
 
+export enum GameCommand {
+  ATTACK = 'ATTACK', // Charge enemy
+  DEFEND = 'DEFEND', // Hold line
+  RETREAT = 'RETREAT', // Fall back to base
+}
+
 export interface GameState {
   units: GameUnit[];
   playerStatueHP: number;
   enemyStatueHP: number;
   p1Gold: number; // Host Gold
   p2Gold: number; // Client Gold
+  p1Command: GameCommand;
+  p2Command: GameCommand;
   lastTick: number;
   gameStatus: 'PLAYING' | 'VICTORY' | 'DEFEAT';
-}
-
-export enum GameCommand {
-  ATTACK = 'ATTACK', // Charge enemy
-  DEFEND = 'DEFEND', // Hold line
-  RETREAT = 'RETREAT', // Fall back to base
 }
 
 export interface BattleLogEntry {
@@ -87,5 +89,5 @@ export enum PlayerRole {
 export type NetworkMessage = 
   | { type: 'GAME_STATE_UPDATE'; payload: GameState }
   | { type: 'RECRUIT_REQUEST'; payload: { unitType: UnitType } }
-  | { type: 'COMMAND_UPDATE'; payload: { command: GameCommand } }
+  | { type: 'CLIENT_COMMAND_REQUEST'; payload: { command: GameCommand } }
   | { type: 'GAME_RESET'; payload: {} };

@@ -6,20 +6,28 @@ interface ArmyVisualsProps {
   units: GameUnit[];
   selectedUnitId?: string | null;
   onSelectUnit?: (id: string) => void;
+  isMirrored?: boolean;
 }
 
-export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({ units, selectedUnitId, onSelectUnit }) => {
+export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({ units, selectedUnitId, onSelectUnit, isMirrored = false }) => {
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden">
       {units.map((unit) => {
         const isPlayer = unit.side === 'player';
         const isDying = unit.state === 'DYING';
-        const isMining = unit.state === 'MINING' || unit.state === 'ATTACKING'; // Support legacy ATTACKING for now
+        const isMining = unit.state === 'MINING' || unit.state === 'ATTACKING'; 
         const isDepositing = unit.state === 'DEPOSITING';
         
-        // Z-index based on Y position (simulated depth) or just ID to keep consistent
-        // We'll use a random slight vertical offset for depth perception
         const depthOffset = parseInt(unit.id.slice(-2), 16) % 20; 
+
+        // Calculate visual position
+        // If mirrored (Client view), the world is flipped horizontally: x -> 100 - x
+        const visualX = isMirrored ? 100 - unit.x : unit.x;
+
+        // Calculate facing scale
+        // Standard (Host): Player(Blue)=1 (Right), Enemy(Red)=-1 (Left)
+        // Mirrored (Client): Player(Blue)=-1 (Left), Enemy(Red)=1 (Right)
+        const facingScale = (isPlayer ? 1 : -1) * (isMirrored ? -1 : 1);
 
         return (
           <div 
@@ -30,21 +38,17 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({ units, selectedUnitId,
                 if (!isDying) onSelectUnit?.(unit.id);
             }}
             style={{
-               left: `${unit.x}%`,
-               // Transform: 
-               // 1. Center the unit horizontally (-50%)
-               // 2. Flip if enemy
-               // 3. Move up by depth offset
-               transform: `translateX(-50%) scaleX(${isPlayer ? 1 : -1}) translateY(-${depthOffset}px)`,
-               zIndex: isDying ? 0 : 100 - depthOffset, // Dying units go to back
+               left: `${visualX}%`,
+               transform: `translateX(-50%) scaleX(${facingScale}) translateY(-${depthOffset}px)`,
+               zIndex: isDying ? 0 : 100 - depthOffset,
                width: '80px',
                height: '80px'
             }}
           >
-            {/* Health Bar (Hide if dying) */}
+            {/* Health Bar */}
             <div 
                 className={`absolute -top-4 left-1/2 -translate-x-1/2 w-10 h-1 bg-gray-700 rounded overflow-hidden ${unit.hp < unit.maxHp && !isDying ? 'opacity-100' : 'opacity-0'} transition-opacity`}
-                style={{ transform: `scaleX(${isPlayer ? 1 : -1})` }} // Prevent HP bar from flipping text direction if we had text
+                style={{ transform: `scaleX(${facingScale})` }} 
             >
                 <div 
                     className={`h-full ${isPlayer ? 'bg-green-500' : 'bg-red-500'}`} 
@@ -56,7 +60,7 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({ units, selectedUnitId,
                 type={unit.type} 
                 scale={0.8} 
                 isPlayer={isPlayer}
-                color={isPlayer ? "#1a1a1a" : "#3f0000"} // Kept for legacy compatibility if needed
+                color={isPlayer ? "#1a1a1a" : "#3f0000"} 
                 isAttacking={unit.state === 'ATTACKING'} 
                 isMining={isMining}
                 isDepositing={isDepositing}

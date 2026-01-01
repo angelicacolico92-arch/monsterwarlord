@@ -101,7 +101,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartHost, onStartCl
                     <div className="bg-black/50 p-3 sm:p-4 rounded border border-white/10">
                         <p className="text-xs sm:text-sm text-stone-500 mb-2">Share this Server ID with your friend:</p>
                         <div className="flex items-center gap-2">
-                            <code className="flex-1 bg-stone-800 p-2 rounded text-yellow-500 font-mono text-sm sm:text-lg break-all">
+                            <code className="flex-1 bg-stone-800 p-2 rounded text-yellow-500 font-mono text-xl sm:text-2xl tracking-wider font-bold break-all">
                                 {myId}
                             </code>
                             <button onClick={copyToClipboard} className="p-2 bg-stone-700 rounded hover:bg-stone-600 flex-shrink-0">
@@ -132,10 +132,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartHost, onStartCl
                     <div className="space-y-2">
                         <input 
                             type="text" 
-                            placeholder="Paste Server ID here"
-                            className="w-full bg-stone-950 border border-stone-700 p-3 rounded text-white font-mono focus:outline-none focus:border-yellow-500 text-sm sm:text-base"
+                            placeholder="e.g. MW-X92Z"
+                            className="w-full bg-stone-950 border border-stone-700 p-3 rounded text-white font-mono focus:outline-none focus:border-yellow-500 text-sm sm:text-base uppercase"
                             value={hostIdInput}
-                            onChange={(e) => setHostIdInput(e.target.value)}
+                            onChange={(e) => setHostIdInput(e.target.value.toUpperCase())}
                         />
                     </div>
 

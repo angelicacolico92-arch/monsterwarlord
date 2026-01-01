@@ -12,25 +12,59 @@ class MultiplayerService {
   public myId: string = '';
 
   initialize(onId: (id: string) => void) {
-    // Connect to default PeerJS server (public)
-    this.peer = new Peer();
-    
-    this.peer.on('open', (id) => {
-      this.myId = id;
-      onId(id);
-    });
+    // Helper to create a peer with a short, random ID
+    const createPeer = () => {
+        // Generate a short ID: "MW-" + 4 random uppercase alphanumeric characters
+        // Example: MW-X92Z
+        const shortId = 'MW-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+        
+        const peer = new Peer(shortId);
+        
+        peer.on('open', (id) => {
+            this.peer = peer;
+            this.myId = id;
+            onId(id);
+        });
 
-    // Handle incoming connections (HOST logic)
-    this.peer.on('connection', (conn) => {
-      this.setupConnection(conn);
-    });
+        // Handle incoming connections (HOST logic)
+        peer.on('connection', (conn) => {
+            this.setupConnection(conn);
+        });
+
+        peer.on('error', (err: any) => {
+            console.warn("Peer initialization error:", err.type, err);
+            if (err.type === 'unavailable-id') {
+                // ID collision, try again with a new random ID
+                peer.destroy();
+                createPeer();
+            }
+        });
+    };
+
+    createPeer();
   }
 
   // Connect to another peer (CLIENT logic)
   connectToPeer(peerId: string) {
-    if (!this.peer) return;
-    const conn = this.peer.connect(peerId);
-    this.setupConnection(conn);
+    // If we haven't initialized our own peer yet (Client side might need one to connect)
+    if (!this.peer) {
+         // Create a temporary peer for the client to connect from
+         this.peer = new Peer();
+         this.peer.on('open', () => {
+             this.doConnect(peerId);
+         });
+         this.peer.on('error', (err) => console.error("Client Peer Error", err));
+    } else {
+        this.doConnect(peerId);
+    }
+  }
+
+  private doConnect(peerId: string) {
+      if (!this.peer) return;
+      // Ensure peerId is uppercase/trimmed as users might type loosely
+      const cleanId = peerId.trim().toUpperCase();
+      const conn = this.peer.connect(cleanId);
+      this.setupConnection(conn);
   }
 
   private setupConnection(conn: DataConnection) {

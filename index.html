@@ -4,7 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#3b82f6" />
+    <link rel="manifest" href="/manifest.json" />
     <title>Stick Army: Legacy</title>
     <!-- Keeping Tailwind CDN for styling to minimize configuration overhead -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -18,6 +21,8 @@
         color: #e5e5e5;
         overflow: hidden; /* Prevent body scroll, handle in app */
         touch-action: none; /* Prevent default touch actions like pull-to-refresh */
+        user-select: none;
+        -webkit-user-select: none;
       }
       
       .font-sketch {
@@ -245,6 +250,17 @@
         50% { transform: scaleX(0.6); }
       }
       .animate-wing-flap { transform-origin: 20px 0px; animation: wing-flap 0.5s ease-in-out infinite; }
+
+      @keyframes gargoyle-wing-flap {
+        0%, 100% { transform: scale(1, 1); }
+        50% { transform: scale(0.95, 0.75); }
+      }
+      .animate-gargoyle-wing-flap { 
+        transform-origin: 50px 45px; 
+        animation: gargoyle-wing-flap 0.4s ease-in-out infinite;
+      }
+      
+      /* DEATH ANIMATIONS */
       
       @keyframes death-fall-back {
         0% { transform: rotate(0deg) translateY(0); opacity: 1; }
@@ -266,6 +282,33 @@
       }
       .animate-death-puddle { transform-origin: bottom center; animation: death-puddle 1s ease-out forwards !important; }
 
+      @keyframes death-crumble {
+        0% { transform: translateY(0); opacity: 1; }
+        20% { transform: translateY(5px) skewX(20deg); }
+        100% { transform: translateY(40px) scaleY(0.1); opacity: 0; }
+      }
+      .animate-death-crumble { transform-origin: bottom center; animation: death-crumble 1s ease-out forwards !important; }
+
+      @keyframes death-shatter {
+        0% { transform: scale(1); opacity: 1; }
+        30% { transform: scale(1.1) rotate(5deg); opacity: 1; }
+        100% { transform: scale(0.8) rotate(45deg) translateY(20px); opacity: 0; }
+      }
+      .animate-death-shatter { transform-origin: center; animation: death-shatter 0.8s ease-in forwards !important; }
+
+      @keyframes death-vanish {
+        0% { transform: scale(1); opacity: 1; filter: blur(0px); }
+        100% { transform: scale(2); opacity: 0; filter: blur(10px); }
+      }
+      .animate-death-vanish { transform-origin: center; animation: death-vanish 0.8s ease-out forwards !important; }
+
+      @keyframes death-crash {
+        0% { transform: rotate(0deg); opacity: 1; }
+        30% { transform: rotate(-10deg); opacity: 1; }
+        100% { transform: rotate(90deg) translateY(30px); opacity: 0; }
+      }
+      .animate-death-crash { transform-origin: 50px 90px; animation: death-crash 1.4s cubic-bezier(0.6, 0, 0.4, 1) forwards !important; }
+
       @keyframes flag-wave {
         0%, 100% { transform: skewY(0deg) scaleX(1); }
         50% { transform: skewY(5deg) scaleX(0.95); }
@@ -277,6 +320,24 @@
         50% { transform: translateY(-3px); }
       }
       .animate-statue-idle { animation: statue-float-subtle 4s ease-in-out infinite; }
+
+      /* INTRO ANIMATIONS */
+      @keyframes intro-fade {
+          0% { opacity: 0; transform: scale(0.9); }
+          20% { opacity: 1; transform: scale(1); }
+          80% { opacity: 1; transform: scale(1); }
+          100% { opacity: 0; transform: scale(1.1); }
+      }
+      .animate-intro-fade { animation: intro-fade 2s ease-in-out forwards; }
+
+      @keyframes logo-slam {
+          0% { opacity: 0; transform: scale(5); }
+          20% { opacity: 1; transform: scale(1); }
+          25% { transform: scale(1.1); }
+          30% { transform: scale(1); }
+          100% { opacity: 1; transform: scale(1); }
+      }
+      .animate-logo-slam { animation: logo-slam 3s ease-out forwards; }
 
     </style>
 <script type="importmap">

@@ -33,9 +33,15 @@ export const StickmanRender: React.FC<StickmanProps> = ({
   // -- ANIMATION CLASS SELECTOR --
   let animClass = "";
   if (isDying) {
-    if (type === UnitType.SLIME) animClass = "animate-death-puddle";
-    else if (type === UnitType.WORKER || type === UnitType.MAGE) animClass = "animate-death-slump";
-    else animClass = "animate-death-fall-back";
+    switch (type) {
+        case UnitType.SLIME: animClass = "animate-death-puddle"; break;
+        case UnitType.WORKER: animClass = "animate-death-slump"; break;
+        case UnitType.ARCHER: animClass = "animate-death-crumble"; break;
+        case UnitType.GARGOYLE: animClass = "animate-death-shatter"; break;
+        case UnitType.MAGE: animClass = "animate-death-vanish"; break;
+        case UnitType.TITAN: animClass = "animate-death-crash"; break;
+        default: animClass = "animate-death-fall-back"; break; // Warrior and others
+    }
   } else if (isDepositing) {
     animClass = "animate-worker-deposit";
   } else if (isAttacking || isMining) {
@@ -390,7 +396,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
         // Wings
         const wingColor = isPlayer ? "#cbd5e1" : "#57534e";
         return (
-           <g className={isMoving ? "animate-wing-flap" : ""} style={{ transformOrigin: "50px 40px" }}>
+           <g className={isMoving ? "animate-gargoyle-wing-flap" : ""} style={{ transformOrigin: "50px 45px" }}>
               <path d="M35 45 Q 10 20 5 40 L 25 55 Z" fill={wingColor} stroke={secondaryColor} />
               <path d="M65 45 Q 90 20 95 40 L 75 55 Z" fill={wingColor} stroke={secondaryColor} />
            </g>

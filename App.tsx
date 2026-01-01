@@ -13,18 +13,19 @@ import {
 import { UnitCard } from './components/UnitCard';
 import { ArmyVisuals } from './components/ArmyVisuals';
 import { LandingPage } from './components/LandingPage';
+import { IntroSequence } from './components/IntroSequence';
 import { AudioService } from './services/audioService';
 import { mpService } from './services/multiplayerService';
 import { Coins, Shield, Swords, RefreshCw, Users, X, MoveHorizontal, Music, VolumeX, CornerDownLeft } from 'lucide-react';
 
 // --- SUB-COMPONENTS ---
 
-const GoldMine: React.FC<{ x: number; isEnemy?: boolean }> = ({ x, isEnemy }) => (
+const GoldMine: React.FC<{ x: number; isFlipped?: boolean }> = ({ x, isFlipped }) => (
   <div 
     className="absolute bottom-28 w-24 h-24 z-0 pointer-events-none"
     style={{ left: `${x}%`, transform: 'translateX(-50%)' }}
   >
-     <div className={`w-full h-full ${isEnemy ? 'scale-x-[-1]' : ''}`}>
+     <div className={`w-full h-full ${isFlipped ? 'scale-x-[-1]' : ''}`}>
         <svg viewBox="0 0 100 100" className="drop-shadow-lg overflow-visible">
            {/* Rock Mound */}
            <path d="M10 100 L 25 60 L 75 60 L 90 100 Z" fill="#44403c" stroke="#292524" strokeWidth="2" />
@@ -43,8 +44,9 @@ const GoldMine: React.FC<{ x: number; isEnemy?: boolean }> = ({ x, isEnemy }) =>
   </div>
 );
 
-const BaseStatue: React.FC<{ x: number; hp: number; isEnemy?: boolean }> = ({ x, hp, isEnemy }) => {
+const BaseStatue: React.FC<{ x: number; hp: number; variant: 'BLUE' | 'RED'; isFlipped?: boolean }> = ({ x, hp, variant, isFlipped }) => {
     const hpPercent = Math.max(0, (hp / STATUE_HP) * 100);
+    const isRed = variant === 'RED';
     return (
         <div 
             className="absolute bottom-24 w-40 h-56 z-5 pointer-events-none"
@@ -53,19 +55,19 @@ const BaseStatue: React.FC<{ x: number; hp: number; isEnemy?: boolean }> = ({ x,
             {/* HP Bar */}
             <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-32 h-4 bg-black/70 rounded border border-white/20 p-1 mb-2">
                 <div 
-                    className={`h-full rounded-sm transition-all duration-300 ${isEnemy ? 'bg-red-600' : 'bg-blue-500'}`} 
+                    className={`h-full rounded-sm transition-all duration-300 ${isRed ? 'bg-red-600' : 'bg-blue-500'}`} 
                     style={{ width: `${hpPercent}%` }}
                 />
             </div>
             
-            <div className={`w-full h-full ${isEnemy ? 'scale-x-[-1]' : ''}`}>
+            <div className={`w-full h-full ${isFlipped ? 'scale-x-[-1]' : ''}`}>
                 <svg viewBox="0 0 100 140" className="drop-shadow-2xl overflow-visible">
                     {/* Base */}
                     <path d="M10 140 L 20 120 L 80 120 L 90 140 Z" fill="#57534e" stroke="black" strokeWidth="2" />
                     
-                    {isEnemy ? (
+                    {isRed ? (
                         <g>
-                            {/* Enemy Totem */}
+                            {/* Enemy Totem (Red) */}
                             <path d="M30 120 L 35 20 L 65 20 L 70 120 Z" fill="#450a0a" stroke="black" strokeWidth="2" />
                             <path d="M20 40 L 80 40 L 50 100 Z" fill="#7f1d1d" opacity="0.5" />
                             {/* Skulls */}
@@ -80,7 +82,7 @@ const BaseStatue: React.FC<{ x: number; hp: number; isEnemy?: boolean }> = ({ x,
                         </g>
                     ) : (
                         <g>
-                            {/* Player Crystal */}
+                            {/* Player Crystal (Blue) */}
                             <path d="M35 120 L 40 80 L 30 50 L 50 10 L 70 50 L 60 80 L 65 120 Z" fill="#1e293b" stroke="#64748b" strokeWidth="2" />
                             <path d="M50 10 L 50 120" stroke="#3b82f6" strokeWidth="1" opacity="0.6" />
                             <path d="M30 50 L 70 50" stroke="#3b82f6" strokeWidth="1" opacity="0.6" />
@@ -102,16 +104,15 @@ const BaseStatue: React.FC<{ x: number; hp: number; isEnemy?: boolean }> = ({ x,
 
 const TICK_RATE = 50; // ms
 const ACCELERATION = 20; // Units per second squared
-const DEATH_DURATION = 1000; // ms to keep dying units visible
+const DEATH_DURATION = 1500; // ms to keep dying units visible
 const INITIAL_GOLD = 400;
 
 const App: React.FC = () => {
   // --- APP NAVIGATION STATE ---
-  const [appMode, setAppMode] = useState<'LANDING' | 'GAME'>('LANDING');
+  const [appMode, setAppMode] = useState<'INTRO' | 'LANDING' | 'GAME'>('INTRO');
   const [role, setRole] = useState<PlayerRole>(PlayerRole.HOST);
 
   // --- GAME STATE ---
-  const [command, setCommand] = useState<GameCommand>(GameCommand.DEFEND);
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const [isArmyMenuOpen, setIsArmyMenuOpen] = useState(false);
   const [isMusicEnabled, setIsMusicEnabled] = useState(false); // Music state
@@ -128,6 +129,8 @@ const App: React.FC = () => {
     enemyStatueHP: STATUE_HP,
     p1Gold: INITIAL_GOLD,
     p2Gold: INITIAL_GOLD,
+    p1Command: GameCommand.DEFEND,
+    p2Command: GameCommand.DEFEND,
     lastTick: Date.now(),
     gameStatus: 'PLAYING'
   });
@@ -136,11 +139,15 @@ const App: React.FC = () => {
   
   // Refs for loop to avoid stale closures
   const stateRef = useRef(gameState);
-  const commandRef = useRef(command);
   
   // Sync refs
   useEffect(() => { stateRef.current = gameState; }, [gameState]);
-  useEffect(() => { commandRef.current = command; }, [command]);
+
+  // --- VIEW TRANSFORMATION ---
+  const isMirrored = role === PlayerRole.CLIENT;
+  const getVisualX = useCallback((x: number) => {
+      return isMirrored ? 100 - x : x;
+  }, [isMirrored]);
 
   // --- NAVIGATION HANDLERS ---
   const handleStartHost = () => {
@@ -186,12 +193,12 @@ const App: React.FC = () => {
                 setGameState(msg.payload);
             }
         } else {
-            // HOST LOGIC: Receive Commands
+            // HOST LOGIC: Receive Requests
             if (msg.type === 'RECRUIT_REQUEST') {
                 handleHostRecruitEnemy(msg.payload.unitType);
             }
-            if (msg.type === 'COMMAND_UPDATE') {
-                // Future implementation
+            if (msg.type === 'CLIENT_COMMAND_REQUEST') {
+                setGameState(prev => ({ ...prev, p2Command: msg.payload.command }));
             }
             if (msg.type === 'GAME_RESET') {
                 resetGame();
@@ -265,6 +272,17 @@ const App: React.FC = () => {
         }
     }
   };
+  
+  const handleCommandChange = (newCommand: GameCommand) => {
+      AudioService.playSelect();
+      if (role === PlayerRole.HOST) {
+          setGameState(prev => ({ ...prev, p1Command: newCommand }));
+      } else {
+          // Optimistic UI update or wait for server? Wait for server is safer but slightly laggy.
+          // Let's just send request. Button highlight will update when state comes back.
+          mpService.send({ type: 'CLIENT_COMMAND_REQUEST', payload: { command: newCommand } });
+      }
+  };
 
   const handleSelectUnit = (id: string) => {
     AudioService.playSelect();
@@ -280,11 +298,12 @@ const App: React.FC = () => {
             enemyStatueHP: STATUE_HP,
             p1Gold: INITIAL_GOLD,
             p2Gold: INITIAL_GOLD,
+            p1Command: GameCommand.DEFEND,
+            p2Command: GameCommand.DEFEND,
             lastTick: Date.now(),
             gameStatus: 'PLAYING'
         };
         setGameState(newState);
-        setCommand(GameCommand.DEFEND);
         setLogs([]);
         setSelectedUnitId(null);
         addLog("Battle Reset!", "info");
@@ -340,10 +359,7 @@ const App: React.FC = () => {
       let p1Gold = stateRef.current.p1Gold;
       let p2Gold = stateRef.current.p2Gold;
 
-      // Logic removed for brevity in this response, assumed unchanged
-      // ... (Same game logic as before) ...
-      
-      // Re-implementing just the simplified update logic for the diff
+      // UPDATE LOGIC
       currentUnits.forEach(unit => {
         if (unit.state === 'DYING') return;
         const config = UNIT_CONFIGS[unit.type];
@@ -448,9 +464,10 @@ const App: React.FC = () => {
                 const dirToTarget = target ? (unit.x < target.x ? 1 : -1) : dirToStatue;
 
                 if (isPlayer) {
-                    if (commandRef.current === GameCommand.ATTACK) {
+                    const cmd = stateRef.current.p1Command;
+                    if (cmd === GameCommand.ATTACK) {
                          moveDir = dirToStatue; 
-                    } else if (commandRef.current === GameCommand.DEFEND) { 
+                    } else if (cmd === GameCommand.DEFEND) { 
                         const DEFEND_LINE = 30;
                         const THREAT_RANGE = 50; 
                         if (target && target.x < THREAT_RANGE && Math.abs(target.x - unit.x) < config.stats.range + 10) {
@@ -460,14 +477,35 @@ const App: React.FC = () => {
                             else if (unit.x < DEFEND_LINE - 1) moveDir = 1; 
                             else moveDir = 0; 
                         }
-                    } else if (commandRef.current === GameCommand.RETREAT) {
+                    } else if (cmd === GameCommand.RETREAT) {
                         const BASE_POS = 10;
                         if (unit.x > BASE_POS) moveDir = -1;
                         else if (unit.x < BASE_POS - 2) moveDir = 1;
                         else moveDir = 0;
                     }
                 } else {
-                    moveDir = dirToStatue;
+                    // ENEMY (RED / P2) LOGIC
+                    const cmd = stateRef.current.p2Command;
+                    if (cmd === GameCommand.ATTACK) {
+                         moveDir = dirToStatue; // -1
+                    } else if (cmd === GameCommand.DEFEND) {
+                        const DEFEND_LINE = 70; // Mirror of 30
+                        const THREAT_RANGE = 50; // Midfield
+                        // If P1 unit crosses 50, engage
+                        if (target && target.x > THREAT_RANGE && Math.abs(target.x - unit.x) < config.stats.range + 10) {
+                            moveDir = dirToTarget;
+                        } else {
+                            // Go to 70
+                            if (unit.x < DEFEND_LINE - 1) moveDir = 1;
+                            else if (unit.x > DEFEND_LINE + 1) moveDir = -1;
+                            else moveDir = 0;
+                        }
+                    } else if (cmd === GameCommand.RETREAT) {
+                         const BASE_POS = 90; // Mirror of 10
+                         if (unit.x < BASE_POS - 1) moveDir = 1;
+                         else if (unit.x > BASE_POS + 1) moveDir = -1;
+                         else moveDir = 0;
+                    }
                 }
                 if (moveDir === 0) {
                     unit.state = 'IDLE';
@@ -522,6 +560,8 @@ const App: React.FC = () => {
         enemyStatueHP: eStatueHP,
         p1Gold,
         p2Gold,
+        p1Command: stateRef.current.p1Command, // Persist
+        p2Command: stateRef.current.p2Command, // Persist
         lastTick: now,
         gameStatus: newStatus
       };
@@ -534,11 +574,16 @@ const App: React.FC = () => {
     return () => clearInterval(intervalId);
   }, [role, appMode]);
 
+  if (appMode === 'INTRO') {
+      return <IntroSequence onComplete={() => setAppMode('LANDING')} />;
+  }
+
   if (appMode === 'LANDING') {
       return <LandingPage onStartHost={handleStartHost} onStartClient={handleStartClient} />;
   }
 
   const currentGold = role === PlayerRole.HOST ? gameState.p1Gold : gameState.p2Gold;
+  const currentCommand = role === PlayerRole.HOST ? gameState.p1Command : gameState.p2Command;
 
   return (
     <div className="h-screen w-screen bg-black overflow-hidden relative touch-none">
@@ -567,38 +612,27 @@ const App: React.FC = () => {
                 
                 <div className="h-8 w-px bg-white/20"></div>
                 
-                {/* Commands (Host Only) */}
-                {role === PlayerRole.HOST && (
-                    <div className="flex gap-1 sm:gap-2">
-                        <button 
-                            onClick={() => {
-                                AudioService.playSelect();
-                                setCommand(GameCommand.ATTACK);
-                            }}
-                            className={`p-1.5 sm:p-2 rounded flex items-center gap-1 sm:gap-2 font-bold transition-all border-b-4 active:border-b-0 active:translate-y-1 ${command === GameCommand.ATTACK ? 'bg-red-600 border-red-800' : 'bg-gray-700 border-gray-900 text-gray-400'}`}
-                        >
-                            <Swords size={16} /> <span className="hidden md:inline">ATTACK</span>
-                        </button>
-                        <button 
-                            onClick={() => {
-                                AudioService.playSelect();
-                                setCommand(GameCommand.DEFEND);
-                            }}
-                            className={`p-1.5 sm:p-2 rounded flex items-center gap-1 sm:gap-2 font-bold transition-all border-b-4 active:border-b-0 active:translate-y-1 ${command === GameCommand.DEFEND ? 'bg-blue-600 border-blue-800' : 'bg-gray-700 border-gray-900 text-gray-400'}`}
-                        >
-                            <Shield size={16} /> <span className="hidden md:inline">DEFEND</span>
-                        </button>
-                        <button 
-                            onClick={() => {
-                                AudioService.playSelect();
-                                setCommand(GameCommand.RETREAT);
-                            }}
-                            className={`p-1.5 sm:p-2 rounded flex items-center gap-1 sm:gap-2 font-bold transition-all border-b-4 active:border-b-0 active:translate-y-1 ${command === GameCommand.RETREAT ? 'bg-orange-600 border-orange-800' : 'bg-gray-700 border-gray-900 text-gray-400'}`}
-                        >
-                            <CornerDownLeft size={16} /> <span className="hidden md:inline">RETREAT</span>
-                        </button>
-                    </div>
-                )}
+                {/* Commands */}
+                <div className="flex gap-1 sm:gap-2">
+                    <button 
+                        onClick={() => handleCommandChange(GameCommand.ATTACK)}
+                        className={`p-1.5 sm:p-2 rounded flex items-center gap-1 sm:gap-2 font-bold transition-all border-b-4 active:border-b-0 active:translate-y-1 ${currentCommand === GameCommand.ATTACK ? 'bg-red-600 border-red-800' : 'bg-gray-700 border-gray-900 text-gray-400'}`}
+                    >
+                        <Swords size={16} /> <span className="hidden md:inline">ATTACK</span>
+                    </button>
+                    <button 
+                        onClick={() => handleCommandChange(GameCommand.DEFEND)}
+                        className={`p-1.5 sm:p-2 rounded flex items-center gap-1 sm:gap-2 font-bold transition-all border-b-4 active:border-b-0 active:translate-y-1 ${currentCommand === GameCommand.DEFEND ? 'bg-blue-600 border-blue-800' : 'bg-gray-700 border-gray-900 text-gray-400'}`}
+                    >
+                        <Shield size={16} /> <span className="hidden md:inline">DEFEND</span>
+                    </button>
+                    <button 
+                        onClick={() => handleCommandChange(GameCommand.RETREAT)}
+                        className={`p-1.5 sm:p-2 rounded flex items-center gap-1 sm:gap-2 font-bold transition-all border-b-4 active:border-b-0 active:translate-y-1 ${currentCommand === GameCommand.RETREAT ? 'bg-orange-600 border-orange-800' : 'bg-gray-700 border-gray-900 text-gray-400'}`}
+                    >
+                        <CornerDownLeft size={16} /> <span className="hidden md:inline">RETREAT</span>
+                    </button>
+                </div>
                 
                 {/* Army Button */}
                 <button
@@ -646,8 +680,11 @@ const App: React.FC = () => {
 
           {/* BATTLEFIELD CONTAINER (Scrollable) */}
           <div className="absolute inset-0 pointer-events-none z-0">
-             <div className="absolute top-10 right-20 w-32 h-32 rounded-full bg-yellow-200 blur-2xl opacity-40"></div>
-             <div className="absolute top-20 left-40 w-64 h-24 bg-white/10 blur-3xl rounded-full"></div>
+             {/* Background elements flipped if mirrored so Sun appears on "Enemy" side for Red Player too */}
+             <div className={`w-full h-full relative ${isMirrored ? 'scale-x-[-1]' : ''}`}>
+                 <div className="absolute top-10 right-20 w-32 h-32 rounded-full bg-yellow-200 blur-2xl opacity-40"></div>
+                 <div className="absolute top-20 left-40 w-64 h-24 bg-white/10 blur-3xl rounded-full"></div>
+             </div>
           </div>
           
           <div 
@@ -657,17 +694,28 @@ const App: React.FC = () => {
             onMouseLeave={handleMouseLeave}
             onMouseUp={handleMouseUp}
             onMouseMove={handleMouseMove}
-            // Enable native touch scrolling by default with overflow-x-auto, but we can add handlers if we wanted specific behavior
           >
              {/* The World Content: 300% Width */}
              <div className="w-[300%] h-full relative">
                  <div className="absolute bottom-0 w-full h-28 ground-layer z-0 shadow-2xl"></div>
 
-                 <GoldMine x={GOLD_MINE_PLAYER_X} />
-                 <GoldMine x={GOLD_MINE_ENEMY_X} isEnemy />
+                 {/* Gold Mines - Visual Flip applied based on mirrored state */}
+                 <GoldMine x={getVisualX(GOLD_MINE_PLAYER_X)} isFlipped={isMirrored} />
+                 <GoldMine x={getVisualX(GOLD_MINE_ENEMY_X)} isFlipped={!isMirrored} />
 
-                 <BaseStatue x={STATUE_PLAYER_POS} hp={gameState.playerStatueHP} />
-                 <BaseStatue x={STATUE_ENEMY_POS} isEnemy hp={gameState.enemyStatueHP} />
+                 {/* Statues - Variant determines Art, Mirrored determines Position and Facing */}
+                 <BaseStatue 
+                    x={getVisualX(STATUE_PLAYER_POS)} 
+                    hp={gameState.playerStatueHP} 
+                    variant="BLUE" 
+                    isFlipped={isMirrored} 
+                 />
+                 <BaseStatue 
+                    x={getVisualX(STATUE_ENEMY_POS)} 
+                    hp={gameState.enemyStatueHP} 
+                    variant="RED" 
+                    isFlipped={!isMirrored} 
+                 />
 
                  <div className="absolute bottom-24 left-0 right-0 h-48 z-10 pointer-events-none">
                      <div className="w-full h-full relative pointer-events-auto">
@@ -675,6 +723,7 @@ const App: React.FC = () => {
                             units={gameState.units} 
                             selectedUnitId={selectedUnitId}
                             onSelectUnit={handleSelectUnit}
+                            isMirrored={isMirrored}
                         />
                      </div>
                  </div>
@@ -707,6 +756,7 @@ const App: React.FC = () => {
                         count={count}
                         canAfford={currentGold >= unit.cost}
                         onRecruit={handleRecruit}
+                        variant={role === PlayerRole.HOST ? 'BLUE' : 'RED'}
                     />
                 );
             })}
