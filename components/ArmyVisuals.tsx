@@ -1,5 +1,5 @@
 import React from 'react';
-import { GameUnit } from '../types';
+import { GameUnit, UnitType } from '../types';
 import { StickmanRender } from './StickmanRender';
 
 interface ArmyVisualsProps {
@@ -18,7 +18,24 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({ units, selectedUnitId,
         const isMining = unit.state === 'MINING' || unit.state === 'ATTACKING'; 
         const isDepositing = unit.state === 'DEPOSITING';
         
-        const depthOffset = parseInt(unit.id.slice(-2), 16) % 20; 
+        // Random jitter for depth to prevent perfect stacking within rows
+        const depthJitter = parseInt(unit.id.slice(-2), 16) % 15; 
+
+        // Row Logic: Define base depth offset (pixels from bottom)
+        // Front Row (Closer to camera, bottom of container): Toxic
+        // Second Row (Middle): Paladin
+        // Third Row (Further from camera, top of container): Archer, Mage, Boss, Worker
+        let baseDepth = 50; // Default Back Row
+        
+        if (unit.type === UnitType.TOXIC) {
+            baseDepth = 0; // Front Row
+        } else if (unit.type === UnitType.PALADIN) {
+            baseDepth = 25; // Second Row
+        } else {
+            baseDepth = 50; // Third Row
+        }
+
+        const depthOffset = baseDepth + depthJitter;
 
         // Calculate visual position
         // If mirrored (Client view), the world is flipped horizontally: x -> 100 - x
@@ -28,6 +45,9 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({ units, selectedUnitId,
         // Standard (Host): Player(Blue)=1 (Right), Enemy(Red)=-1 (Left)
         // Mirrored (Client): Player(Blue)=-1 (Left), Enemy(Red)=1 (Right)
         const facingScale = (isPlayer ? 1 : -1) * (isMirrored ? -1 : 1);
+
+        // We use transform for centering (-50%), depth offset (Y), and facing direction.
+        const transformString = `translate3d(-50%, -${depthOffset}px, 0) scaleX(${facingScale})`;
 
         return (
           <div 
@@ -39,8 +59,8 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({ units, selectedUnitId,
             }}
             style={{
                left: `${visualX}%`,
-               transform: `translateX(-50%) scaleX(${facingScale}) translateY(-${depthOffset}px)`,
-               zIndex: isDying ? 0 : 100 - depthOffset,
+               transform: transformString,
+               zIndex: isDying ? 0 : 100 - depthOffset, // Closer units (lower offset) have higher Z
                width: '80px',
                height: '80px'
             }}

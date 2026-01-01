@@ -34,7 +34,7 @@ export const IntroSequence: React.FC<IntroSequenceProps> = ({ onComplete }) => {
 
       {step === 0 && (
         <div className="z-10 text-center animate-pulse">
-          <h1 className="text-3xl sm:text-5xl font-epic mb-8 tracking-widest text-stone-300">STICK ARMY</h1>
+          <h1 className="text-3xl sm:text-5xl font-epic mb-8 tracking-widest text-stone-300">SLIME WARS</h1>
           <div className="border border-white/20 bg-white/5 px-8 py-3 rounded text-sm font-mono hover:bg-white/10 transition-colors">
             CLICK TO INITIALIZE
           </div>
@@ -55,11 +55,11 @@ export const IntroSequence: React.FC<IntroSequenceProps> = ({ onComplete }) => {
 
       {step === 3 && (
         <div className="z-10 text-center animate-logo-slam">
-            <h1 className="text-6xl sm:text-8xl font-epic text-transparent bg-clip-text bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-800 drop-shadow-[0_0_25px_rgba(234,179,8,0.6)]">
-                STICK ARMY
+            <h1 className="text-6xl sm:text-8xl font-epic text-transparent bg-clip-text bg-gradient-to-b from-green-300 via-lime-500 to-green-800 drop-shadow-[0_0_25px_rgba(132,204,22,0.6)]">
+                SLIME WARS
             </h1>
             <p className="text-3xl sm:text-5xl text-stone-400 font-mono tracking-[0.5em] mt-2 sm:mt-4 border-t border-stone-800 pt-4">
-                LEGACY
+                SAGA
             </p>
         </div>
       )}

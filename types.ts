@@ -1,11 +1,10 @@
 export enum UnitType {
-  WORKER = 'WORKER',
-  SLIME = 'SLIME',
-  WARRIOR = 'WARRIOR',
-  ARCHER = 'ARCHER',
-  GARGOYLE = 'GARGOYLE',
-  MAGE = 'MAGE',
-  TITAN = 'TITAN'
+  WORKER = 'WORKER',    // Slime Miner
+  TOXIC = 'TOXIC',      // Toxic Slime (Ranged/Poison)
+  ARCHER = 'ARCHER',    // Archer Slime
+  PALADIN = 'PALADIN',  // Paladin Slime (Tank)
+  MAGE = 'MAGE',        // Mage Slime
+  BOSS = 'BOSS'         // Big Slime
 }
 
 export interface UnitStats {
@@ -83,11 +82,13 @@ export interface EnemyArmy {
 
 export enum PlayerRole {
   HOST = 'HOST',
-  CLIENT = 'CLIENT'
+  CLIENT = 'CLIENT',
+  OFFLINE = 'OFFLINE'
 }
 
 export type NetworkMessage = 
   | { type: 'GAME_STATE_UPDATE'; payload: GameState }
   | { type: 'RECRUIT_REQUEST'; payload: { unitType: UnitType } }
   | { type: 'CLIENT_COMMAND_REQUEST'; payload: { command: GameCommand } }
-  | { type: 'GAME_RESET'; payload: {} };
+  | { type: 'GAME_RESET'; payload: {} }
+  | { type: 'SURRENDER'; payload: {} };

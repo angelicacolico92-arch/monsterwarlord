@@ -13,58 +13,52 @@ export const STATUE_ENEMY_POS = 98;
 export const GOLD_MINE_PLAYER_X = 12; 
 export const GOLD_MINE_ENEMY_X = 88;
 
-export const ATTACK_RANGE_MELEE = 1; // Reduced % because map is 3x wider
-export const ATTACK_RANGE_RANGED = 15; // Reduced % because map is 3x wider
+export const ATTACK_RANGE_MELEE = 1.5; 
+export const ATTACK_RANGE_RANGED = 15; 
+export const ATTACK_RANGE_MAGIC = 12;
 
 export const UNIT_CONFIGS: Record<UnitType, UnitConfig> = {
   [UnitType.WORKER]: {
     type: UnitType.WORKER,
-    name: 'Goblin Miner',
+    name: 'Slime Miner',
     cost: 50,
-    stats: { hp: 50, maxHp: 50, damage: 2, range: ATTACK_RANGE_MELEE, speed: 4, attackSpeed: 1000 },
-    description: 'Greedy goblin. Mines gold quickly.'
+    stats: { hp: 60, maxHp: 60, damage: 5, range: ATTACK_RANGE_MELEE, speed: 4, attackSpeed: 1000 },
+    description: 'Hard-working slime with a mining hat. Gathers gold.'
   },
-  [UnitType.SLIME]: {
-    type: UnitType.SLIME,
+  [UnitType.TOXIC]: {
+    type: UnitType.TOXIC,
     name: 'Toxic Slime',
-    cost: 80,
-    stats: { hp: 100, maxHp: 100, damage: 15, range: ATTACK_RANGE_MELEE, speed: 2.5, attackSpeed: 1000 },
-    description: 'Resilient blob that absorbs damage.'
-  },
-  [UnitType.WARRIOR]: {
-    type: UnitType.WARRIOR,
-    name: 'Orc Grunt',
-    cost: 125,
-    stats: { hp: 120, maxHp: 120, damage: 20, range: ATTACK_RANGE_MELEE, speed: 3, attackSpeed: 1000 },
-    description: 'Tough infantry with a brutal axe.'
+    cost: 90,
+    stats: { hp: 100, maxHp: 100, damage: 12, range: 8, speed: 3.5, attackSpeed: 1200 },
+    description: 'Spits corrosive acid from a distance.'
   },
   [UnitType.ARCHER]: {
     type: UnitType.ARCHER,
-    name: 'Skeleton Archer',
-    cost: 300,
-    stats: { hp: 80, maxHp: 80, damage: 15, range: ATTACK_RANGE_RANGED, speed: 3.5, attackSpeed: 1200 },
-    description: 'Ranged undead attacker.'
+    name: 'Archer Slime',
+    cost: 150,
+    stats: { hp: 90, maxHp: 90, damage: 18, range: ATTACK_RANGE_RANGED, speed: 3, attackSpeed: 1100 },
+    description: 'Equipped with a gelatinous bow.'
   },
-  [UnitType.GARGOYLE]: {
-    type: UnitType.GARGOYLE,
-    name: 'Stone Gargoyle',
-    cost: 450,
-    stats: { hp: 300, maxHp: 300, damage: 35, range: ATTACK_RANGE_MELEE, speed: 4.5, attackSpeed: 1200 },
-    description: 'Fast flying unit made of stone.'
+  [UnitType.PALADIN]: {
+    type: UnitType.PALADIN,
+    name: 'Paladin Slime',
+    cost: 250,
+    stats: { hp: 350, maxHp: 350, damage: 25, range: ATTACK_RANGE_MELEE, speed: 2.5, attackSpeed: 1300 },
+    description: 'Holy tank slime with a shield. Absorbs damage.'
   },
   [UnitType.MAGE]: {
     type: UnitType.MAGE,
-    name: 'Shadow Shaman',
-    cost: 1000,
-    stats: { hp: 200, maxHp: 200, damage: 60, range: 12, speed: 1.5, attackSpeed: 2500 },
-    description: 'Casts dark spells.'
+    name: 'Mage Slime',
+    cost: 500,
+    stats: { hp: 150, maxHp: 150, damage: 45, range: ATTACK_RANGE_MAGIC, speed: 2, attackSpeed: 2000 },
+    description: 'Casts powerful arcane blobs.'
   },
-  [UnitType.TITAN]: {
-    type: UnitType.TITAN,
-    name: 'Ogre Behemoth',
-    cost: 600,
-    stats: { hp: 400, maxHp: 400, damage: 40, range: ATTACK_RANGE_MELEE, speed: 2, attackSpeed: 1500 },
-    description: 'Massive tank unit.'
+  [UnitType.BOSS]: {
+    type: UnitType.BOSS,
+    name: 'Big Slime',
+    cost: 900,
+    stats: { hp: 1000, maxHp: 1000, damage: 80, range: ATTACK_RANGE_MELEE, speed: 1.5, attackSpeed: 1800 },
+    description: 'The massive King of Slimes.'
   }
 };
 

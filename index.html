@@ -8,7 +8,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="theme-color" content="#3b82f6" />
     <link rel="manifest" href="/manifest.json" />
-    <title>Stick Army: Legacy</title>
+    <title>Slime Wars: Saga</title>
     <!-- Keeping Tailwind CDN for styling to minimize configuration overhead -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -92,26 +92,14 @@
       }
 
       /* Animation Definitions */
+      
+      /* GENERIC ATTACKS (Legacy but maybe used) */
       @keyframes attack-lunge {
         0%, 100% { transform: translateX(0) rotate(0deg); }
         25% { transform: translateX(-5px) rotate(-5deg); }
         50% { transform: translateX(15px) rotate(10deg); }
       }
       .animate-attack { animation: attack-lunge 0.8s ease-in-out infinite; }
-
-      @keyframes melee-swing {
-        0%, 100% { transform: rotate(0deg); }
-        25% { transform: rotate(-45deg); }
-        50% { transform: rotate(60deg); }
-        75% { transform: rotate(0deg); }
-      }
-      .animate-melee-swing { transform-origin: 50px 40px; animation: melee-swing 0.8s ease-in-out infinite; }
-
-      @keyframes bow-action {
-        0%, 100% { transform: translateX(0) rotate(0deg); }
-        50% { transform: translateX(-3px) rotate(-10deg); }
-      }
-      .animate-bow-action { transform-origin: 50px 40px; animation: bow-action 0.8s ease-in-out infinite; }
 
       @keyframes magic-pulse {
         0% { opacity: 0; r: 1; stroke-width: 0; }
@@ -120,62 +108,42 @@
       }
       .animate-magic-pulse { animation: magic-pulse 1.2s ease-out infinite; }
 
-      @keyframes warrior-crouch {
-        0%, 100% { transform: translateY(0); }
-        20% { transform: translateY(5px); } 
-        40% { transform: translateY(-2px); } 
-        60% { transform: translateY(0); }
-      }
-      .animate-warrior-crouch { animation: warrior-crouch 0.8s ease-in-out infinite; }
+      /* SLIME ANIMATIONS */
 
-      @keyframes archer-draw {
-        0%, 100% { transform: rotate(0deg) translateX(0); }
-        40% { transform: rotate(-10deg) translateX(-2px); } 
-        50% { transform: rotate(0deg) translateX(0); } 
+      @keyframes slime-idle {
+        0%, 100% { transform: scale(1, 1); }
+        50% { transform: scale(1.05, 0.95) translateY(2px); }
       }
-      .animate-archer-draw { transform-origin: 50px 90px; animation: archer-draw 0.8s ease-in-out infinite; }
+      .animate-idle-breathe { transform-origin: bottom center; animation: slime-idle 2s ease-in-out infinite; }
 
-      @keyframes mage-gather {
-        0%, 100% { filter: drop-shadow(0 0 0px transparent); transform: scale(1); }
-        40% { filter: drop-shadow(0 0 5px #60a5fa); transform: scale(1.05); } 
+      @keyframes slime-bounce {
+        0%, 100% { transform: scale(1, 1) translateY(0); }
+        50% { transform: scale(1.1, 0.9) translateY(-5px); }
       }
-      .animate-mage-gather { transform-origin: 50px 60px; animation: mage-gather 1.2s ease-in-out infinite; }
+      .animate-slime-bounce { transform-origin: bottom center; animation: slime-bounce 0.8s ease-in-out infinite; }
       
-      @keyframes worker-mine {
-        0% { transform: rotate(0deg) translateY(0); }
-        20% { transform: rotate(-15deg) translateY(-5px); }
-        40% { transform: rotate(60deg) translateY(15px); }
-        50% { transform: rotate(55deg) translateY(12px); }
-        60% { transform: rotate(60deg) translateY(15px); }
-        100% { transform: rotate(0deg) translateY(0); }
+      @keyframes slime-attack-lunge {
+        0%, 100% { transform: scale(1, 1) translateX(0); }
+        20% { transform: scale(1.2, 0.8) translateX(-5px); } /* Wind up */
+        40% { transform: scale(0.8, 1.2) translateX(15px); } /* Strike */
+        60% { transform: scale(1.05, 0.95) translateX(10px); } /* Recoil */
       }
-      .animate-worker-mine { transform-origin: 50px 90px; animation: worker-mine 1.4s ease-in-out infinite; }
-      
-      @keyframes worker-deposit {
-        0% { transform: rotate(0deg) translateY(0); }
-        30% { transform: rotate(20deg) translateY(5px); }
-        50% { transform: rotate(15deg) translateY(8px); }
-        100% { transform: rotate(0deg) translateY(0); }
-      }
-      .animate-worker-deposit { transform-origin: 50px 90px; animation: worker-deposit 1s ease-in-out infinite; }
+      .animate-slime-attack { transform-origin: bottom center; animation: slime-attack-lunge 0.8s ease-in-out infinite; }
 
-      @keyframes pick-swing {
-        0% { transform: rotate(0deg); }
-        20% { transform: rotate(-100deg); }
-        40% { transform: rotate(130deg); }
-        50% { transform: rotate(110deg); }
-        60% { transform: rotate(130deg); }
-        100% { transform: rotate(0deg); }
+      @keyframes bow-wobble {
+        0%, 100% { transform: rotate(0deg) scale(1,1); }
+        50% { transform: rotate(-5deg) scale(0.95, 1.05); }
       }
-      .animate-pick-swing { transform-origin: 50px 40px; animation: pick-swing 1.4s ease-in-out infinite; }
+      .animate-bow-action { transform-origin: center; animation: bow-wobble 0.8s ease-in-out infinite; }
+
+      /* DEATH ANIMATIONS */
       
-      @keyframes worker-impact {
-         0%, 35% { opacity: 0; transform: translate(0,0) scale(0.1); }
-         40% { opacity: 1; transform: translate(0, -5px) scale(1); }
-         60% { opacity: 1; transform: translate(8px, -15px) scale(1.2); }
-         100% { opacity: 0; transform: translate(12px, -10px) scale(0.1); }
+      @keyframes death-puddle {
+         0% { transform: scale(1); opacity: 1; }
+         50% { transform: scale(1.5, 0.5) translateY(10px); opacity: 0.8; }
+         100% { transform: scale(2, 0.1) translateY(20px); opacity: 0; }
       }
-      .animate-worker-impact { transform-box: fill-box; transform-origin: center; animation: worker-impact 1.4s ease-out infinite; }
+      .animate-death-puddle { transform-origin: bottom center; animation: death-puddle 1s ease-out forwards !important; }
 
       @keyframes impact-pop {
         0%, 45% { opacity: 0; transform: scale(0.1); }
@@ -185,142 +153,6 @@
       }
       .animate-impact-pop { transform-box: fill-box; transform-origin: center; animation: impact-pop 0.8s ease-out infinite; }
       
-      @keyframes impact-magic-burst-anim {
-         0%, 55% { opacity: 0; transform: scale(0.2); }
-         60% { opacity: 1; transform: scale(1.2); }
-         100% { opacity: 0; transform: scale(2.5); }
-      }
-      .animate-impact-magic-burst { transform-box: fill-box; transform-origin: center; animation: impact-magic-burst-anim 1.2s ease-out infinite; }
-
-      @keyframes idle-breathe {
-        0%, 100% { transform: scaleY(1); }
-        50% { transform: scaleY(1.03); }
-      }
-      .animate-idle-breathe { animation: idle-breathe 2.5s ease-in-out infinite; transform-origin: bottom center; }
-
-      @keyframes idle-float {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-4px); }
-      }
-      .animate-idle-float { animation: idle-float 3s ease-in-out infinite; }
-
-      @keyframes walk-bob {
-        0% { transform: translateY(0) rotate(0deg); }
-        25% { transform: translateY(-4px) rotate(1.5deg); }
-        50% { transform: translateY(0) rotate(0deg); }
-        75% { transform: translateY(-4px) rotate(-1.5deg); }
-        100% { transform: translateY(0) rotate(0deg); }
-      }
-      .animate-walk { animation: walk-bob 1.3s ease-in-out infinite; transform-origin: 50px 90px; }
-
-      @keyframes slime-bounce {
-        0%, 100% { transform: scale(1, 1) translateY(0); }
-        50% { transform: scale(1.1, 0.9) translateY(5px); }
-      }
-      .animate-slime-bounce { transform-origin: bottom center; animation: slime-bounce 1s ease-in-out infinite; }
-      
-      @keyframes slime-attack {
-        0%, 100% { transform: scale(1, 1) translateX(0); }
-        20% { transform: scale(1.4, 0.6) translateX(-5px); }
-        40% { transform: scale(0.8, 1.2) translateX(15px); }
-        60% { transform: scale(1.1, 0.9) translateX(10px); }
-        80% { transform: scale(0.95, 1.05) translateX(5px); }
-      }
-      .animate-slime-attack { transform-origin: bottom center; animation: slime-attack 0.8s ease-in-out infinite; }
-
-      @keyframes gargoyle-fly {
-        0%, 100% { transform: translateY(0) rotate(0deg); }
-        25% { transform: translateY(-10px) rotate(2deg); }
-        50% { transform: translateY(0) rotate(0deg); }
-        75% { transform: translateY(-5px) rotate(-2deg); }
-      }
-      .animate-gargoyle-fly { animation: gargoyle-fly 2s ease-in-out infinite; }
-
-      @keyframes gargoyle-attack {
-        0% { transform: translateY(0) translateX(0) rotate(0deg) scale(1); }
-        20% { transform: translateY(-15px) translateX(-5px) rotate(-25deg) scale(0.95); }
-        40% { transform: translateY(10px) translateX(20px) rotate(15deg) scale(1.05); }
-        50% { transform: translateY(10px) translateX(20px) rotate(15deg) scale(1.05); }
-        100% { transform: translateY(0) translateX(0) rotate(0deg) scale(1); }
-      }
-      .animate-gargoyle-attack { transform-origin: center; animation: gargoyle-attack 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
-      
-      @keyframes wing-flap {
-        0%, 100% { transform: scaleX(1); }
-        50% { transform: scaleX(0.6); }
-      }
-      .animate-wing-flap { transform-origin: 20px 0px; animation: wing-flap 0.5s ease-in-out infinite; }
-
-      @keyframes gargoyle-wing-flap {
-        0%, 100% { transform: scale(1, 1); }
-        50% { transform: scale(0.95, 0.75); }
-      }
-      .animate-gargoyle-wing-flap { 
-        transform-origin: 50px 45px; 
-        animation: gargoyle-wing-flap 0.4s ease-in-out infinite;
-      }
-      
-      /* DEATH ANIMATIONS */
-      
-      @keyframes death-fall-back {
-        0% { transform: rotate(0deg) translateY(0); opacity: 1; }
-        20% { transform: rotate(-15deg) translateY(0); opacity: 1; }
-        100% { transform: rotate(-90deg) translateY(30px); opacity: 0; }
-      }
-      .animate-death-fall-back { transform-origin: 50px 90px; animation: death-fall-back 1s ease-out forwards !important; }
-
-      @keyframes death-slump {
-         0% { transform: translateY(0) scale(1); opacity: 1; }
-         30% { transform: translateY(10px) scale(0.9); opacity: 1; }
-         100% { transform: translateY(30px) scale(0.1); opacity: 0; }
-      }
-      .animate-death-slump { transform-origin: bottom center; animation: death-slump 1s ease-out forwards !important; }
-      
-      @keyframes death-puddle {
-         0% { transform: scale(1); opacity: 1; }
-         100% { transform: scale(1.5, 0.2) translateY(20px); opacity: 0; }
-      }
-      .animate-death-puddle { transform-origin: bottom center; animation: death-puddle 1s ease-out forwards !important; }
-
-      @keyframes death-crumble {
-        0% { transform: translateY(0); opacity: 1; }
-        20% { transform: translateY(5px) skewX(20deg); }
-        100% { transform: translateY(40px) scaleY(0.1); opacity: 0; }
-      }
-      .animate-death-crumble { transform-origin: bottom center; animation: death-crumble 1s ease-out forwards !important; }
-
-      @keyframes death-shatter {
-        0% { transform: scale(1); opacity: 1; }
-        30% { transform: scale(1.1) rotate(5deg); opacity: 1; }
-        100% { transform: scale(0.8) rotate(45deg) translateY(20px); opacity: 0; }
-      }
-      .animate-death-shatter { transform-origin: center; animation: death-shatter 0.8s ease-in forwards !important; }
-
-      @keyframes death-vanish {
-        0% { transform: scale(1); opacity: 1; filter: blur(0px); }
-        100% { transform: scale(2); opacity: 0; filter: blur(10px); }
-      }
-      .animate-death-vanish { transform-origin: center; animation: death-vanish 0.8s ease-out forwards !important; }
-
-      @keyframes death-crash {
-        0% { transform: rotate(0deg); opacity: 1; }
-        30% { transform: rotate(-10deg); opacity: 1; }
-        100% { transform: rotate(90deg) translateY(30px); opacity: 0; }
-      }
-      .animate-death-crash { transform-origin: 50px 90px; animation: death-crash 1.4s cubic-bezier(0.6, 0, 0.4, 1) forwards !important; }
-
-      @keyframes flag-wave {
-        0%, 100% { transform: skewY(0deg) scaleX(1); }
-        50% { transform: skewY(5deg) scaleX(0.95); }
-      }
-      .animate-flag-wave { transform-origin: 162px 20px; animation: flag-wave 3s ease-in-out infinite; }
-      
-      @keyframes statue-float-subtle {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-3px); }
-      }
-      .animate-statue-idle { animation: statue-float-subtle 4s ease-in-out infinite; }
-
       /* INTRO ANIMATIONS */
       @keyframes intro-fade {
           0% { opacity: 0; transform: scale(0.9); }

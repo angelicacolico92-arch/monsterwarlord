@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { mpService } from '../services/multiplayerService';
-import { Users, Copy, Play } from 'lucide-react';
+import { Users, Copy, Play, Sword } from 'lucide-react';
 import { AudioService } from '../services/audioService';
 
 interface LandingPageProps {
   onStartHost: () => void;
   onStartClient: (hostId: string) => void;
+  onStartOffline: () => void;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onStartHost, onStartClient }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onStartHost, onStartClient, onStartOffline }) => {
   const [view, setView] = useState<'HOME' | 'LOBBY_HOST' | 'LOBBY_JOIN'>('HOME');
   const [myId, setMyId] = useState<string>('Generating...');
   const [hostIdInput, setHostIdInput] = useState('');
@@ -53,6 +54,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartHost, onStartCl
           }, 1000);
       });
   };
+  
+  const handleOffline = () => {
+      AudioService.playSelect();
+      onStartOffline();
+  };
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(myId);
@@ -71,18 +77,27 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartHost, onStartCl
             {view === 'HOME' && (
                 <div className="text-center space-y-6 sm:space-y-8">
                     <div>
-                        <h1 className="text-3xl sm:text-5xl font-epic text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-600 mb-2 drop-shadow-sm leading-tight">
-                            STICK ARMY LEGACY
+                        <h1 className="text-3xl sm:text-5xl font-epic text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-lime-600 mb-2 drop-shadow-sm leading-tight">
+                            SLIME WARS: SAGA
                         </h1>
                         <p className="text-stone-400 font-mono text-xs sm:text-sm tracking-widest">MULTIPLAYER LEGIONS</p>
                     </div>
 
                     <div className="space-y-3 sm:space-y-4">
                         <button 
+                            onClick={handleOffline}
+                            className="w-full bg-yellow-700 hover:bg-yellow-600 border-b-4 border-yellow-900 text-white font-bold py-3 sm:py-4 rounded-lg flex items-center justify-center gap-3 transition-all active:border-b-0 active:translate-y-1 text-sm sm:text-base"
+                        >
+                            <Sword fill="currentColor" size={20} /> SINGLE PLAYER (VS AI)
+                        </button>
+                        
+                        <div className="h-px bg-stone-700 w-full my-2"></div>
+                        
+                        <button 
                             onClick={handleCreateLobby}
                             className="w-full bg-blue-700 hover:bg-blue-600 border-b-4 border-blue-900 text-white font-bold py-3 sm:py-4 rounded-lg flex items-center justify-center gap-3 transition-all active:border-b-0 active:translate-y-1 text-sm sm:text-base"
                         >
-                            <Play fill="currentColor" size={20} /> CREATE SERVER
+                            <Play fill="currentColor" size={20} /> HOST SERVER
                         </button>
                         <button 
                             onClick={handleJoinLobby}
