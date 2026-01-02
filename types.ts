@@ -4,7 +4,6 @@ export enum UnitType {
   ARCHER = 'ARCHER',    // Archer Slime
   PALADIN = 'PALADIN',  // Paladin Slime (Tank)
   MAGE = 'MAGE',        // Mage Slime
-  GARGOYLE = 'GARGOYLE', // Flying Gargoyle
   BOSS = 'BOSS'         // Big Slime
 }
 
@@ -52,6 +51,12 @@ export enum GameCommand {
   RETREAT = 'RETREAT', // Fall back to base
 }
 
+export enum MapId {
+  FOREST = 'FOREST',
+  MINE = 'MINE',
+  SWAMP = 'SWAMP'
+}
+
 export interface GameState {
   units: GameUnit[];
   playerStatueHP: number;
@@ -62,6 +67,7 @@ export interface GameState {
   p2Command: GameCommand;
   lastTick: number;
   gameStatus: 'PLAYING' | 'VICTORY' | 'DEFEAT';
+  mapId: MapId;
 }
 
 export interface BattleLogEntry {

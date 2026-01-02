@@ -23,7 +23,7 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({ units, selectedUnitId,
         // Row Logic: Depth offset (pixels from bottom)
         // 1st row (Front): Toxic
         // 2nd row: Paladin
-        // 3rd row: Archer & Gargoyle
+        // 3rd row: Archer
         // 4th row: Mage
         // 5th row (Back): Boss
         // Miner: Back near mines
@@ -39,9 +39,6 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({ units, selectedUnitId,
                 break;
             case UnitType.ARCHER:
                 baseDepth = 40; // 3rd Row
-                break;
-            case UnitType.GARGOYLE:
-                baseDepth = 45; // 3rd Row (Flying slightly above Archers)
                 break;
             case UnitType.MAGE:
                 baseDepth = 55; // 4th Row

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { UnitType, GameUnit, GameState, GameCommand, BattleLogEntry, PlayerRole, NetworkMessage } from './types';
+import { UnitType, GameUnit, GameState, GameCommand, BattleLogEntry, PlayerRole, NetworkMessage, MapId } from './types';
 import { 
   UNIT_CONFIGS, 
   SPAWN_X_PLAYER, 
@@ -8,15 +8,18 @@ import {
   GOLD_MINE_PLAYER_X, 
   GOLD_MINE_ENEMY_X, 
   STATUE_PLAYER_POS, 
-  STATUE_ENEMY_POS 
+  STATUE_ENEMY_POS,
+  MAX_UNITS
 } from './constants';
 import { UnitCard } from './components/UnitCard';
 import { ArmyVisuals } from './components/ArmyVisuals';
 import { LandingPage } from './components/LandingPage';
 import { IntroSequence } from './components/IntroSequence';
+import { MapSelection } from './components/MapSelection';
+import { BattlefieldBackground } from './components/BattlefieldBackground';
 import { AudioService } from './services/audioService';
 import { mpService } from './services/multiplayerService';
-import { Coins, Shield, Swords, RefreshCw, Users, X, Music, VolumeX, CornerDownLeft, Flag } from 'lucide-react';
+import { Coins, Shield, Swords, RefreshCw, Users, X, Music, VolumeX, CornerDownLeft, Flag, AlertTriangle } from 'lucide-react';
 
 // --- SUB-COMPONENTS ---
 
@@ -88,7 +91,7 @@ const BaseStatue: React.FC<{ x: number; hp: number; variant: 'BLUE' | 'RED'; isF
 
 const TICK_RATE = 50; 
 const DEATH_DURATION = 1500;
-const INITIAL_GOLD = 400;
+const INITIAL_GOLD = 50;
 
 const UNIT_AGILITY: Record<string, number> = {
   [UnitType.WORKER]: 8.0,
@@ -106,12 +109,14 @@ type GameAction =
   | { type: 'SYNC_ENEMY_GOLD'; gold: number };
 
 export const App: React.FC = () => {
-  const [appMode, setAppMode] = useState<'INTRO' | 'LANDING' | 'GAME'>('INTRO');
+  const [appMode, setAppMode] = useState<'INTRO' | 'LANDING' | 'MAP_SELECT' | 'GAME'>('INTRO');
   const [role, setRole] = useState<PlayerRole>(PlayerRole.HOST);
 
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const [isArmyMenuOpen, setIsArmyMenuOpen] = useState(false);
   const [isMusicEnabled, setIsMusicEnabled] = useState(false);
+  const [shakeTrigger, setShakeTrigger] = useState<number>(0);
+  const [isSurrenderConfirming, setIsSurrenderConfirming] = useState(false);
   
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -129,7 +134,8 @@ export const App: React.FC = () => {
     p1Command: GameCommand.DEFEND,
     p2Command: GameCommand.DEFEND,
     lastTick: Date.now(),
-    gameStatus: 'PLAYING'
+    gameStatus: 'PLAYING',
+    mapId: MapId.FOREST
   });
 
   const [logs, setLogs] = useState<BattleLogEntry[]>([]);
@@ -146,27 +152,121 @@ export const App: React.FC = () => {
   const getVisualX = useCallback((x: number) => {
       return isMirrored ? 100 - x : x;
   }, [isMirrored]);
+  
+  const addLog = useCallback((message: string, type: BattleLogEntry['type'] = 'info') => {
+    setLogs(prev => [...prev.slice(-4), { 
+      id: Math.random().toString(36).substr(2, 9),
+      message,
+      type,
+      timestamp: Date.now()
+    }]);
+  }, []);
+
+  const resetGame = useCallback(() => {
+    AudioService.playSelect();
+    const newState: GameState = {
+        units: [],
+        playerStatueHP: STATUE_HP,
+        enemyStatueHP: STATUE_HP,
+        p1Gold: INITIAL_GOLD,
+        p2Gold: INITIAL_GOLD,
+        p1Command: GameCommand.DEFEND,
+        p2Command: GameCommand.DEFEND,
+        lastTick: Date.now(),
+        gameStatus: 'PLAYING',
+        mapId: stateRef.current.mapId // Keep current map
+    };
+    
+    // Clear queue
+    actionQueueRef.current = [];
+    
+    if (role === PlayerRole.HOST || role === PlayerRole.OFFLINE) {
+        setGameState(newState);
+        setLogs([]);
+        setSelectedUnitId(null);
+        addLog("Battle Reset!", "info");
+        if (role === PlayerRole.HOST) {
+            mpService.send({ type: 'GAME_STATE_UPDATE', payload: newState });
+        }
+        aiStateRef.current.lastDecisionTime = Date.now();
+    } else {
+        mpService.send({ type: 'GAME_RESET', payload: {} });
+    }
+    
+    setIsSurrenderConfirming(false);
+    
+    if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollLeft = 0;
+    }
+  }, [role, addLog]);
+
+  const handleReturnToMenu = useCallback(() => {
+    // AudioService.playSelect(); // Optional, avoiding double sound on auto-nav
+    const resetState: GameState = {
+        units: [],
+        playerStatueHP: STATUE_HP,
+        enemyStatueHP: STATUE_HP,
+        p1Gold: INITIAL_GOLD,
+        p2Gold: INITIAL_GOLD,
+        p1Command: GameCommand.DEFEND,
+        p2Command: GameCommand.DEFEND,
+        lastTick: Date.now(),
+        gameStatus: 'PLAYING',
+        mapId: MapId.FOREST
+    };
+    setGameState(resetState);
+    setLogs([]);
+    setSelectedUnitId(null);
+    setIsSurrenderConfirming(false);
+    mpService.destroy();
+    setAppMode('LANDING');
+  }, []);
 
   // --- NAVIGATION ---
   const handleStartHost = () => {
       setRole(PlayerRole.HOST);
-      setAppMode('GAME');
-      addLog("Multiplayer Session Started. You are the Host (Blue).", "info");
+      setAppMode('MAP_SELECT');
       if (!isMusicEnabled) toggleMusic();
   };
 
   const handleStartClient = () => {
       setRole(PlayerRole.CLIENT);
       setAppMode('GAME');
-      addLog("Connected to Server. You are the Challenger (Red).", "info");
+      addLog("Connected to Server. Waiting for Host...", "info");
       if (!isMusicEnabled) toggleMusic();
   };
 
   const handleStartOffline = () => {
       setRole(PlayerRole.OFFLINE);
-      setAppMode('GAME');
-      addLog("Single Player Mode Started. Good luck!", "info");
+      setAppMode('MAP_SELECT');
       if (!isMusicEnabled) toggleMusic();
+  };
+
+  const handleMapSelected = (mapId: MapId) => {
+      // Initialize state with selected map
+      const initialState: GameState = {
+        units: [],
+        playerStatueHP: STATUE_HP,
+        enemyStatueHP: STATUE_HP,
+        p1Gold: INITIAL_GOLD,
+        p2Gold: INITIAL_GOLD,
+        p1Command: GameCommand.DEFEND,
+        p2Command: GameCommand.DEFEND,
+        lastTick: Date.now(),
+        gameStatus: 'PLAYING',
+        mapId: mapId
+      };
+      
+      setGameState(initialState);
+      
+      if (role === PlayerRole.HOST) {
+          mpService.send({ type: 'GAME_STATE_UPDATE', payload: initialState });
+          addLog("Multiplayer Session Started. You are the Host (Blue).", "info");
+      } else {
+          addLog("Single Player Mode Started. Good luck!", "info");
+      }
+      
+      setAppMode('GAME');
   };
 
   const toggleMusic = () => {
@@ -178,6 +278,16 @@ export const App: React.FC = () => {
           setIsMusicEnabled(true);
       }
   };
+  
+  // Auto-navigate to menu on game end
+  useEffect(() => {
+    if (gameState.gameStatus !== 'PLAYING') {
+       const timer = setTimeout(() => {
+           handleReturnToMenu();
+       }, 5000); // 5 seconds delay to show victory screen
+       return () => clearTimeout(timer);
+    }
+  }, [gameState.gameStatus, handleReturnToMenu]);
 
   // --- NETWORK ---
   useEffect(() => {
@@ -190,7 +300,6 @@ export const App: React.FC = () => {
             }
         } else if (role === PlayerRole.HOST) {
             if (msg.type === 'RECRUIT_REQUEST') {
-                // Push to action queue instead of direct state update
                 actionQueueRef.current.push({ 
                     type: 'RECRUIT', 
                     unitType: msg.payload.unitType, 
@@ -210,7 +319,9 @@ export const App: React.FC = () => {
             if (msg.type === 'SURRENDER') {
                 setGameState(prev => {
                      if (prev.gameStatus !== 'PLAYING') return prev;
-                     return { ...prev, gameStatus: 'VICTORY' };
+                     const nextState: GameState = { ...prev, gameStatus: 'VICTORY' };
+                     mpService.send({ type: 'GAME_STATE_UPDATE', payload: nextState });
+                     return nextState;
                 });
                 AudioService.playFanfare(true);
                 addLog("Opponent Surrendered!", "victory");
@@ -218,30 +329,25 @@ export const App: React.FC = () => {
         }
     });
 
-    // Cleanup listeners when Game mode ends
     return () => {
         mpService.onMessage(() => {}); 
     };
-  }, [appMode, role]);
+  }, [appMode, role, resetGame, addLog]);
 
-
-  const addLog = useCallback((message: string, type: BattleLogEntry['type'] = 'info') => {
-    setLogs(prev => [...prev.slice(-4), { 
-      id: Math.random().toString(36).substr(2, 9),
-      message,
-      type,
-      timestamp: Date.now()
-    }]);
-  }, []);
 
   // --- ACTIONS (UI) ---
   const handleRecruit = (type: UnitType) => {
     const config = UNIT_CONFIGS[type];
+    const mySide = role === PlayerRole.HOST || role === PlayerRole.OFFLINE ? 'player' : 'enemy';
+    const currentCount = gameState.units.filter(u => u.side === mySide && u.state !== 'DYING').length;
+
+    if (currentCount >= MAX_UNITS) {
+        return; 
+    }
     
     if (role === PlayerRole.HOST || role === PlayerRole.OFFLINE) {
         if (gameState.p1Gold >= config.cost) {
             AudioService.playRecruit();
-            // Queue action
             actionQueueRef.current.push({ type: 'RECRUIT', unitType: type, side: 'player' });
         }
     } else {
@@ -273,15 +379,23 @@ export const App: React.FC = () => {
 
   const handleSurrender = () => {
     if (gameState.gameStatus !== 'PLAYING') return;
-    if (!window.confirm("Are you sure you want to surrender?")) return;
+
+    if (!isSurrenderConfirming) {
+        AudioService.playSelect();
+        setIsSurrenderConfirming(true);
+        // Reset confirmation after 3 seconds
+        setTimeout(() => setIsSurrenderConfirming(false), 3000);
+        return;
+    }
 
     AudioService.playSelect();
+    setIsSurrenderConfirming(false);
     
     if (role === PlayerRole.HOST || role === PlayerRole.OFFLINE) {
         setGameState(prev => {
             const next = { ...prev, gameStatus: 'DEFEAT' as const };
             if (role === PlayerRole.HOST) {
-                setTimeout(() => mpService.send({ type: 'GAME_STATE_UPDATE', payload: next }), 0);
+                mpService.send({ type: 'GAME_STATE_UPDATE', payload: next });
             }
             return next;
         });
@@ -290,61 +404,6 @@ export const App: React.FC = () => {
         mpService.send({ type: 'SURRENDER', payload: {} });
         addLog("Surrendering...", "info");
     }
-  };
-
-  const resetGame = () => {
-    AudioService.playSelect();
-    const newState: GameState = {
-        units: [],
-        playerStatueHP: STATUE_HP,
-        enemyStatueHP: STATUE_HP,
-        p1Gold: INITIAL_GOLD,
-        p2Gold: INITIAL_GOLD,
-        p1Command: GameCommand.DEFEND,
-        p2Command: GameCommand.DEFEND,
-        lastTick: Date.now(),
-        gameStatus: 'PLAYING'
-    };
-    
-    // Clear queue
-    actionQueueRef.current = [];
-    
-    if (role === PlayerRole.HOST || role === PlayerRole.OFFLINE) {
-        setGameState(newState);
-        setLogs([]);
-        setSelectedUnitId(null);
-        addLog("Battle Reset!", "info");
-        if (role === PlayerRole.HOST) {
-            mpService.send({ type: 'GAME_STATE_UPDATE', payload: newState });
-        }
-        aiStateRef.current.lastDecisionTime = Date.now();
-    } else {
-        mpService.send({ type: 'GAME_RESET', payload: {} });
-    }
-    
-    if (scrollContainerRef.current) {
-        scrollContainerRef.current.scrollLeft = 0;
-    }
-  };
-
-  const handleReturnToMenu = () => {
-    AudioService.playSelect();
-    const resetState: GameState = {
-        units: [],
-        playerStatueHP: STATUE_HP,
-        enemyStatueHP: STATUE_HP,
-        p1Gold: INITIAL_GOLD,
-        p2Gold: INITIAL_GOLD,
-        p1Command: GameCommand.DEFEND,
-        p2Command: GameCommand.DEFEND,
-        lastTick: Date.now(),
-        gameStatus: 'PLAYING'
-    };
-    setGameState(resetState);
-    setLogs([]);
-    setSelectedUnitId(null);
-    mpService.destroy();
-    setAppMode('LANDING');
   };
 
   // --- SCROLL HANDLERS ---
@@ -388,7 +447,6 @@ export const App: React.FC = () => {
 
     const intervalId = setInterval(() => {
       // Create a shallow copy of units for processing.
-      // Important: We will map these to NEW objects when modifying to maintain immutability principles.
       let currentUnits = [...stateRef.current.units];
       
       let pStatueHP = stateRef.current.playerStatueHP;
@@ -398,13 +456,14 @@ export const App: React.FC = () => {
       let p1Cmd = stateRef.current.p1Command;
       let p2Cmd = stateRef.current.p2Command;
       const gameStatus = stateRef.current.gameStatus;
+      const currentMap = stateRef.current.mapId;
 
       if (gameStatus !== 'PLAYING') return;
 
       const now = Date.now();
       const deltaTime = (now - stateRef.current.lastTick) / 1000;
 
-      // 1. PROCESS ACTION QUEUE (Synchronous State Updates)
+      // 1. PROCESS ACTION QUEUE
       while (actionQueueRef.current.length > 0) {
           const action = actionQueueRef.current.shift();
           if (!action) break;
@@ -414,25 +473,29 @@ export const App: React.FC = () => {
               const cost = config.cost;
               const isP1 = action.side === 'player';
               
-              const canAfford = isP1 ? (p1Gold >= cost) : (p2Gold >= cost);
-              if (canAfford) {
-                  if (isP1) p1Gold -= cost;
-                  else p2Gold -= cost;
-                  
-                  const newUnit: GameUnit = {
-                      id: Math.random().toString(36).substr(2, 9),
-                      type: action.unitType,
-                      side: action.side,
-                      x: action.side === 'player' ? SPAWN_X_PLAYER : SPAWN_X_ENEMY,
-                      hp: config.stats.hp,
-                      maxHp: config.stats.hp,
-                      state: 'IDLE',
-                      lastAttackTime: 0,
-                      targetId: null,
-                      currentSpeed: 0,
-                      hasGold: false
-                  };
-                  currentUnits.push(newUnit);
+              const currentSideUnits = currentUnits.filter(u => u.side === action.side && u.state !== 'DYING').length;
+              
+              if (currentSideUnits < MAX_UNITS) {
+                  const canAfford = isP1 ? (p1Gold >= cost) : (p2Gold >= cost);
+                  if (canAfford) {
+                      if (isP1) p1Gold -= cost;
+                      else p2Gold -= cost;
+                      
+                      const newUnit: GameUnit = {
+                          id: Math.random().toString(36).substr(2, 9),
+                          type: action.unitType,
+                          side: action.side,
+                          x: action.side === 'player' ? SPAWN_X_PLAYER : SPAWN_X_ENEMY,
+                          hp: config.stats.hp,
+                          maxHp: config.stats.hp,
+                          state: 'IDLE',
+                          lastAttackTime: 0,
+                          targetId: null,
+                          currentSpeed: 0,
+                          hasGold: false
+                      };
+                      currentUnits.push(newUnit);
+                  }
               }
           }
           else if (action.type === 'CHANGE_COMMAND') {
@@ -447,35 +510,14 @@ export const App: React.FC = () => {
           const enemyUnits = currentUnits.filter(u => u.side === 'enemy' && u.state !== 'DYING');
           const enemyMiners = enemyUnits.filter(u => u.type === UnitType.WORKER).length;
           
-          // AI Economy
           if (enemyMiners < 4 && p2Gold >= UNIT_CONFIGS[UnitType.WORKER].cost) {
-              p2Gold -= UNIT_CONFIGS[UnitType.WORKER].cost;
-              const config = UNIT_CONFIGS[UnitType.WORKER];
-              currentUnits.push({
-                  id: Math.random().toString(36).substr(2, 9),
-                  type: UnitType.WORKER,
-                  side: 'enemy',
-                  x: SPAWN_X_ENEMY,
-                  hp: config.stats.hp,
-                  maxHp: config.stats.hp,
-                  state: 'IDLE',
-                  lastAttackTime: 0,
-                  targetId: null,
-                  currentSpeed: 0,
-                  hasGold: false
-              });
-          }
-          // AI Military
-          else if (p2Gold > 200) {
-              const types = [UnitType.TOXIC, UnitType.ARCHER, UnitType.PALADIN, UnitType.MAGE];
-              const affordableTypes = types.filter(t => UNIT_CONFIGS[t].cost <= p2Gold);
-              if (affordableTypes.length > 0) {
-                  const typeToBuy = affordableTypes[Math.floor(Math.random() * affordableTypes.length)];
-                  p2Gold -= UNIT_CONFIGS[typeToBuy].cost;
-                  const config = UNIT_CONFIGS[typeToBuy];
+              const currentCount = enemyUnits.length;
+              if (currentCount < MAX_UNITS) {
+                  p2Gold -= UNIT_CONFIGS[UnitType.WORKER].cost;
+                  const config = UNIT_CONFIGS[UnitType.WORKER];
                   currentUnits.push({
                       id: Math.random().toString(36).substr(2, 9),
-                      type: typeToBuy,
+                      type: UnitType.WORKER,
                       side: 'enemy',
                       x: SPAWN_X_ENEMY,
                       hp: config.stats.hp,
@@ -488,7 +530,32 @@ export const App: React.FC = () => {
                   });
               }
           }
-          // AI Strategy
+          else if (p2Gold > 200) {
+              const types = [UnitType.TOXIC, UnitType.ARCHER, UnitType.PALADIN, UnitType.MAGE];
+              const affordableTypes = types.filter(t => UNIT_CONFIGS[t].cost <= p2Gold);
+              if (affordableTypes.length > 0) {
+                  const currentCount = enemyUnits.length;
+                  if (currentCount < MAX_UNITS) {
+                      const typeToBuy = affordableTypes[Math.floor(Math.random() * affordableTypes.length)];
+                      p2Gold -= UNIT_CONFIGS[typeToBuy].cost;
+                      const config = UNIT_CONFIGS[typeToBuy];
+                      currentUnits.push({
+                          id: Math.random().toString(36).substr(2, 9),
+                          type: typeToBuy,
+                          side: 'enemy',
+                          x: SPAWN_X_ENEMY,
+                          hp: config.stats.hp,
+                          maxHp: config.stats.hp,
+                          state: 'IDLE',
+                          lastAttackTime: 0,
+                          targetId: null,
+                          currentSpeed: 0,
+                          hasGold: false
+                      });
+                  }
+              }
+          }
+          
           const combatUnits = enemyUnits.filter(u => u.type !== UnitType.WORKER).length;
           if (combatUnits > 6) p2Cmd = GameCommand.ATTACK;
           else if (eStatueHP < 1000) p2Cmd = GameCommand.DEFEND;
@@ -497,21 +564,39 @@ export const App: React.FC = () => {
       }
 
       // 3. PHYSICS & LOGIC LOOP
-      // We map to create new unit objects to avoid mutation of previous state references
       currentUnits = currentUnits.map(u => {
         if (u.state === 'DYING') return u;
         
-        // Clone unit for modification
         const unit = { ...u };
         
         const config = UNIT_CONFIGS[unit.type];
         const isPlayer = unit.side === 'player';
         let targetVelocity = 0;
 
+        // Apply Map Modifiers to Speed
+        let speedMultiplier = 1.0;
+
+        if (currentMap === MapId.FOREST) {
+            // Poison Swamp in center (45-55) slows by 50%
+            if (unit.x > 45 && unit.x < 55) {
+                speedMultiplier *= 0.5;
+            }
+        } else if (currentMap === MapId.MINE) {
+            // Tunnels: Ranged units faster
+            if (unit.type === UnitType.ARCHER || unit.type === UnitType.MAGE) {
+                speedMultiplier *= 1.2;
+            }
+        } else if (currentMap === MapId.SWAMP) {
+            // Deep Mud: Frontline units slower globally
+            if ([UnitType.TOXIC, UnitType.PALADIN, UnitType.BOSS, UnitType.WORKER].includes(unit.type)) {
+                speedMultiplier *= 0.7;
+            }
+        }
+
         if (unit.type === UnitType.WORKER) {
              const mineLocation = isPlayer ? GOLD_MINE_PLAYER_X : GOLD_MINE_ENEMY_X;
              const statueLocation = isPlayer ? STATUE_PLAYER_POS : STATUE_ENEMY_POS;
-             const MINING_DURATION = 2000;
+             const MINING_DURATION = 10000;
              const DEPOSIT_DURATION = 1000;
              const miningRange = 1.5;
 
@@ -526,10 +611,10 @@ export const App: React.FC = () => {
                 targetVelocity = 0;
                 if (now - unit.lastAttackTime > DEPOSIT_DURATION) {
                    if (isPlayer) {
-                      p1Gold += 50;
+                      p1Gold += 10;
                       if (Math.random() > 0.8) AudioService.playRecruit();
                    } else {
-                      p2Gold += 50;
+                      p2Gold += 10;
                    }
                    unit.hasGold = false;
                    unit.state = 'WALKING';
@@ -586,22 +671,11 @@ export const App: React.FC = () => {
                 if (now - unit.lastAttackTime > config.stats.attackSpeed) {
                     AudioService.playAttack(unit.type);
                     if (hittingUnit && target) {
-                         // We can't modify 'target' directly here because it's a reference to a previous object or one in the current list
-                         // We handle damage application by ID later or modify the finding logic.
-                         // Simplification: We modify the 'hp' of the object in the 'currentUnits' array directly for the target
-                         // But since we are inside a map, 'currentUnits' contains old objects or new objects depending on order.
-                         // To fix this cleanly: we record damage events and apply them after movement?
-                         // For now, to keep it simple and performant, we find the target in the *current* map iteration if possible, 
-                         // OR we rely on the fact that we are replacing the array anyway.
-                         // Actually, modifying 'target.hp' is mutating a reference that is either in 'currentUnits' (source) or 'nextUnits'.
-                         // This is tricky. Let's do a simple direct mutation on the array we are building? No we can't.
-                         // Standard approach: Mutate 'target' which is a reference to an object in 'currentUnits'.
-                         // Since we are mapping 'currentUnits', if we haven't processed 'target' yet, it will be cloned with new HP.
-                         // If we HAVE processed it, we are mutating the OLD object, and the new object (already returned) won't have the damage.
-                         
-                         // FIX: Loop twice. First calculate intents/damage, then apply movement/updates.
-                         // OR: Just mutate for now and accept the 1-frame skew. It's a game jam style code.
-                         target.hp -= config.stats.damage; 
+                         let damage = config.stats.damage;
+                         if (target.type === UnitType.PALADIN) {
+                            damage = Math.floor(damage * 0.7);
+                         }
+                         target.hp -= damage; 
                     }
                     else if (hittingStatue) {
                         if (isPlayer) {
@@ -613,6 +687,10 @@ export const App: React.FC = () => {
                         }
                     }
                     unit.lastAttackTime = now;
+                    
+                    if (unit.type === UnitType.BOSS) {
+                        setShakeTrigger(Date.now());
+                    }
                 }
             }
             else {
@@ -655,6 +733,10 @@ export const App: React.FC = () => {
             }
         }
         
+        if (targetVelocity !== 0) {
+            targetVelocity *= speedMultiplier;
+        }
+
         if (typeof unit.currentSpeed === 'undefined') unit.currentSpeed = 0;
         const agility = UNIT_AGILITY[unit.type] || 5.0;
         const smoothingFactor = 1 - Math.exp(-agility * deltaTime);
@@ -673,7 +755,6 @@ export const App: React.FC = () => {
       });
 
       // Cleanup Dead Units
-      // We iterate to mark them as dying if they have <= 0 HP
       currentUnits = currentUnits.map(u => {
          if (u.hp <= 0 && u.state !== 'DYING') {
              return { ...u, state: 'DYING', deathTime: now, hp: 0 };
@@ -681,7 +762,6 @@ export const App: React.FC = () => {
          return u;
       });
 
-      // Filter out long-dead units
       currentUnits = currentUnits.filter(u => {
           if (u.state === 'DYING') {
               const timeSinceDeath = now - (u.deathTime || 0);
@@ -708,7 +788,8 @@ export const App: React.FC = () => {
         p1Command: p1Cmd,
         p2Command: p2Cmd,
         lastTick: now,
-        gameStatus: newStatus
+        gameStatus: newStatus,
+        mapId: currentMap
       };
 
       setGameState(nextState);
@@ -729,9 +810,18 @@ export const App: React.FC = () => {
       return <LandingPage onStartHost={handleStartHost} onStartClient={handleStartClient} onStartOffline={handleStartOffline} />;
   }
 
+  if (appMode === 'MAP_SELECT') {
+      return <MapSelection onSelectMap={handleMapSelected} onBack={() => setAppMode('LANDING')} />;
+  }
+
   const currentGold = role === PlayerRole.HOST || role === PlayerRole.OFFLINE ? gameState.p1Gold : gameState.p2Gold;
   const currentCommand = role === PlayerRole.HOST || role === PlayerRole.OFFLINE ? gameState.p1Command : gameState.p2Command;
   const roleLabel = role === PlayerRole.HOST ? 'HOST (BLUE)' : (role === PlayerRole.OFFLINE ? 'SINGLE PLAYER' : 'CLIENT (RED)');
+  
+  const isShaking = (Date.now() - shakeTrigger) < 400;
+
+  const mySide = role === PlayerRole.HOST || role === PlayerRole.OFFLINE ? 'player' : 'enemy';
+  const currentPop = gameState.units.filter(u => u.side === mySide && u.state !== 'DYING').length;
 
   return (
     <div className="h-[100dvh] w-screen bg-black overflow-hidden relative touch-none">
@@ -739,7 +829,7 @@ export const App: React.FC = () => {
       {/* GAME AREA */}
       <div 
         ref={scrollContainerRef}
-        className="absolute inset-0 flex flex-col bg-inamorta select-none overflow-x-hidden"
+        className={`absolute inset-0 flex flex-col bg-inamorta select-none overflow-x-hidden ${isShaking ? 'animate-shake' : ''}`}
         onMouseDown={handleMouseDown}
         onMouseLeave={handleMouseLeave}
         onMouseUp={handleMouseUp}
@@ -749,7 +839,8 @@ export const App: React.FC = () => {
         onTouchEnd={handleTouchEnd}
         onClick={handleBackgroundClick}
       >
-          <div className="absolute bottom-0 w-full h-24 ground-layer z-0"></div>
+          {/* Dynamic Background */}
+          <BattlefieldBackground mapId={gameState.mapId} />
 
           <div className="absolute top-10 left-20 opacity-20 pointer-events-none">
               <div className="w-32 h-32 bg-white rounded-full blur-3xl"></div>
@@ -780,7 +871,14 @@ export const App: React.FC = () => {
                     <span className="text-lg sm:text-xl font-bold font-mono text-yellow-100">{Math.floor(currentGold)}</span>
                 </div>
                 
-                <div className="h-8 w-px bg-white/20"></div>
+                <div className="flex items-center gap-2 ml-4">
+                    <span className="text-xs text-stone-400 font-bold">POP</span>
+                    <span className={`text-lg sm:text-xl font-bold font-mono ${currentPop >= MAX_UNITS ? 'text-red-500' : 'text-stone-200'}`}>
+                        {currentPop}/{MAX_UNITS}
+                    </span>
+                </div>
+                
+                <div className="h-8 w-px bg-white/20 ml-2"></div>
                 
                 <div className="flex gap-1 sm:gap-2">
                     <button 
@@ -827,10 +925,10 @@ export const App: React.FC = () => {
 
                 <button
                     onClick={handleSurrender}
-                    className="p-1.5 sm:p-2 rounded text-stone-500 hover:text-red-500 transition-colors"
-                    title="Surrender"
+                    className={`p-1.5 sm:p-2 rounded transition-all ${isSurrenderConfirming ? 'bg-red-600 text-white animate-pulse' : 'text-stone-500 hover:text-red-500'}`}
+                    title={isSurrenderConfirming ? "Confirm Surrender?" : "Surrender"}
                 >
-                    <Flag size={16} />
+                    {isSurrenderConfirming ? <AlertTriangle size={16} /> : <Flag size={16} />}
                 </button>
              </div>
           </div>
@@ -848,12 +946,14 @@ export const App: React.FC = () => {
                 {Object.values(UNIT_CONFIGS).map(unit => {
                     const mySide = role === PlayerRole.HOST || role === PlayerRole.OFFLINE ? 'player' : 'enemy';
                     const count = gameState.units.filter(u => u.side === mySide && u.type === unit.type).length;
+                    const totalCount = gameState.units.filter(u => u.side === mySide && u.state !== 'DYING').length;
+
                     return (
                         <UnitCard 
                             key={unit.type}
                             unit={unit}
                             count={count}
-                            canAfford={currentGold >= unit.cost}
+                            canAfford={currentGold >= unit.cost && totalCount < MAX_UNITS}
                             onRecruit={handleRecruit}
                             variant={role === PlayerRole.HOST || role === PlayerRole.OFFLINE ? 'BLUE' : 'RED'}
                         />
@@ -892,21 +992,8 @@ export const App: React.FC = () => {
                         }
                      </p>
                      
-                     <div className="space-y-3">
-                         <button 
-                            onClick={resetGame}
-                            className="w-full bg-yellow-600 hover:bg-yellow-500 border-b-4 border-yellow-800 text-white font-bold py-3 rounded text-lg flex items-center justify-center gap-2 transition-all active:border-b-0 active:translate-y-1"
-                         >
-                            <RefreshCw size={20} /> 
-                            {role === PlayerRole.HOST || role === PlayerRole.OFFLINE ? 'PLAY AGAIN' : 'REQUEST REMATCH'}
-                         </button>
-                         
-                         <button 
-                            onClick={handleReturnToMenu}
-                            className="w-full bg-stone-700 hover:bg-stone-600 border-b-4 border-stone-900 text-stone-200 font-bold py-3 rounded text-lg flex items-center justify-center gap-2 transition-all active:border-b-0 active:translate-y-1"
-                         >
-                            <CornerDownLeft size={20} /> MAIN MENU
-                         </button>
+                     <div className="mt-8 animate-pulse text-stone-500 font-mono text-sm">
+                        Returning to base...
                      </div>
                  </div>
              </div>

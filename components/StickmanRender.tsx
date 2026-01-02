@@ -35,16 +35,16 @@ export const StickmanRender: React.FC<StickmanProps> = ({
   if (isDying) {
       animClass = "animate-death-puddle";
   } else if (isAttacking || isMining) {
-      if (type === UnitType.TOXIC) animClass = "animate-toxic-spit"; // New Spit Animation
-      else if (type === UnitType.ARCHER) animClass = "animate-idle-breathe"; // Archer uses internal bow animation, body stays mostly steady
-      else if (type === UnitType.BOSS) animClass = "animate-boss-roar"; // Boss Roar
-      else if (type === UnitType.GARGOYLE) animClass = "animate-gargoyle-swoop"; // Swoop Attack
+      if (type === UnitType.TOXIC) animClass = "animate-toxic-spit"; 
+      else if (type === UnitType.ARCHER) animClass = "animate-idle-breathe"; 
+      else if (type === UnitType.BOSS) animClass = "animate-boss-stomp"; // New stomp
+      else if (type === UnitType.WORKER && isMining) animClass = "animate-mining"; // New mining bounce
       else animClass = "animate-slime-attack"; // Generic lunge
   } else if (isMoving || isDepositing) {
-      if (type === UnitType.GARGOYLE) animClass = "animate-gargoyle-hover";
+      if (type === UnitType.MAGE) animClass = "animate-mage-float"; // Mage floats
       else animClass = "animate-slime-bounce";
   } else {
-      if (type === UnitType.GARGOYLE) animClass = "animate-gargoyle-hover";
+      if (type === UnitType.MAGE) animClass = "animate-mage-float";
       else animClass = "animate-idle-breathe";
   }
 
@@ -68,10 +68,6 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       case UnitType.ARCHER:
           baseColor = isPlayer ? "#22d3ee" : "#0891b2"; // Cyan / Dark Cyan
           secondaryColor = isPlayer ? "#0e7490" : "#164e63";
-          break;
-      case UnitType.GARGOYLE:
-          baseColor = isPlayer ? "#64748b" : "#4b5563"; // Slate / Dark Grey
-          secondaryColor = isPlayer ? "#334155" : "#1f2937";
           break;
       case UnitType.PALADIN:
           baseColor = isPlayer ? "#e2e8f0" : "#9ca3af"; // White/Silver / Grey
@@ -111,18 +107,12 @@ export const StickmanRender: React.FC<StickmanProps> = ({
              </g>
          );
      }
-     if (type === UnitType.PALADIN || type === UnitType.GARGOYLE) {
+     if (type === UnitType.PALADIN) {
          // Serious lines / Narrow eyes
          return (
              <g>
                  <rect x="35" y="60" width="10" height="4" fill="black" opacity="0.6"/>
                  <rect x="55" y="60" width="10" height="4" fill="black" opacity="0.6"/>
-                 {type === UnitType.GARGOYLE && (
-                     <g>
-                         <circle cx="40" cy="62" r="1.5" fill="red" />
-                         <circle cx="60" cy="62" r="1.5" fill="red" />
-                     </g>
-                 )}
              </g>
          );
      }
@@ -157,16 +147,26 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                   {(hasGold || isDepositing) && (
                       <circle cx="20" cy="80" r="8" fill="#fbbf24" stroke="#b45309" />
                   )}
+                  {/* Sparkles */}
+                  {(hasGold || isMining) && (
+                     <g>
+                       <path d="M10 20 L 15 10 L 20 20 L 30 25 L 20 30 L 15 40 L 10 30 L 0 25 Z" fill="#fef08a" className="animate-sparkle" />
+                       <path d="M70 10 L 73 0 L 76 10 L 86 13 L 76 16 L 73 26 L 70 16 L 60 13 Z" fill="#fef08a" className="animate-sparkle" style={{animationDelay: '0.7s'}} />
+                     </g>
+                  )}
               </g>
           );
       }
 
-      // Toxic Bubbles
+      // Toxic Bubbles & Drip
       if (type === UnitType.TOXIC) {
           return (
               <g>
                   <circle cx="20" cy="90" r="3" fill="#bef264" className="animate-pulse" />
                   <circle cx="80" cy="85" r="2" fill="#bef264" className="animate-pulse" style={{animationDelay: '0.5s'}} />
+                  {/* Slime Drip from Mouth */}
+                  <circle cx="45" cy="70" r="2" fill="#bef264" className="animate-toxic-drip" />
+                  
                   {isAttacking && (
                       <g className="animate-toxic-projectile">
                           {/* Viscous Blob shape */}
@@ -206,29 +206,6 @@ export const StickmanRender: React.FC<StickmanProps> = ({
           );
       }
 
-      // Gargoyle Wings & Horns
-      if (type === UnitType.GARGOYLE) {
-          return (
-              <g>
-                  {/* Wings */}
-                  <path d="M20 50 Q -10 20 0 10 Q 10 30 30 50" fill={secondaryColor} stroke="black" strokeWidth="1" />
-                  <path d="M80 50 Q 110 20 100 10 Q 90 30 70 50" fill={secondaryColor} stroke="black" strokeWidth="1" />
-                  
-                  {/* Horns */}
-                  <path d="M35 40 L 30 25" stroke="white" strokeWidth="2" />
-                  <path d="M65 40 L 70 25" stroke="white" strokeWidth="2" />
-
-                  {/* Fangs if attacking */}
-                  {isAttacking && (
-                      <g>
-                         <path d="M40 70 L 42 75 L 44 70" fill="white" />
-                         <path d="M56 70 L 58 75 L 60 70" fill="white" />
-                      </g>
-                  )}
-              </g>
-          );
-      }
-
       // Paladin Shield & Helm
       if (type === UnitType.PALADIN) {
           const isIdle = !isAttacking && !isMoving && !isDying;
@@ -245,6 +222,8 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                     <path d="M60 70 Q 60 90 70 95 Q 80 90 80 70 L 60 70" fill="#e2e8f0" stroke="#475569" strokeWidth="2" />
                     <path d="M65 75 L 75 85" stroke="#ef4444" strokeWidth="2" />
                     <path d="M75 75 L 65 85" stroke="#ef4444" strokeWidth="2" />
+                    {/* Glint */}
+                    <circle cx="65" cy="75" r="1" fill="white" className="animate-pulse" />
                   </g>
               </g>
           );
@@ -261,6 +240,11 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                   {/* Staff */}
                   <line x1="80" y1="50" x2="80" y2="90" stroke="#78350f" strokeWidth="2" />
                   <circle cx="80" cy="50" r="4" fill="#a855f7" className="animate-pulse" />
+                  
+                  {/* Floating particles orbit */}
+                  <g transform="translate(50, 50)" className="animate-magic-orbit">
+                      <circle cx="20" cy="0" r="2" fill={secondaryColor} />
+                  </g>
               </g>
           );
       }
