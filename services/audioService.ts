@@ -5,15 +5,18 @@ let bgmNodes: AudioNode[] = [];
 let isMusicPlaying = false;
 
 const getCtx = () => {
-  if (!audioCtx) {
-    audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+  if (!audioCtx && typeof window !== 'undefined') {
+    const CtxClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (CtxClass) {
+        audioCtx = new CtxClass();
+    }
   }
   return audioCtx;
 };
 
 const resumeCtx = () => {
     const ctx = getCtx();
-    if (ctx.state === 'suspended') {
+    if (ctx && ctx.state === 'suspended') {
         ctx.resume().catch(e => console.error(e));
     }
     return ctx;
@@ -23,11 +26,11 @@ export const AudioService = {
   startMusic: () => {
     if (isMusicPlaying) return;
     const ctx = resumeCtx();
+    if (!ctx) return;
+    
     const t = ctx.currentTime;
     isMusicPlaying = true;
 
-    // Create a gooey ambient soundtrack
-    
     // Node creation
     const osc1 = ctx.createOscillator(); // Bass drone
     const osc2 = ctx.createOscillator(); // High chime
@@ -74,6 +77,8 @@ export const AudioService = {
   stopMusic: () => {
      if (!isMusicPlaying) return;
      const ctx = getCtx();
+     if (!ctx) return;
+     
      const t = ctx.currentTime;
 
      const masterGain = bgmNodes.find(n => n instanceof GainNode && (n as any).gain.value < 100); 
@@ -98,6 +103,7 @@ export const AudioService = {
 
   playRecruit: () => {
     const ctx = resumeCtx();
+    if (!ctx) return;
     const t = ctx.currentTime;
     
     // Wet pop sound
@@ -118,6 +124,7 @@ export const AudioService = {
 
   playSelect: () => {
     const ctx = resumeCtx();
+    if (!ctx) return;
     const t = ctx.currentTime;
     
     // Bubble blip
@@ -137,6 +144,7 @@ export const AudioService = {
 
   playAttack: (type: UnitType) => {
     const ctx = resumeCtx();
+    if (!ctx) return;
     const t = ctx.currentTime;
     
     if (Math.random() > 0.4) return; 
@@ -203,6 +211,7 @@ export const AudioService = {
 
   playDamage: () => {
     const ctx = resumeCtx();
+    if (!ctx) return;
     const t = ctx.currentTime;
     
     if (Math.random() > 0.3) return;
@@ -230,6 +239,7 @@ export const AudioService = {
 
   playFanfare: (isVictory: boolean) => {
     const ctx = resumeCtx();
+    if (!ctx) return;
     const t = ctx.currentTime;
     const notes = isVictory 
         ? [400, 500, 600, 800] 

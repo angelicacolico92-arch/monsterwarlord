@@ -189,6 +189,9 @@ export const StickmanRender: React.FC<StickmanProps> = ({
 
       // Paladin Shield & Helm
       if (type === UnitType.PALADIN) {
+          const isIdle = !isAttacking && !isMoving && !isDying;
+          const shieldAnim = isIdle ? "animate-paladin-shield" : "";
+
           return (
               <g>
                   {/* Helm Visor */}
@@ -196,9 +199,11 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                   <line x1="50" y1="45" x2="50" y2="70" stroke="#94a3b8" strokeWidth="1" />
                   
                   {/* Shield */}
-                  <path d="M60 70 Q 60 90 70 95 Q 80 90 80 70 L 60 70" fill="#e2e8f0" stroke="#475569" strokeWidth="2" />
-                  <path d="M65 75 L 75 85" stroke="#ef4444" strokeWidth="2" />
-                  <path d="M75 75 L 65 85" stroke="#ef4444" strokeWidth="2" />
+                  <g className={shieldAnim} style={{ transformOrigin: '70px 80px' }}>
+                    <path d="M60 70 Q 60 90 70 95 Q 80 90 80 70 L 60 70" fill="#e2e8f0" stroke="#475569" strokeWidth="2" />
+                    <path d="M65 75 L 75 85" stroke="#ef4444" strokeWidth="2" />
+                    <path d="M75 75 L 65 85" stroke="#ef4444" strokeWidth="2" />
+                  </g>
               </g>
           );
       }
