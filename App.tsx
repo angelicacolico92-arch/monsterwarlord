@@ -611,10 +611,10 @@ export const App: React.FC = () => {
                 targetVelocity = 0;
                 if (now - unit.lastAttackTime > DEPOSIT_DURATION) {
                    if (isPlayer) {
-                      p1Gold += 10;
+                      p1Gold += 20;
                       if (Math.random() > 0.8) AudioService.playRecruit();
                    } else {
-                      p2Gold += 10;
+                      p2Gold += 20;
                    }
                    unit.hasGold = false;
                    unit.state = 'WALKING';
