@@ -833,47 +833,6 @@ export const App: React.FC = () => {
                     <Flag size={16} />
                 </button>
              </div>
-
-             {gameState.gameStatus !== 'PLAYING' && (
-                 <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-intro-fade">
-                     <div className="bg-stone-900 p-8 rounded-xl border-4 border-stone-600 text-center shadow-2xl max-w-md w-full relative overflow-hidden">
-                         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-20 pointer-events-none"></div>
-                         
-                         <div className="relative z-10">
-                             <h1 className={`text-5xl sm:text-7xl font-epic mb-2 drop-shadow-lg ${gameState.gameStatus === 'VICTORY' ? 'text-yellow-400' : 'text-red-600'}`}>
-                                 {role === PlayerRole.HOST || role === PlayerRole.OFFLINE
-                                    ? (gameState.gameStatus === 'VICTORY' ? 'VICTORY!' : 'DEFEAT')
-                                    : (gameState.gameStatus === 'VICTORY' ? 'DEFEAT' : 'VICTORY!')
-                                 }
-                             </h1>
-                             
-                             <p className="text-stone-400 font-mono mb-8 text-sm">
-                                {gameState.gameStatus === 'VICTORY' 
-                                    ? (role === PlayerRole.HOST || role === PlayerRole.OFFLINE ? "The Slime Legion has conquered!" : "The Rebellion is crushed.")
-                                    : (role === PlayerRole.HOST || role === PlayerRole.OFFLINE ? "Your statue has crumbled..." : "Your rebellion has succeeded!")
-                                }
-                             </p>
-                             
-                             <div className="space-y-3">
-                                 <button 
-                                    onClick={resetGame}
-                                    className="w-full bg-yellow-600 hover:bg-yellow-500 border-b-4 border-yellow-800 text-white font-bold py-3 rounded text-lg flex items-center justify-center gap-2 transition-all active:border-b-0 active:translate-y-1"
-                                 >
-                                    <RefreshCw size={20} /> 
-                                    {role === PlayerRole.HOST || role === PlayerRole.OFFLINE ? 'PLAY AGAIN' : 'REQUEST REMATCH'}
-                                 </button>
-                                 
-                                 <button 
-                                    onClick={handleReturnToMenu}
-                                    className="w-full bg-stone-700 hover:bg-stone-600 border-b-4 border-stone-900 text-stone-200 font-bold py-3 rounded text-lg flex items-center justify-center gap-2 transition-all active:border-b-0 active:translate-y-1"
-                                 >
-                                    <CornerDownLeft size={20} /> MAIN MENU
-                                 </button>
-                             </div>
-                         </div>
-                     </div>
-                 </div>
-             )}
           </div>
 
           <div 
@@ -910,6 +869,49 @@ export const App: React.FC = () => {
                  ))}
               </div>
           </div>
+      </div>
+      
+      {/* Game Over Overlay - moved outside scroll container for proper z-index and positioning */}
+      {gameState.gameStatus !== 'PLAYING' && (
+         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-intro-fade">
+             <div className="bg-stone-900 p-8 rounded-xl border-4 border-stone-600 text-center shadow-2xl max-w-md w-full relative overflow-hidden">
+                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-20 pointer-events-none"></div>
+                 
+                 <div className="relative z-10">
+                     <h1 className={`text-5xl sm:text-7xl font-epic mb-2 drop-shadow-lg ${gameState.gameStatus === 'VICTORY' ? 'text-yellow-400' : 'text-red-600'}`}>
+                         {role === PlayerRole.HOST || role === PlayerRole.OFFLINE
+                            ? (gameState.gameStatus === 'VICTORY' ? 'VICTORY!' : 'DEFEAT')
+                            : (gameState.gameStatus === 'VICTORY' ? 'DEFEAT' : 'VICTORY!')
+                         }
+                     </h1>
+                     
+                     <p className="text-stone-400 font-mono mb-8 text-sm">
+                        {gameState.gameStatus === 'VICTORY' 
+                            ? (role === PlayerRole.HOST || role === PlayerRole.OFFLINE ? "The Slime Legion has conquered!" : "The Rebellion is crushed.")
+                            : (role === PlayerRole.HOST || role === PlayerRole.OFFLINE ? "Your statue has crumbled..." : "Your rebellion has succeeded!")
+                        }
+                     </p>
+                     
+                     <div className="space-y-3">
+                         <button 
+                            onClick={resetGame}
+                            className="w-full bg-yellow-600 hover:bg-yellow-500 border-b-4 border-yellow-800 text-white font-bold py-3 rounded text-lg flex items-center justify-center gap-2 transition-all active:border-b-0 active:translate-y-1"
+                         >
+                            <RefreshCw size={20} /> 
+                            {role === PlayerRole.HOST || role === PlayerRole.OFFLINE ? 'PLAY AGAIN' : 'REQUEST REMATCH'}
+                         </button>
+                         
+                         <button 
+                            onClick={handleReturnToMenu}
+                            className="w-full bg-stone-700 hover:bg-stone-600 border-b-4 border-stone-900 text-stone-200 font-bold py-3 rounded text-lg flex items-center justify-center gap-2 transition-all active:border-b-0 active:translate-y-1"
+                         >
+                            <CornerDownLeft size={20} /> MAIN MENU
+                         </button>
+                     </div>
+                 </div>
+             </div>
+         </div>
+      )}
     </div>
   );
 };
