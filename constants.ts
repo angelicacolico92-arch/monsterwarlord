@@ -1,4 +1,3 @@
-
 import { UnitType, UnitConfig, MapId } from './types';
 
 // Field settings
@@ -24,10 +23,9 @@ export const INITIAL_GOLD = 50;
 export const INITIAL_GOLD_SURGE = 2000; // Slime Surge Mode
 
 // Formation Offsets: Relative distance (%) from the frontline unit
-// Lower number = closer to front
 export const FORMATION_OFFSETS: Record<UnitType, number> = {
   [UnitType.TOXIC]: 0,    // Frontline
-  [UnitType.SMALL]: -1,   // Skirmishers (Ahead of frontline)
+  [UnitType.SMALL]: -1,   // Skirmishers
   [UnitType.PALADIN]: 4,  // 2nd Row
   [UnitType.ARCHER]: 9,   // 3rd Row
   [UnitType.MAGE]: 14,    // 4th Row
@@ -40,50 +38,50 @@ export const UNIT_CONFIGS: Record<UnitType, UnitConfig> = {
     type: UnitType.WORKER,
     name: 'Slime Miner',
     cost: 50,
-    stats: { hp: 120, maxHp: 120, damage: 5, range: ATTACK_RANGE_MELEE, speed: 4, attackSpeed: 1000 },
-    description: 'Mines gold, must be protected'
+    stats: { hp: 120, maxHp: 120, damage: 15, range: ATTACK_RANGE_MELEE, speed: 4, attackSpeed: 3000 },
+    description: 'Slow, meaningful strikes'
   },
   [UnitType.TOXIC]: {
     type: UnitType.TOXIC,
     name: 'Toxic Slime',
     cost: 120,
-    stats: { hp: 320, maxHp: 320, damage: 18, range: 8, speed: 3.5, attackSpeed: 1200 },
-    description: 'Frontline, deals poison damage over time'
+    stats: { hp: 320, maxHp: 320, damage: 45, range: 8, speed: 3.5, attackSpeed: 2500 },
+    description: 'Poison damage over time'
   },
   [UnitType.PALADIN]: {
     type: UnitType.PALADIN,
     name: 'Paladin Slime',
     cost: 150,
-    stats: { hp: 480, maxHp: 480, damage: 14, range: ATTACK_RANGE_MELEE, speed: 2.5, attackSpeed: 1300 },
-    description: 'Tank / protector, reduces damage taken'
+    stats: { hp: 480, maxHp: 480, damage: 55, range: ATTACK_RANGE_MELEE, speed: 2.5, attackSpeed: 2800 },
+    description: 'Heavy defensive attacks, high impact'
   },
   [UnitType.ARCHER]: {
     type: UnitType.ARCHER,
     name: 'Archer Slime',
     cost: 130,
-    stats: { hp: 200, maxHp: 200, damage: 28, range: ATTACK_RANGE_RANGED, speed: 3, attackSpeed: 1100 },
-    description: 'Backline ranged DPS, sustained attacks'
+    stats: { hp: 200, maxHp: 200, damage: 70, range: ATTACK_RANGE_RANGED, speed: 3, attackSpeed: 2200 },
+    description: 'Slow but reliable ranged pressure'
   },
   [UnitType.MAGE]: {
     type: UnitType.MAGE,
     name: 'Mage Slime',
     cost: 140,
-    stats: { hp: 170, maxHp: 170, damage: 40, range: ATTACK_RANGE_MAGIC, speed: 2, attackSpeed: 2000 },
-    description: 'Summons minions & deals magic damage'
+    stats: { hp: 170, maxHp: 170, damage: 100, range: ATTACK_RANGE_MAGIC, speed: 2, attackSpeed: 3000 },
+    description: 'High-impact magical spells'
   },
   [UnitType.BOSS]: {
     type: UnitType.BOSS,
     name: 'Big Slime',
     cost: 250,
-    stats: { hp: 900, maxHp: 900, damage: 45, range: ATTACK_RANGE_MELEE, speed: 1.5, attackSpeed: 1800 },
-    description: 'Late-game heavy hitter, slow but powerful'
+    stats: { hp: 1100, maxHp: 1100, damage: 180, range: ATTACK_RANGE_MELEE, speed: 1.5, attackSpeed: 3500 },
+    description: 'Massive impact, very slow'
   },
   [UnitType.SMALL]: {
     type: UnitType.SMALL,
     name: 'Mini Slime',
     cost: 0,
-    stats: { hp: 60, maxHp: 60, damage: 8, range: ATTACK_RANGE_MELEE, speed: 5, attackSpeed: 900 },
-    description: 'Summoned unit.'
+    stats: { hp: 60, maxHp: 60, damage: 20, range: ATTACK_RANGE_MELEE, speed: 5, attackSpeed: 2000 },
+    description: 'Summoned skirmisher'
   }
 };
 

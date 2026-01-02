@@ -297,6 +297,26 @@ export const StickmanRender: React.FC<StickmanProps> = ({
   const ImpactVisuals = () => {
      if (isDying || !isAttacking) return null;
 
+     // Mage Special Impact
+     if (type === UnitType.MAGE) {
+        return (
+            <g style={{ animationDelay: `${animationDelay}s` }}>
+                <circle cx="100" cy="50" r="10" fill="none" stroke="#a855f7" strokeWidth="2" opacity="0">
+                    <animate attributeName="r" values="5;25" dur="0.8s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="1;0" dur="0.8s" repeatCount="indefinite" />
+                    <animate attributeName="stroke-width" values="3;0" dur="0.8s" repeatCount="indefinite" />
+                </circle>
+                
+                <path d="M100 35 L105 45 L115 45 L108 52 L110 62 L100 55 L90 62 L92 52 L85 45 L95 45 Z" fill="#e9d5ff" opacity="0.8">
+                     <animateTransform attributeName="transform" type="scale" values="0.8;1.2;0.8" dur="0.8s" repeatCount="indefinite" additive="sum" />
+                     <animateTransform attributeName="transform" type="rotate" from="0 100 50" to="360 100 50" dur="3s" repeatCount="indefinite" additive="sum" />
+                </path>
+                
+                <circle cx="100" cy="50" r="15" fill="#d8b4fe" opacity="0.3" className="animate-pulse" />
+            </g>
+        );
+     }
+
      // Generic impact pop
      return (
           <path 

@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { UnitType, GameUnit, GameState, GameCommand, BattleLogEntry, PlayerRole, NetworkMessage, MapId } from './types';
+import { UnitType, GameUnit, GameState, GameCommand, PlayerRole, MapId } from './types';
 import { 
   UNIT_CONFIGS, 
   SPAWN_X_PLAYER, 
@@ -11,11 +10,9 @@ import {
   STATUE_PLAYER_POS, 
   STATUE_ENEMY_POS,
   MAX_UNITS,
-  FORMATION_OFFSETS,
-  INITIAL_GOLD,
-  INITIAL_GOLD_SURGE
+  INITIAL_GOLD
 } from './constants';
-import { StickmanRender } from './components/StickmanRender'; // Directly use renderer for buttons
+import { StickmanRender } from './components/StickmanRender';
 import { ArmyVisuals } from './components/ArmyVisuals';
 import { LandingPage } from './components/LandingPage';
 import { IntroSequence } from './components/IntroSequence';
@@ -23,14 +20,12 @@ import { MapSelection } from './components/MapSelection';
 import { BattlefieldBackground } from './components/BattlefieldBackground';
 import { AudioService } from './services/audioService';
 import { mpService } from './services/multiplayerService';
-import { Coins, Shield, Swords, Music, VolumeX, CornerDownLeft, Flag, AlertTriangle, Users, Zap } from 'lucide-react';
-
-// --- SUB-COMPONENTS ---
+import { Coins, Shield, Swords, Music, VolumeX, CornerDownLeft, Users } from 'lucide-react';
 
 const GoldMine: React.FC<{ x: number; isFlipped?: boolean }> = ({ x, isFlipped }) => (
   <div 
     className="absolute bottom-20 w-32 h-32 z-0 pointer-events-none"
-    style={{ left: `${x}%`, transform: 'translateX(-50%)' }}
+    style={{ left: `${x}%`, transform: 'translateX(-50%) translate3d(0,0,0)' }}
   >
      <div className={`w-full h-full ${isFlipped ? 'scale-x-[-1]' : ''}`}>
         <svg viewBox="0 0 100 100" className="drop-shadow-lg overflow-visible">
@@ -50,31 +45,24 @@ const GoldMine: React.FC<{ x: number; isFlipped?: boolean }> = ({ x, isFlipped }
 const BaseStatue: React.FC<{ x: number; hp: number; variant: 'BLUE' | 'RED'; isFlipped?: boolean }> = ({ x, hp, variant, isFlipped }) => {
     const hpPercent = Math.max(0, (hp / STATUE_HP) * 100);
     const isRed = variant === 'RED';
-
-    // Slime Tower Colors
-    const primaryColor = isRed ? '#ef4444' : '#3b82f6'; // Red-500 : Blue-500
-    const darkColor = isRed ? '#7f1d1d' : '#1e3a8a';    // Red-900 : Blue-900
-    const lightColor = isRed ? '#fca5a5' : '#93c5fd';   // Red-300 : Blue-300
-    const glowColor = isRed ? 'rgba(239, 68, 68, 0.6)' : 'rgba(59, 130, 246, 0.6)';
+    const primaryColor = isRed ? '#ef4444' : '#3b82f6';
+    const darkColor = isRed ? '#7f1d1d' : '#1e3a8a';
+    const lightColor = isRed ? '#fca5a5' : '#93c5fd';
 
     return (
         <div 
             className="absolute bottom-16 z-10 pointer-events-none origin-bottom transition-all duration-300"
             style={{ 
                 left: `${x}%`, 
-                transform: 'translateX(-50%)',
-                // Responsive Scaling:
-                // Height is based on viewport height (vh) to fit mobile screens, capped at max pixel values.
-                // Aspect ratio ensures width adjusts automatically.
+                transform: 'translateX(-50%) translate3d(0,0,0)',
                 height: 'min(340px, 55vh)', 
                 width: 'auto', 
                 aspectRatio: '200 / 350'
             }}
         >
-            {/* HP Bar - Scaled relative to tower width, ensuring readability */}
             <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-[140%] h-3 sm:h-4 bg-black/70 rounded-full border border-white/30 backdrop-blur-md overflow-hidden z-20 shadow-lg">
                 <div 
-                    className={`h-full transition-all duration-300 ${isRed ? 'bg-gradient-to-r from-red-600 to-rose-400' : 'bg-gradient-to-r from-blue-600 to-cyan-400'}`} 
+                    className={`h-full transition-all duration-500 ease-out ${isRed ? 'bg-gradient-to-r from-red-600 to-rose-400' : 'bg-gradient-to-r from-blue-600 to-cyan-400'}`} 
                     style={{ width: `${hpPercent}%` }}
                 />
             </div>
@@ -87,103 +75,48 @@ const BaseStatue: React.FC<{ x: number; hp: number; variant: 'BLUE' | 'RED'; isF
                             <stop offset="40%" stopColor={primaryColor} />
                             <stop offset="100%" stopColor={lightColor} stopOpacity="0.9" />
                         </linearGradient>
-                        <radialGradient id={`slime-core-${variant}`} cx="0.5" cy="0.4" r="0.5">
-                            <stop offset="0%" stopColor="white" stopOpacity="0.8" />
-                            <stop offset="40%" stopColor={lightColor} stopOpacity="0.6" />
-                            <stop offset="100%" stopColor={primaryColor} stopOpacity="0" />
-                        </radialGradient>
                     </defs>
-
-                    {/* Base Puddle */}
                     <path d="M20 340 Q 0 340 10 320 Q 50 300 100 310 Q 150 300 190 320 Q 200 340 180 340 Q 140 355 100 350 Q 60 355 20 340" 
                           fill={darkColor} opacity="0.8" />
-
-                    {/* Main Tower Spire */}
                     <path 
-                        d="M50 320 
-                           C 20 250, 40 150, 70 80 
-                           Q 100 50, 130 80 
-                           C 160 150, 180 250, 150 320 
-                           Q 100 340, 50 320 Z" 
+                        d="M50 320 C 20 250, 40 150, 70 80 Q 100 50, 130 80 C 160 150, 180 250, 150 320 Q 100 340, 50 320 Z" 
                         fill={`url(#slime-body-${variant})`} 
                         stroke={lightColor} 
                         strokeWidth="2" 
                         strokeOpacity="0.5"
                     />
-
-                    {/* Animated Bubbles inside */}
-                    <g opacity="0.7">
-                        <circle cx="100" cy="300" r="6" fill="white" opacity="0.5">
-                            <animate attributeName="cy" values="300;80" dur="4s" repeatCount="indefinite" />
-                            <animate attributeName="opacity" values="0.5;0" dur="4s" repeatCount="indefinite" />
-                        </circle>
-                        <circle cx="80" cy="250" r="4" fill="white" opacity="0.4">
-                            <animate attributeName="cy" values="250;70" dur="3s" repeatCount="indefinite" delay="1s" />
-                            <animate attributeName="opacity" values="0.4;0" dur="3s" repeatCount="indefinite" delay="1s" />
-                        </circle>
-                        <circle cx="120" cy="200" r="5" fill="white" opacity="0.4">
-                            <animate attributeName="cy" values="200;60" dur="5s" repeatCount="indefinite" delay="0.5s" />
-                            <animate attributeName="opacity" values="0.4;0" dur="5s" repeatCount="indefinite" delay="0.5s" />
-                        </circle>
-                    </g>
-
-                    {/* Glowing Core / Heart */}
-                    <circle cx="100" cy="70" r="25" fill={`url(#slime-core-${variant})`} className="animate-pulse" />
-                    
-                    {/* Floating Ring/Crown */}
-                    <ellipse cx="100" cy="70" rx="40" ry="12" fill="none" stroke={lightColor} strokeWidth="3" opacity="0.8">
-                         <animateTransform attributeName="transform" type="rotate" from="0 100 70" to="360 100 70" dur="8s" repeatCount="indefinite" />
-                    </ellipse>
+                    <circle cx="100" cy="70" r="25" fill="white" opacity="0.2" className="animate-pulse" />
                 </svg>
-
-                {/* Outer Glow Div */}
-                <div 
-                    className="absolute top-[10%] left-1/2 -translate-x-1/2 w-32 h-32 rounded-full blur-3xl -z-10 opacity-50"
-                    style={{ backgroundColor: isRed ? '#f87171' : '#60a5fa' }} 
-                ></div>
             </div>
         </div>
     );
 };
 
-const TICK_RATE = 50; 
+const TICK_RATE = 20; 
 const DEATH_DURATION = 1500;
-
 const UNIT_AGILITY: Record<string, number> = {
-  [UnitType.WORKER]: 8.0,
-  [UnitType.SMALL]: 10.0,
-  [UnitType.TOXIC]: 6.0,
-  [UnitType.ARCHER]: 5.0,
-  [UnitType.MAGE]: 3.0,
-  [UnitType.PALADIN]: 1.5,
-  [UnitType.BOSS]: 0.8
+  [UnitType.WORKER]: 10.0,
+  [UnitType.SMALL]: 12.0,
+  [UnitType.TOXIC]: 8.0,
+  [UnitType.ARCHER]: 7.0,
+  [UnitType.MAGE]: 5.0,
+  [UnitType.PALADIN]: 4.0,
+  [UnitType.BOSS]: 2.0
 };
-
-// Types for Action Queue
-type GameAction = 
-  | { type: 'RECRUIT'; unitType: UnitType; side: 'player' | 'enemy' }
-  | { type: 'CHANGE_COMMAND'; side: 'player' | 'enemy'; command: GameCommand }
-  | { type: 'SYNC_ENEMY_GOLD'; gold: number };
 
 export const App: React.FC = () => {
   const [appMode, setAppMode] = useState<'INTRO' | 'LANDING' | 'MAP_SELECT' | 'GAME'>('INTRO');
   const [role, setRole] = useState<PlayerRole>(PlayerRole.HOST);
   const [isSurgeMode, setIsSurgeMode] = useState(false);
-
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const [isMusicEnabled, setIsMusicEnabled] = useState(false);
   const [shakeTrigger, setShakeTrigger] = useState<number>(0);
-  const [isSurrenderConfirming, setIsSurrenderConfirming] = useState(false);
-  const [goldPopups, setGoldPopups] = useState<{id: number, amount: number}[]>([]);
   
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
-  const dragStatusRef = useRef({ hasMoved: false });
-  const prevGoldRef = useRef(INITIAL_GOLD);
 
-  // Game State
   const [gameState, setGameState] = useState<GameState>({
     units: [],
     playerStatueHP: STATUE_HP,
@@ -197,1006 +130,280 @@ export const App: React.FC = () => {
     mapId: MapId.FOREST
   });
 
-  const [logs, setLogs] = useState<BattleLogEntry[]>([]);
-  
-  // Refs
   const stateRef = useRef(gameState);
-  const aiStateRef = useRef({ lastDecisionTime: 0 });
-  // Action Queue to prevent race conditions between UI and Game Loop
-  const actionQueueRef = useRef<GameAction[]>([]);
+  const actionQueueRef = useRef<any[]>([]);
   
   useEffect(() => { stateRef.current = gameState; }, [gameState]);
 
-  // Derived Values needed for Hooks
   const isMirrored = role === PlayerRole.CLIENT;
   const currentGold = role === PlayerRole.HOST || role === PlayerRole.OFFLINE ? gameState.p1Gold : gameState.p2Gold;
 
-  const getVisualX = useCallback((x: number) => {
-      return isMirrored ? 100 - x : x;
-  }, [isMirrored]);
+  const getVisualX = useCallback((x: number) => isMirrored ? 100 - x : x, [isMirrored]);
   
-  const addLog = useCallback((message: string, type: BattleLogEntry['type'] = 'info') => {
-    setLogs(prev => [...prev.slice(-4), { 
-      id: Math.random().toString(36).substr(2, 9),
-      message,
-      type,
-      timestamp: Date.now()
-    }]);
-  }, []);
-
-  const resetGame = useCallback(() => {
-    AudioService.playSelect();
-    const startGold = isSurgeMode ? INITIAL_GOLD_SURGE : INITIAL_GOLD;
-    const newState: GameState = {
-        units: [],
-        playerStatueHP: STATUE_HP,
-        enemyStatueHP: STATUE_HP,
-        p1Gold: startGold,
-        p2Gold: startGold,
-        p1Command: GameCommand.DEFEND,
-        p2Command: GameCommand.DEFEND,
-        lastTick: Date.now(),
-        gameStatus: 'PLAYING',
-        mapId: stateRef.current.mapId // Keep current map
-    };
-    
-    // Clear queue
-    actionQueueRef.current = [];
-    prevGoldRef.current = startGold;
-    
-    if (role === PlayerRole.HOST || role === PlayerRole.OFFLINE) {
-        setGameState(newState);
-        setLogs([]);
-        setSelectedUnitId(null);
-        addLog("Battle Reset!", "info");
-        if (role === PlayerRole.HOST) {
-            mpService.send({ type: 'GAME_STATE_UPDATE', payload: newState });
-        }
-        aiStateRef.current.lastDecisionTime = Date.now();
-    } else {
-        mpService.send({ type: 'GAME_RESET', payload: {} });
-    }
-    
-    setIsSurrenderConfirming(false);
-    
-    if (scrollContainerRef.current) {
-        scrollContainerRef.current.scrollLeft = 0;
-    }
-  }, [role, addLog, isSurgeMode]);
-
   const handleReturnToMenu = useCallback(() => {
-    // AudioService.playSelect(); // Optional, avoiding double sound on auto-nav
-    // Reset internal surge mode
     setIsSurgeMode(false);
-    
-    const resetState: GameState = {
-        units: [],
-        playerStatueHP: STATUE_HP,
-        enemyStatueHP: STATUE_HP,
-        p1Gold: INITIAL_GOLD,
-        p2Gold: INITIAL_GOLD,
-        p1Command: GameCommand.DEFEND,
-        p2Command: GameCommand.DEFEND,
-        lastTick: Date.now(),
-        gameStatus: 'PLAYING',
-        mapId: MapId.FOREST
-    };
-    setGameState(resetState);
-    setLogs([]);
-    setSelectedUnitId(null);
-    setIsSurrenderConfirming(false);
     mpService.destroy();
     setAppMode('LANDING');
   }, []);
 
-  // --- NAVIGATION ---
-  const handleStartHost = (surge: boolean) => {
-      setRole(PlayerRole.HOST);
-      setIsSurgeMode(surge);
-      setAppMode('MAP_SELECT');
-      if (!isMusicEnabled) toggleMusic();
-  };
-
-  const handleStartClient = () => {
-      setRole(PlayerRole.CLIENT);
-      // Client adopts host's mode via state updates, default local is false (irrelevant)
-      setIsSurgeMode(false);
-      setAppMode('GAME');
-      addLog("Connected to Server. Waiting for Host...", "info");
-      if (!isMusicEnabled) toggleMusic();
-  };
-
-  const handleStartOffline = (surge: boolean) => {
-      setRole(PlayerRole.OFFLINE);
-      setIsSurgeMode(surge);
-      setAppMode('MAP_SELECT');
-      if (!isMusicEnabled) toggleMusic();
-  };
-
-  const handleMapSelected = (mapId: MapId) => {
-      // Initialize state with selected map and correct gold
-      const startGold = isSurgeMode ? INITIAL_GOLD_SURGE : INITIAL_GOLD;
-      const initialState: GameState = {
-        units: [],
-        playerStatueHP: STATUE_HP,
-        enemyStatueHP: STATUE_HP,
-        p1Gold: startGold,
-        p2Gold: startGold,
-        p1Command: GameCommand.DEFEND,
-        p2Command: GameCommand.DEFEND,
-        lastTick: Date.now(),
-        gameStatus: 'PLAYING',
-        mapId: mapId
-      };
-      
-      setGameState(initialState);
-      prevGoldRef.current = startGold;
-      
-      if (role === PlayerRole.HOST) {
-          mpService.send({ type: 'GAME_STATE_UPDATE', payload: initialState });
-          addLog(`Multiplayer Session Started. ${isSurgeMode ? '[SURGE MODE]' : ''}`, "info");
-      } else {
-          addLog(`Single Player Mode Started. ${isSurgeMode ? '[SURGE MODE]' : ''}`, "info");
-      }
-      
-      setAppMode('GAME');
-  };
-
   const toggleMusic = () => {
-      if (isMusicEnabled) {
-          AudioService.stopMusic();
-          setIsMusicEnabled(false);
-      } else {
-          AudioService.startMusic();
-          setIsMusicEnabled(true);
-      }
+    if (isMusicEnabled) {
+        AudioService.stopMusic();
+        setIsMusicEnabled(false);
+    } else {
+        AudioService.startMusic();
+        setIsMusicEnabled(true);
+    }
   };
-  
-  // Auto-navigate to menu on game end
+
   useEffect(() => {
     if (gameState.gameStatus !== 'PLAYING') {
-       const timer = setTimeout(() => {
-           handleReturnToMenu();
-       }, 5000); // 5 seconds delay to show victory screen
+       const timer = setTimeout(handleReturnToMenu, 5000);
        return () => clearTimeout(timer);
     }
   }, [gameState.gameStatus, handleReturnToMenu]);
 
-  // --- NETWORK ---
-  useEffect(() => {
-    if (appMode !== 'GAME') return;
-
-    mpService.onMessage((msg: NetworkMessage) => {
-        if (role === PlayerRole.CLIENT) {
-            if (msg.type === 'GAME_STATE_UPDATE') {
-                setGameState(msg.payload);
-            }
-        } else if (role === PlayerRole.HOST) {
-            if (msg.type === 'RECRUIT_REQUEST') {
-                actionQueueRef.current.push({ 
-                    type: 'RECRUIT', 
-                    unitType: msg.payload.unitType, 
-                    side: 'enemy' 
-                });
-            }
-            if (msg.type === 'CLIENT_COMMAND_REQUEST') {
-                actionQueueRef.current.push({
-                    type: 'CHANGE_COMMAND',
-                    side: 'enemy',
-                    command: msg.payload.command
-                });
-            }
-            if (msg.type === 'GAME_RESET') {
-                resetGame();
-            }
-            if (msg.type === 'SURRENDER') {
-                setGameState(prev => {
-                     if (prev.gameStatus !== 'PLAYING') return prev;
-                     const nextState: GameState = { ...prev, gameStatus: 'VICTORY' };
-                     mpService.send({ type: 'GAME_STATE_UPDATE', payload: nextState });
-                     return nextState;
-                });
-                AudioService.playFanfare(true);
-                addLog("Opponent Surrendered!", "victory");
-            }
-        }
-    });
-
-    return () => {
-        mpService.onMessage(() => {}); 
-    };
-  }, [appMode, role, resetGame, addLog]);
-
-  // Track gold changes for visual effect (Moved up before conditional returns)
-  useEffect(() => {
-    const diff = Math.floor(currentGold) - Math.floor(prevGoldRef.current);
-    if (diff > 0) {
-        const id = Date.now() + Math.random();
-        setGoldPopups(prev => [...prev, { id, amount: diff }]);
-        setTimeout(() => {
-            setGoldPopups(prev => prev.filter(p => p.id !== id));
-        }, 1000);
-    }
-    prevGoldRef.current = currentGold;
-  }, [currentGold]);
-
-
-  // --- ACTIONS (UI) ---
-  const handleRecruit = (type: UnitType) => {
-    const config = UNIT_CONFIGS[type];
-    const mySide = role === PlayerRole.HOST || role === PlayerRole.OFFLINE ? 'player' : 'enemy';
-    const currentCount = gameState.units.filter(u => u.side === mySide && u.state !== 'DYING').length;
-
-    if (currentCount >= MAX_UNITS) {
-        return; 
-    }
-    
-    // Check affordability instantly for UI/Audio feedback, 
-    // though actual deduction happens in game loop for synchronization.
-    const myGold = role === PlayerRole.HOST || role === PlayerRole.OFFLINE ? gameState.p1Gold : gameState.p2Gold;
-    
-    if (myGold >= config.cost) {
-        AudioService.playRecruit();
-        if (role === PlayerRole.HOST || role === PlayerRole.OFFLINE) {
-             actionQueueRef.current.push({ type: 'RECRUIT', unitType: type, side: 'player' });
-        } else {
-             mpService.send({ type: 'RECRUIT_REQUEST', payload: { unitType: type } });
-        }
-    }
-  };
-  
-  const handleCommandChange = (newCommand: GameCommand) => {
-      AudioService.playSelect();
-      if (role === PlayerRole.HOST || role === PlayerRole.OFFLINE) {
-          actionQueueRef.current.push({ type: 'CHANGE_COMMAND', side: 'player', command: newCommand });
-      } else {
-          mpService.send({ type: 'CLIENT_COMMAND_REQUEST', payload: { command: newCommand } });
-      }
-  };
-
-  const handleSelectUnit = (id: string) => {
-    AudioService.playSelect();
-    setSelectedUnitId(id);
-  };
-
-  const handleBackgroundClick = (e: React.MouseEvent) => {
-    if (dragStatusRef.current.hasMoved) return;
-    setSelectedUnitId(null);
-  };
-
-  const handleSurrender = () => {
-    if (gameState.gameStatus !== 'PLAYING') return;
-
-    if (!isSurrenderConfirming) {
-        AudioService.playSelect();
-        setIsSurrenderConfirming(true);
-        // Reset confirmation after 3 seconds
-        setTimeout(() => setIsSurrenderConfirming(false), 3000);
-        return;
-    }
-
-    AudioService.playSelect();
-    setIsSurrenderConfirming(false);
-    
-    if (role === PlayerRole.HOST || role === PlayerRole.OFFLINE) {
-        setGameState(prev => {
-            const next = { ...prev, gameStatus: 'DEFEAT' as const };
-            if (role === PlayerRole.HOST) {
-                mpService.send({ type: 'GAME_STATE_UPDATE', payload: next });
-            }
-            return next;
-        });
-        AudioService.playFanfare(false);
-    } else {
-        mpService.send({ type: 'SURRENDER', payload: {} });
-        addLog("Surrendering...", "info");
-    }
-  };
-
-  // --- SCROLL HANDLERS ---
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (!scrollContainerRef.current) return;
-    setIsDragging(true);
-    dragStatusRef.current.hasMoved = false;
-    setStartX(e.pageX - scrollContainerRef.current.offsetLeft);
-    setScrollLeft(scrollContainerRef.current.scrollLeft);
-  };
-  const handleMouseLeave = () => setIsDragging(false);
-  const handleMouseUp = () => setIsDragging(false);
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || !scrollContainerRef.current) return;
-    e.preventDefault();
-    dragStatusRef.current.hasMoved = true;
-    const x = e.pageX - scrollContainerRef.current.offsetLeft;
-    const walk = (x - startX) * 1.5; 
-    scrollContainerRef.current.scrollLeft = scrollLeft - walk;
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (!scrollContainerRef.current) return;
-    setIsDragging(true);
-    dragStatusRef.current.hasMoved = false;
-    setStartX(e.touches[0].pageX - scrollContainerRef.current.offsetLeft);
-    setScrollLeft(scrollContainerRef.current.scrollLeft);
-  };
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging || !scrollContainerRef.current) return;
-    dragStatusRef.current.hasMoved = true;
-    const x = e.touches[0].pageX - scrollContainerRef.current.offsetLeft;
-    const walk = (x - startX) * 1.5; 
-    scrollContainerRef.current.scrollLeft = scrollLeft - walk;
-  };
-  const handleTouchEnd = () => setIsDragging(false);
-
-
-  // --- GAME LOOP ---
+  // Unified Game Loop
   useEffect(() => {
     if ((role !== PlayerRole.HOST && role !== PlayerRole.OFFLINE) || appMode !== 'GAME') return;
 
     const intervalId = setInterval(() => {
-      // 1. Snapshot current state
-      const startTickUnits = stateRef.current.units;
+      const now = Date.now();
+      const deltaTime = Math.min((now - stateRef.current.lastTick) / 1000, 0.05);
       
-      // 2. Create working copy for next state
-      let nextUnits = startTickUnits.map(u => ({ ...u }));
-      
-      let pStatueHP = stateRef.current.playerStatueHP;
-      let eStatueHP = stateRef.current.enemyStatueHP;
-      let p1Gold = stateRef.current.p1Gold;
-      let p2Gold = stateRef.current.p2Gold;
-      let p1Cmd = stateRef.current.p1Command;
-      let p2Cmd = stateRef.current.p2Command;
-      const gameStatus = stateRef.current.gameStatus;
-      const currentMap = stateRef.current.mapId;
-
+      let { units: nextUnits, playerStatueHP: pStatueHP, enemyStatueHP: eStatueHP, p1Gold, p2Gold, p1Command, p2Command, gameStatus } = stateRef.current;
       if (gameStatus !== 'PLAYING') return;
 
-      const now = Date.now();
-      const deltaTime = (now - stateRef.current.lastTick) / 1000;
+      let processedUnits = nextUnits.map(u => ({ ...u }));
+      let newSummons: GameUnit[] = [];
 
-      // PROCESS ACTION QUEUE
+      // Process Queue
       while (actionQueueRef.current.length > 0) {
-          const action = actionQueueRef.current.shift();
-          if (!action) break;
-          
-          if (action.type === 'RECRUIT') {
-              const config = UNIT_CONFIGS[action.unitType];
-              const cost = config.cost;
-              const isP1 = action.side === 'player';
-              
-              const currentSideUnits = nextUnits.filter(u => u.side === action.side && u.state !== 'DYING').length;
-              
-              if (currentSideUnits < MAX_UNITS) {
-                  const canAfford = isP1 ? (p1Gold >= cost) : (p2Gold >= cost);
-                  if (canAfford) {
-                      if (isP1) p1Gold -= cost;
-                      else p2Gold -= cost;
-                      
-                      const newUnit: GameUnit = {
-                          id: Math.random().toString(36).substr(2, 9),
-                          type: action.unitType,
-                          side: action.side,
-                          x: action.side === 'player' ? SPAWN_X_PLAYER : SPAWN_X_ENEMY,
-                          hp: config.stats.hp,
-                          maxHp: config.stats.hp,
-                          state: 'WALKING', // Start walking immediately for instant feedback
-                          lastAttackTime: 0,
-                          targetId: null,
-                          currentSpeed: 0,
-                          hasGold: false
-                      };
-                      nextUnits.push(newUnit);
-                  }
-              }
+        const action = actionQueueRef.current.shift();
+        if (action.type === 'RECRUIT') {
+          const config = UNIT_CONFIGS[action.unitType as UnitType];
+          const isP1 = action.side === 'player';
+          if ((isP1 ? p1Gold : p2Gold) >= config.cost) {
+            if (isP1) p1Gold -= config.cost; else p2Gold -= config.cost;
+            processedUnits.push({
+              id: Math.random().toString(36).substr(2, 9),
+              type: action.unitType,
+              side: action.side,
+              x: action.side === 'player' ? SPAWN_X_PLAYER : SPAWN_X_ENEMY,
+              hp: config.stats.hp,
+              maxHp: config.stats.hp,
+              state: 'WALKING',
+              lastAttackTime: 0,
+              currentSpeed: 0,
+              hasGold: false
+            });
+            AudioService.playRecruit();
           }
-          else if (action.type === 'CHANGE_COMMAND') {
-              if (action.side === 'player') p1Cmd = action.command;
-              else p2Cmd = action.command;
-          }
-      }
-
-      // AI LOGIC (Offline)
-      if (role === PlayerRole.OFFLINE && now - aiStateRef.current.lastDecisionTime > 1000) {
-          aiStateRef.current.lastDecisionTime = now;
-          const enemyUnits = nextUnits.filter(u => u.side === 'enemy' && u.state !== 'DYING');
-          const enemyMiners = enemyUnits.filter(u => u.type === UnitType.WORKER).length;
-          
-          if (enemyMiners < 4 && p2Gold >= UNIT_CONFIGS[UnitType.WORKER].cost) {
-              // Priority: Eco
-              if (enemyUnits.length < MAX_UNITS) {
-                  p2Gold -= UNIT_CONFIGS[UnitType.WORKER].cost;
-                  const config = UNIT_CONFIGS[UnitType.WORKER];
-                  nextUnits.push({
-                      id: Math.random().toString(36).substr(2, 9),
-                      type: UnitType.WORKER,
-                      side: 'enemy',
-                      x: SPAWN_X_ENEMY,
-                      hp: config.stats.hp,
-                      maxHp: config.stats.hp,
-                      state: 'WALKING',
-                      lastAttackTime: 0,
-                      targetId: null,
-                      currentSpeed: 0,
-                      hasGold: false
-                  });
-              }
-          }
-          else if (p2Gold > 200) {
-              // Now that SMALL is in CONFIGS, we must ensure AI doesn't try to recruit it manually 
-              // (though cost is 0, logic might pick it if we don't filter. 
-              // 'types' array below needs to stay specific)
-              const types = [UnitType.TOXIC, UnitType.ARCHER, UnitType.PALADIN, UnitType.MAGE];
-              const affordableTypes = types.filter(t => UNIT_CONFIGS[t].cost <= p2Gold);
-              if (affordableTypes.length > 0) {
-                  if (enemyUnits.length < MAX_UNITS) {
-                      const typeToBuy = affordableTypes[Math.floor(Math.random() * affordableTypes.length)];
-                      p2Gold -= UNIT_CONFIGS[typeToBuy].cost;
-                      const config = UNIT_CONFIGS[typeToBuy];
-                      nextUnits.push({
-                          id: Math.random().toString(36).substr(2, 9),
-                          type: typeToBuy,
-                          side: 'enemy',
-                          x: SPAWN_X_ENEMY,
-                          hp: config.stats.hp,
-                          maxHp: config.stats.hp,
-                          state: 'WALKING',
-                          lastAttackTime: 0,
-                          targetId: null,
-                          currentSpeed: 0,
-                          hasGold: false
-                      });
-                  }
-              }
-          }
-          
-          const combatUnits = enemyUnits.filter(u => u.type !== UnitType.WORKER).length;
-          if (combatUnits > 6) p2Cmd = GameCommand.ATTACK;
-          else if (eStatueHP < 1000) p2Cmd = GameCommand.DEFEND;
-          else if (combatUnits < 2) p2Cmd = GameCommand.RETREAT;
-          else p2Cmd = GameCommand.DEFEND;
-      }
-
-      // --- FORMATION & PHYSICS LOOP ---
-      
-      const getFormationAnchor = (side: 'player' | 'enemy') => {
-          const units = nextUnits.filter(u => u.side === side && u.type !== UnitType.WORKER && u.state !== 'DYING');
-          if (units.length === 0) return side === 'player' ? SPAWN_X_PLAYER : SPAWN_X_ENEMY;
-          if (side === 'player') {
-              return Math.max(...units.map(u => u.x));
-          } else {
-              return Math.min(...units.map(u => u.x));
-          }
-      };
-
-      const p1Anchor = getFormationAnchor('player');
-      const p2Anchor = getFormationAnchor('enemy');
-      
-      const newSummons: GameUnit[] = [];
-
-      nextUnits.forEach(unit => {
-        if (unit.state === 'DYING') return;
-        
-        // MAGE SUMMONING LOGIC
-        if (unit.type === UnitType.MAGE) {
-            if (!unit.lastSummonTime) unit.lastSummonTime = now;
-            
-            if (now - unit.lastSummonTime >= 10000) {
-                // Count current active minions owned by this specific Mage
-                const activeMinions = nextUnits.filter(u => 
-                    u.type === UnitType.SMALL && 
-                    u.side === unit.side && 
-                    u.ownerId === unit.id && 
-                    u.state !== 'DYING'
-                ).length;
-
-                // Only summon if we have fewer than 3 active minions
-                if (activeMinions < 3) {
-                    // Summon Mini Slime
-                    const summonType = UnitType.SMALL;
-                    const summonConfig = UNIT_CONFIGS[summonType];
-                    
-                    // Spawn slightly ahead of Mage
-                    const spawnOffset = unit.side === 'player' ? 2 : -2;
-                    
-                    newSummons.push({
-                        id: Math.random().toString(36).substr(2, 9),
-                        type: summonType,
-                        side: unit.side,
-                        x: Math.max(0, Math.min(100, unit.x + spawnOffset)),
-                        hp: summonConfig.stats.hp,
-                        maxHp: summonConfig.stats.hp,
-                        state: 'WALKING',
-                        lastAttackTime: 0,
-                        targetId: null,
-                        currentSpeed: 0,
-                        hasGold: false,
-                        ownerId: unit.id // Link minion to this mage
-                    });
-                    
-                    unit.lastSummonTime = now;
-                }
-            }
+        } else if (action.type === 'CHANGE_COMMAND') {
+          if (action.side === 'player') p1Command = action.command; else p2Command = action.command;
         }
-        
+      }
+
+      // Physics and Logic
+      processedUnits.forEach(unit => {
+        if (unit.state === 'DYING') return;
         const config = UNIT_CONFIGS[unit.type];
         const isPlayer = unit.side === 'player';
         let targetVelocity = 0;
-        let speedMultiplier = 1.0;
 
-        if (currentMap === MapId.FOREST && unit.x > 45 && unit.x < 55) speedMultiplier *= 0.5;
-        if (currentMap === MapId.MINE && (unit.type === UnitType.ARCHER || unit.type === UnitType.MAGE)) speedMultiplier *= 1.2;
-        if (currentMap === MapId.SWAMP && [UnitType.TOXIC, UnitType.PALADIN, UnitType.BOSS, UnitType.WORKER].includes(unit.type)) speedMultiplier *= 0.7;
-
-        if (unit.type === UnitType.WORKER) {
-             const mineLocation = isPlayer ? GOLD_MINE_PLAYER_X : GOLD_MINE_ENEMY_X;
-             const statueLocation = isPlayer ? STATUE_PLAYER_POS : STATUE_ENEMY_POS;
-             const MINING_DURATION = 10000;
-             const DEPOSIT_DURATION = 1000;
-             const miningRange = 1.5;
-
-             if (unit.state === 'MINING') {
-                targetVelocity = 0;
-                if (now - unit.lastAttackTime > MINING_DURATION) {
-                   unit.hasGold = true;
-                   unit.state = 'WALKING';
-                }
-             }
-             else if (unit.state === 'DEPOSITING') {
-                targetVelocity = 0;
-                if (now - unit.lastAttackTime > DEPOSIT_DURATION) {
-                   if (isPlayer) {
-                      p1Gold += 20;
-                      if (Math.random() > 0.8) AudioService.playRecruit();
-                   } else {
-                      p2Gold += 20;
-                   }
-                   unit.hasGold = false;
-                   unit.state = 'WALKING';
-                }
-             }
-             else {
-                if (unit.hasGold) {
-                    if (Math.abs(unit.x - statueLocation) <= miningRange) {
-                       unit.state = 'DEPOSITING';
-                       unit.lastAttackTime = now;
-                       targetVelocity = 0;
-                    } else {
-                       targetVelocity = (unit.x < statueLocation ? 1 : -1) * config.stats.speed;
-                    }
-                } else {
-                    if (Math.abs(unit.x - mineLocation) <= miningRange) {
-                       unit.state = 'MINING';
-                       unit.lastAttackTime = now;
-                       targetVelocity = 0;
-                    } else {
-                       targetVelocity = (unit.x < mineLocation ? 1 : -1) * config.stats.speed;
-                    }
-                }
-             }
-        } 
-        else {
-            const statuePos = isPlayer ? STATUE_ENEMY_POS : STATUE_PLAYER_POS;
-            
-            let target: GameUnit | undefined;
-            let distToTarget = 10000;
-            
-            nextUnits.forEach(other => {
-                if (other.side !== unit.side && other.hp > 0 && other.state !== 'DYING') {
-                     const dist = Math.abs(other.x - unit.x);
-                     if (dist < distToTarget) {
-                         distToTarget = dist;
-                         target = other;
-                     }
-                }
-            });
-            
-            const distToStatue = Math.abs(unit.x - statuePos);
-            let hittingStatue = (!target || distToTarget > distToStatue) && distToStatue <= config.stats.range + 1;
-            let hittingUnit = target && distToTarget <= config.stats.range;
-            
-            if (hittingStatue || hittingUnit) {
-                unit.state = 'ATTACKING';
-                targetVelocity = 0;
-                
-                if (now - unit.lastAttackTime > config.stats.attackSpeed) {
-                    AudioService.playAttack(unit.type);
-                    
-                    if (hittingUnit && target) {
-                         let damage = config.stats.damage;
-                         if (target.type === UnitType.PALADIN) damage = Math.floor(damage * 0.7);
-                         
-                         const targetCmd = target.side === 'player' ? p1Cmd : p2Cmd;
-                         if (targetCmd === GameCommand.DEFEND) {
-                             damage = Math.floor(damage * 0.7); 
-                         }
-
-                         target.hp -= damage; 
-                         target.lastDamageTime = now;
-                         target.lastDamageAmount = damage;
-                    }
-                    else if (hittingStatue) {
-                        if (isPlayer) {
-                            eStatueHP -= config.stats.damage;
-                            AudioService.playDamage();
-                        } else {
-                            pStatueHP -= config.stats.damage;
-                            AudioService.playDamage();
-                        }
-                    }
-                    unit.lastAttackTime = now;
-                    if (unit.type === UnitType.BOSS) setShakeTrigger(Date.now());
-                }
-            }
-            else {
-                const cmd = isPlayer ? p1Cmd : (role === PlayerRole.OFFLINE ? p2Cmd : p2Cmd);
-                const formationAnchor = isPlayer ? p1Anchor : p2Anchor;
-                
-                let strategicX = unit.x;
-                
-                if (cmd === GameCommand.ATTACK) {
-                    strategicX = isPlayer ? STATUE_ENEMY_POS : STATUE_PLAYER_POS;
-                } else if (cmd === GameCommand.DEFEND) {
-                    strategicX = isPlayer ? 30 : 70;
-                } else if (cmd === GameCommand.RETREAT) {
-                    strategicX = isPlayer ? 10 : 90;
-                }
-
-                let formationTargetX = strategicX;
-                let useFormation = true;
-
-                // AGGRO LOGIC:
-                // If we have a target nearby, break formation to engage.
-                // This ensures "row" based units (like Paladins) don't stand idle while frontline fights.
-                if (target && cmd !== GameCommand.RETREAT) {
-                    const dist = distToTarget;
-                    // Attack Mode: Generous aggro range (35%) to ensure army collapses on enemies
-                    // Defend Mode: Short guard range (10%) to allow defending units to step out and fight
-                    const AGGRO_RANGE = cmd === GameCommand.ATTACK ? 35 : 10;
-                    
-                    if (dist < AGGRO_RANGE) {
-                        formationTargetX = target.x;
-                        useFormation = false;
-                    }
-                }
-
-                if (useFormation) {
-                    const myOffset = FORMATION_OFFSETS[unit.type];
-                    
-                    if (cmd === GameCommand.ATTACK) {
-                        const idealFormationX = isPlayer 
-                            ? formationAnchor - myOffset 
-                            : formationAnchor + myOffset;
-                            
-                        // Only move to strategicX (Attack move) if we are AHEAD of our formation slot.
-                        // Otherwise, catch up to formation to prevent streaming.
-                        const isAhead = isPlayer ? unit.x >= idealFormationX - 0.5 : unit.x <= idealFormationX + 0.5;
-                        
-                        if (isAhead) {
-                             formationTargetX = strategicX;
-                        } else {
-                             formationTargetX = idealFormationX;
-                        }
-                    } 
-                    else {
-                        // Defend / Retreat: Strict formation
-                        formationTargetX = isPlayer 
-                            ? strategicX - myOffset 
-                            : strategicX + myOffset;
-                    }
-                }
-
-                const dir = formationTargetX > unit.x ? 1 : -1;
-                const dist = Math.abs(formationTargetX - unit.x);
-                
-                if (dist < 0.5) {
-                    unit.state = 'IDLE';
-                    targetVelocity = 0;
-                } else {
-                    unit.state = 'WALKING';
-                    targetVelocity = dir * config.stats.speed;
-                }
+        // Poison Logic
+        if (unit.poisonTicks && unit.poisonTicks > 0) {
+            if (now - (unit.lastPoisonTickTime || 0) > 1000) {
+                unit.hp -= 15; // Poison tick damage
+                unit.poisonTicks -= 1;
+                unit.lastPoisonTickTime = now;
+                unit.lastDamageTime = now;
+                unit.lastDamageAmount = 15;
             }
         }
-        
-        if (targetVelocity !== 0) targetVelocity *= speedMultiplier;
 
-        if (typeof unit.currentSpeed === 'undefined') unit.currentSpeed = 0;
-        const agility = UNIT_AGILITY[unit.type] || 5.0;
-        const smoothingFactor = 1 - Math.exp(-agility * deltaTime);
-        unit.currentSpeed += (targetVelocity - unit.currentSpeed) * smoothingFactor;
-        
-        if (Math.abs(targetVelocity - unit.currentSpeed) < 0.05) {
-             if (targetVelocity === 0) unit.currentSpeed = 0;
-        }
-
-        if (Math.abs(unit.currentSpeed) > 0.01) {
-             unit.x += unit.currentSpeed * deltaTime;
-             unit.x = Math.max(0, Math.min(100, unit.x));
-        }
-      });
-      
-      // Merge summons
-      if (newSummons.length > 0) {
-          nextUnits.push(...newSummons);
-      }
-
-      nextUnits = nextUnits.map(u => {
-         if (u.hp <= 0 && u.state !== 'DYING') {
-             return { ...u, state: 'DYING', deathTime: now, hp: 0 };
-         }
-         return u;
-      });
-
-      nextUnits = nextUnits.filter(u => {
-          if (u.state === 'DYING') {
-              const timeSinceDeath = now - (u.deathTime || 0);
-              return timeSinceDeath < DEATH_DURATION;
+        // Mage Summoning Logic
+        if (unit.type === UnitType.MAGE) {
+          if (!unit.lastSummonTime) unit.lastSummonTime = now;
+          if (now - unit.lastSummonTime > 8000) {
+             const activeMinions = processedUnits.filter(u => u.side === unit.side && u.ownerId === unit.id && u.state !== 'DYING').length;
+             if (activeMinions < 3) {
+                AudioService.playSummon();
+                newSummons.push({
+                   id: Math.random().toString(36).substr(2, 9),
+                   type: UnitType.SMALL,
+                   side: unit.side,
+                   x: unit.x + (isPlayer ? 5 : -5),
+                   hp: UNIT_CONFIGS[UnitType.SMALL].stats.hp,
+                   maxHp: UNIT_CONFIGS[UnitType.SMALL].stats.hp,
+                   state: 'WALKING',
+                   lastAttackTime: 0,
+                   currentSpeed: 0,
+                   ownerId: unit.id
+                });
+                unit.lastSummonTime = now;
+             }
           }
-          return true;
+        }
+
+        // Worker Mining Logic
+        if (unit.type === UnitType.WORKER) {
+          const minePos = isPlayer ? GOLD_MINE_PLAYER_X : GOLD_MINE_ENEMY_X;
+          const statuePos = isPlayer ? STATUE_PLAYER_POS : STATUE_ENEMY_POS;
+          const miningRange = 2;
+
+          if (unit.state === 'MINING') {
+            if (now - unit.lastAttackTime > config.stats.attackSpeed) { unit.hasGold = true; unit.state = 'WALKING'; }
+          } else if (unit.state === 'DEPOSITING') {
+            if (now - unit.lastAttackTime > 500) {
+              if (isPlayer) p1Gold += 20; else p2Gold += 20;
+              unit.hasGold = false;
+              unit.state = 'WALKING';
+            }
+          } else {
+            const targetPos = unit.hasGold ? statuePos : minePos;
+            if (Math.abs(unit.x - targetPos) < miningRange) {
+              unit.state = unit.hasGold ? 'DEPOSITING' : 'MINING';
+              unit.lastAttackTime = now;
+            } else {
+              targetVelocity = (unit.x < targetPos ? 1 : -1) * config.stats.speed;
+            }
+          }
+        } else {
+          // Combat & Movement for non-workers
+          const targetStatueX = isPlayer ? STATUE_ENEMY_POS : STATUE_PLAYER_POS;
+          let enemyTarget = processedUnits.find(u => u.side !== unit.side && u.state !== 'DYING' && Math.abs(u.x - unit.x) < config.stats.range + 2);
+          
+          if (enemyTarget || Math.abs(unit.x - targetStatueX) < config.stats.range + 1) {
+            unit.state = 'ATTACKING';
+            targetVelocity = 0;
+            if (now - unit.lastAttackTime > config.stats.attackSpeed) {
+              AudioService.playAttack(unit.type);
+              if (enemyTarget) {
+                enemyTarget.hp -= config.stats.damage;
+                enemyTarget.lastDamageTime = now;
+                enemyTarget.lastDamageAmount = config.stats.damage;
+                
+                // IMPACT EFFECTS: Knockback & Poison & Shake
+                const knockbackForce = (unit.type === UnitType.BOSS ? 2.5 : (unit.type === UnitType.PALADIN ? 1.5 : 0.5));
+                enemyTarget.x += isPlayer ? knockbackForce : -knockbackForce;
+                
+                if (unit.type === UnitType.TOXIC) {
+                    enemyTarget.poisonTicks = 3;
+                    enemyTarget.lastPoisonTickTime = now;
+                }
+                
+                if (unit.type === UnitType.BOSS || unit.type === UnitType.PALADIN) {
+                    setShakeTrigger(now + 400);
+                }
+              } else {
+                if (isPlayer) eStatueHP -= config.stats.damage; else pStatueHP -= config.stats.damage;
+                AudioService.playDamage();
+                if (unit.type === UnitType.BOSS) setShakeTrigger(now + 400);
+              }
+              unit.lastAttackTime = now;
+            }
+          } else {
+            unit.state = 'WALKING';
+            const cmd = isPlayer ? p1Command : p2Command;
+            const dir = isPlayer ? 1 : -1;
+            if (cmd === GameCommand.ATTACK) targetVelocity = dir * config.stats.speed;
+            else if (cmd === GameCommand.RETREAT) targetVelocity = -dir * config.stats.speed;
+            else targetVelocity = 0;
+          }
+        }
+
+        // Apply Smoothing
+        const agility = UNIT_AGILITY[unit.type] || 5;
+        unit.currentSpeed += (targetVelocity - unit.currentSpeed) * (1 - Math.exp(-agility * deltaTime));
+        unit.x += unit.currentSpeed * deltaTime;
+        unit.x = Math.max(0, Math.min(100, unit.x));
       });
 
-      let newStatus = gameStatus;
-      if (pStatueHP <= 0) newStatus = 'DEFEAT';
-      if (eStatueHP <= 0) newStatus = 'VICTORY';
+      // Cleanup & Merge Summons
+      processedUnits = [...processedUnits, ...newSummons].filter(u => {
+        if (u.hp <= 0 && u.state !== 'DYING') { u.state = 'DYING'; u.deathTime = now; }
+        return !(u.state === 'DYING' && now - (u.deathTime || 0) > DEATH_DURATION);
+      });
 
-      if (newStatus !== gameStatus) {
-         if (newStatus === 'VICTORY') AudioService.playFanfare(true);
-         if (newStatus === 'DEFEAT') AudioService.playFanfare(false);
-      }
+      const nextStatus = pStatueHP <= 0 ? 'DEFEAT' : (eStatueHP <= 0 ? 'VICTORY' : 'PLAYING');
+      if (nextStatus !== gameStatus) AudioService.playFanfare(nextStatus === 'VICTORY');
 
-      const nextState: GameState = {
-        units: nextUnits,
-        playerStatueHP: pStatueHP,
-        enemyStatueHP: eStatueHP,
-        p1Gold,
-        p2Gold,
-        p1Command: p1Cmd,
-        p2Command: p2Cmd,
-        lastTick: now,
-        gameStatus: newStatus,
-        mapId: currentMap
-      };
-
+      const nextState = { ...stateRef.current, units: processedUnits, playerStatueHP: pStatueHP, enemyStatueHP: eStatueHP, p1Gold, p2Gold, p1Command, p2Command, gameStatus: nextStatus, lastTick: now };
       setGameState(nextState);
-      if (role === PlayerRole.HOST) {
-        mpService.send({ type: 'GAME_STATE_UPDATE', payload: nextState });
-      }
+      if (role === PlayerRole.HOST) mpService.send({ type: 'GAME_STATE_UPDATE', payload: nextState });
 
     }, TICK_RATE);
-
     return () => clearInterval(intervalId);
-  }, [role, appMode, isSurgeMode]);
+  }, [role, appMode]);
 
-  if (appMode === 'INTRO') {
-      return <IntroSequence onComplete={() => setAppMode('LANDING')} />;
-  }
+  if (appMode === 'INTRO') return <IntroSequence onComplete={() => setAppMode('LANDING')} />;
+  if (appMode === 'LANDING') return <LandingPage onStartHost={(s) => { setRole(PlayerRole.HOST); setIsSurgeMode(s); setAppMode('MAP_SELECT'); }} onStartClient={() => { setRole(PlayerRole.CLIENT); setAppMode('GAME'); }} onStartOffline={(s) => { setRole(PlayerRole.OFFLINE); setIsSurgeMode(s); setAppMode('MAP_SELECT'); }} />;
+  if (appMode === 'MAP_SELECT') return <MapSelection onSelectMap={(m) => { setGameState(prev => ({...prev, mapId: m, p1Gold: isSurgeMode?2000:50, p2Gold: isSurgeMode?2000:50})); setAppMode('GAME'); }} onBack={() => setAppMode('LANDING')} />;
 
-  if (appMode === 'LANDING') {
-      return <LandingPage onStartHost={handleStartHost} onStartClient={handleStartClient} onStartOffline={handleStartOffline} />;
-  }
-
-  if (appMode === 'MAP_SELECT') {
-      return <MapSelection onSelectMap={handleMapSelected} onBack={() => setAppMode('LANDING')} />;
-  }
-
-  const currentCommand = role === PlayerRole.HOST || role === PlayerRole.OFFLINE ? gameState.p1Command : gameState.p2Command;
-  const roleLabel = role === PlayerRole.HOST ? 'HOST' : (role === PlayerRole.OFFLINE ? 'SINGLE PLAYER' : 'CLIENT');
-  
-  const isShaking = (Date.now() - shakeTrigger) < 400;
-
-  const mySide = role === PlayerRole.HOST || role === PlayerRole.OFFLINE ? 'player' : 'enemy';
-  const currentPop = gameState.units.filter(u => u.side === mySide && u.state !== 'DYING').length;
-  // Filter out SMALL units from the recruit bar so users can't buy them
-  const allConfigs = Object.values(UNIT_CONFIGS).filter(u => u.type !== UnitType.SMALL);
-  
-  // Calculate Victory State for Display
-  const amIHost = role === PlayerRole.HOST || role === PlayerRole.OFFLINE;
-  const isVictory = amIHost 
-      ? gameState.gameStatus === 'VICTORY'
-      : gameState.gameStatus === 'DEFEAT';
+  const amIHost = role !== PlayerRole.CLIENT;
+  const isVictory = amIHost ? gameState.gameStatus === 'VICTORY' : gameState.gameStatus === 'DEFEAT';
 
   return (
     <div className="h-[100dvh] w-screen bg-black overflow-hidden relative">
-      
-      {/* GAME AREA - SCROLLABLE WORLD CONTAINER */}
       <div 
         ref={scrollContainerRef}
-        className={`absolute inset-0 flex flex-col bg-inamorta select-none overflow-x-auto overflow-y-hidden touch-pan-x ${isShaking ? 'animate-shake' : ''}`}
-        onMouseDown={handleMouseDown}
-        onMouseLeave={handleMouseLeave}
-        onMouseUp={handleMouseUp}
-        onMouseMove={handleMouseMove}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onClick={handleBackgroundClick}
+        className={`absolute inset-0 flex flex-col bg-inamorta select-none overflow-x-auto overflow-y-hidden touch-pan-x ${shakeTrigger > Date.now() ? 'animate-shake' : ''}`}
+        onMouseDown={(e) => { setIsDragging(true); setStartX(e.pageX); setScrollLeft(scrollContainerRef.current!.scrollLeft); }}
+        onMouseMove={(e) => { if (!isDragging) return; scrollContainerRef.current!.scrollLeft = scrollLeft - (e.pageX - startX) * 1.5; }}
+        onMouseUp={() => setIsDragging(false)}
+        onMouseLeave={() => setIsDragging(false)}
       >
-          {/* Extended World Width for Scrolling */}
-          <div className="relative h-full min-w-[250vw] sm:min-w-[200vw]">
+          <div className="relative h-full min-w-[200vw]">
             <BattlefieldBackground mapId={gameState.mapId} />
-            <div className="absolute top-10 left-20 opacity-20 pointer-events-none">
-                <div className="w-32 h-32 bg-white rounded-full blur-3xl"></div>
-            </div>
             <BaseStatue x={getVisualX(STATUE_PLAYER_POS)} hp={gameState.playerStatueHP} variant="BLUE" isFlipped={isMirrored} />
             <GoldMine x={getVisualX(GOLD_MINE_PLAYER_X)} isFlipped={isMirrored} />
             <GoldMine x={getVisualX(GOLD_MINE_ENEMY_X)} isFlipped={!isMirrored} />
             <BaseStatue x={getVisualX(STATUE_ENEMY_POS)} hp={gameState.enemyStatueHP} variant="RED" isFlipped={!isMirrored} />
-            <ArmyVisuals 
-                units={gameState.units} 
-                selectedUnitId={selectedUnitId}
-                onSelectUnit={handleSelectUnit}
-                isMirrored={isMirrored}
-            />
+            <ArmyVisuals units={gameState.units} selectedUnitId={selectedUnitId} onSelectUnit={setSelectedUnitId} isMirrored={isMirrored} />
           </div>
       </div>
-      
-      {/* --- TOP HUD (System, Army Bar, Resources) --- */}
-      <div 
-        className="fixed top-0 left-0 right-0 z-30 pointer-events-none flex flex-col w-full"
-        style={{
-            paddingTop: 'max(0.5rem, env(safe-area-inset-top))',
-            paddingLeft: 'max(0.5rem, env(safe-area-inset-left))',
-            paddingRight: 'max(0.5rem, env(safe-area-inset-right))'
-        }}
-      >
-         {/* Header Row: Flex for side elements to avoid overlap, but Army bar is centered absolutely to be true center */}
-         <div className="flex justify-between items-start w-full pointer-events-none relative z-50">
-             
-             {/* Left: System Controls */}
-             <div className="flex gap-2 pointer-events-auto ml-2">
-                 <div className={`px-2 py-1 rounded text-[10px] font-bold h-8 flex items-center shadow-md ${role === PlayerRole.CLIENT ? 'bg-red-600' : 'bg-blue-600'} text-white`}>
-                    {roleLabel}
-                 </div>
-                 
-                 <button
-                    onClick={() => { AudioService.playSelect(); toggleMusic(); }}
-                    className={`w-8 h-8 flex items-center justify-center rounded bg-black/60 backdrop-blur border border-white/20 transition-colors ${isMusicEnabled ? 'text-yellow-400' : 'text-stone-400'}`}
-                 >
-                    {isMusicEnabled ? <Music size={14} /> : <VolumeX size={14} />}
-                 </button>
 
-                 {isSurgeMode && (
-                     <div className="px-2 py-1 rounded text-[10px] font-bold h-8 flex items-center shadow-md bg-purple-600 text-purple-100 border border-purple-400 gap-1 animate-pulse">
-                        <Zap size={12} fill="currentColor" /> SURGE
-                     </div>
-                 )}
-             </div>
-
-             {/* Right: Resources & Surrender */}
-             <div className="flex flex-col items-end gap-1 pointer-events-auto mr-2">
-                 <div className="flex gap-3 bg-black/70 px-3 py-1.5 rounded-full border border-stone-600 backdrop-blur-md shadow-xl">
-                     <div className="flex items-center gap-2 relative">
-                         <Coins className="text-yellow-400 w-4 h-4" />
-                         <span className="text-lg font-bold font-mono text-yellow-100">{Math.floor(currentGold)}</span>
-                         
-                         {/* Gold Popups */}
-                         {goldPopups.map(popup => (
-                             <div 
-                                key={popup.id}
-                                className="absolute top-0 left-full ml-2 text-yellow-300 font-bold text-sm animate-gold-float pointer-events-none whitespace-nowrap"
-                                style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}
-                             >
-                                +{popup.amount}
-                             </div>
-                         ))}
-                     </div>
-                     <div className="w-px bg-white/20 h-5 self-center"></div>
-                     <div className="flex items-center gap-2">
-                         <Users className="text-stone-400 w-4 h-4" />
-                         <span className={`text-lg font-bold font-mono ${currentPop >= MAX_UNITS ? 'text-red-500' : 'text-stone-200'}`}>
-                            {currentPop}/{MAX_UNITS}
-                         </span>
-                     </div>
-                 </div>
-
-                 {/* Surrender Button - Moved here */}
-                 <button
-                    onClick={handleSurrender}
-                    className={`h-6 px-2 flex items-center justify-center rounded bg-black/40 backdrop-blur border border-white/10 hover:bg-black/60 transition-all ${isSurrenderConfirming ? 'bg-red-600/80 text-white animate-pulse border-red-500' : 'text-stone-500 hover:text-red-400'}`}
-                    title="Surrender"
-                 >
-                    {isSurrenderConfirming ? (
-                         <span className="text-[10px] font-bold uppercase tracking-wider mr-1">Confirm</span>
-                    ) : null}
-                    {isSurrenderConfirming ? <AlertTriangle size={12} /> : <Flag size={12} />}
-                 </button>
-             </div>
-         </div>
-
-         {/* Army Bar Layer - Positioned Absolutely to be true center, but limited width to prevent overlap */}
-         <div className="absolute top-0 left-0 w-full flex justify-center pointer-events-none z-40">
-               <div className="pointer-events-auto mt-0 max-w-[45vw] sm:max-w-md lg:max-w-xl">
-                   <div className="flex gap-1 sm:gap-2 overflow-x-auto no-scrollbar py-2 px-3 bg-black/90 backdrop-blur-md rounded-b-2xl border border-t-0 border-stone-600 shadow-2xl">
-                       {allConfigs.map((unit) => {
-                           const canAfford = currentGold >= unit.cost && currentPop < MAX_UNITS;
-                           const isRed = role === PlayerRole.CLIENT; 
-                           
-                           return (
-                               <button
-                                   key={unit.type}
-                                   disabled={!canAfford}
-                                   onClick={() => handleRecruit(unit.type)}
-                                   className={`
-                                      group relative w-10 h-10 sm:w-14 sm:h-14 rounded-lg border-2 flex-shrink-0 flex items-center justify-center transition-all active:scale-95 touch-manipulation
-                                      ${canAfford 
-                                         ? 'bg-stone-800 border-stone-600 hover:border-yellow-500 hover:bg-stone-700' 
-                                         : 'bg-stone-900 border-stone-800 opacity-40 cursor-not-allowed grayscale'}
-                                   `}
-                               >
-                                   {/* Unit Icon - Scaled Down */}
-                                   <div className="scale-[0.5] sm:scale-[0.7]">
-                                       <StickmanRender type={unit.type} isPlayer={!isRed} />
-                                   </div>
-
-                                   {/* Cost Label */}
-                                   <div className={`
-                                       absolute -bottom-1.5 right-1/2 translate-x-1/2 px-1 rounded-full text-[8px] sm:text-[10px] font-bold border shadow-sm leading-none
-                                       ${canAfford ? 'bg-yellow-500 text-black border-yellow-300' : 'bg-stone-700 text-stone-400 border-stone-600'}
-                                   `}>
-                                       {unit.cost}
-                                   </div>
-                               </button>
-                           );
-                       })}
-                   </div>
-               </div>
-         </div>
+      <div className="fixed top-4 left-4 z-40 flex gap-2">
+          <button onClick={toggleMusic} className="p-2 bg-black/60 rounded border border-white/20 text-yellow-400">
+              {isMusicEnabled ? <Music size={20} /> : <VolumeX size={20} />}
+          </button>
       </div>
 
-      {/* --- BOTTOM HUD (Commands Only) --- */}
-      <div 
-        className="fixed bottom-0 left-0 right-0 z-30 pointer-events-none flex flex-col justify-end items-center"
-        style={{
-            paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))',
-            paddingLeft: 'max(0.5rem, env(safe-area-inset-left))',
-            paddingRight: 'max(0.5rem, env(safe-area-inset-right))'
-        }}
-      >
-          {/* Bottom Right: Commands */}
-          <div className="absolute bottom-4 right-4 pointer-events-auto flex flex-col gap-2 scale-90 sm:scale-100 origin-bottom-right">
-             <button 
-                onClick={() => handleCommandChange(GameCommand.ATTACK)}
-                className={`w-12 h-12 rounded-full flex items-center justify-center border-2 shadow-lg transition-all active:scale-95 ${currentCommand === GameCommand.ATTACK ? 'bg-red-600 border-red-300 ring-4 ring-red-900/50' : 'bg-stone-800 border-stone-600 text-stone-400'}`}
-             >
-                 <Swords size={20} fill="currentColor" />
-             </button>
-             <button 
-                onClick={() => handleCommandChange(GameCommand.DEFEND)}
-                className={`w-12 h-12 rounded-full flex items-center justify-center border-2 shadow-lg transition-all active:scale-95 ${currentCommand === GameCommand.DEFEND ? 'bg-blue-600 border-blue-300 ring-4 ring-blue-900/50' : 'bg-stone-800 border-stone-600 text-stone-400'}`}
-             >
-                 <Shield size={20} fill="currentColor" />
-             </button>
-             <button 
-                onClick={() => handleCommandChange(GameCommand.RETREAT)}
-                className={`w-12 h-12 rounded-full flex items-center justify-center border-2 shadow-lg transition-all active:scale-95 ${currentCommand === GameCommand.RETREAT ? 'bg-orange-600 border-orange-300 ring-4 ring-orange-900/50' : 'bg-stone-800 border-stone-600 text-stone-400'}`}
-             >
-                 <CornerDownLeft size={20} />
-             </button>
-          </div>
+      <div className="fixed top-4 right-4 z-40 bg-black/70 px-4 py-2 rounded-full border border-white/10 flex gap-4 items-center">
+         <div className="flex items-center gap-2"><Coins className="text-yellow-400" size={18} /><span className="text-yellow-100 font-bold">{Math.floor(currentGold)}</span></div>
+         <div className="flex items-center gap-2"><Users className="text-stone-400" size={18} /><span className="text-stone-100 font-bold">{gameState.units.filter(u => u.side === (amIHost ? 'player' : 'enemy') && u.state !== 'DYING').length}/{MAX_UNITS}</span></div>
       </div>
-      
-      {/* Game Over Overlay */}
+
+      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-black/80 p-2 rounded-xl flex gap-2 border border-white/10 max-w-[90vw] overflow-x-auto no-scrollbar">
+          {Object.values(UNIT_CONFIGS).filter(u => u.cost > 0).map(u => (
+              <button 
+                  key={u.type} 
+                  disabled={currentGold < u.cost}
+                  onClick={() => actionQueueRef.current.push({type: 'RECRUIT', unitType: u.type, side: amIHost ? 'player' : 'enemy'})}
+                  className={`p-2 rounded border flex flex-col items-center min-w-[64px] transition-all ${currentGold >= u.cost ? 'bg-stone-800 border-white/5 active:scale-95' : 'bg-stone-900 opacity-40 border-transparent grayscale'}`}
+              >
+                  <div className="scale-50 h-8 w-8 flex items-center justify-center">
+                    <StickmanRender type={u.type} isPlayer={amIHost} />
+                  </div>
+                  <span className="text-[10px] text-yellow-500 font-bold">{u.cost}</span>
+              </button>
+          ))}
+      </div>
+
+      <div className="fixed bottom-4 right-4 z-40 flex flex-col gap-2">
+          <button onClick={() => actionQueueRef.current.push({type: 'CHANGE_COMMAND', side: amIHost ? 'player' : 'enemy', command: GameCommand.ATTACK})} className="p-3 bg-red-600 rounded-full border-2 border-white/20 shadow-lg active:scale-95"><Swords size={24} /></button>
+          <button onClick={() => actionQueueRef.current.push({type: 'CHANGE_COMMAND', side: amIHost ? 'player' : 'enemy', command: GameCommand.DEFEND})} className="p-3 bg-blue-600 rounded-full border-2 border-white/20 shadow-lg active:scale-95"><Shield size={24} /></button>
+          <button onClick={() => actionQueueRef.current.push({type: 'CHANGE_COMMAND', side: amIHost ? 'player' : 'enemy', command: GameCommand.RETREAT})} className="p-3 bg-orange-600 rounded-full border-2 border-white/20 shadow-lg active:scale-95"><CornerDownLeft size={24} /></button>
+      </div>
+
       {gameState.gameStatus !== 'PLAYING' && (
-         <div className={`absolute inset-0 z-50 flex items-center justify-center backdrop-blur-sm animate-intro-fade ${isVictory ? 'bg-yellow-900/20' : 'bg-red-900/20'}`}>
-             <div className={`bg-stone-900 p-8 rounded-xl border-4 text-center shadow-2xl max-w-md w-full relative overflow-hidden ${isVictory ? 'animate-victory-modal' : 'animate-defeat-modal'}`}>
-                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-20 pointer-events-none"></div>
-                 
-                 <div className="relative z-10">
-                     <h1 className={`text-5xl sm:text-7xl font-epic mb-2 drop-shadow-lg animate-flourish ${isVictory ? 'text-yellow-400' : 'text-red-600'}`}>
-                         {isVictory ? 'VICTORY!' : 'DEFEAT'}
-                     </h1>
-                     
-                     <p className="text-stone-400 font-mono mb-8 text-sm animate-subtext">
-                        {isVictory 
-                            ? (amIHost ? "The Slime Legion has conquered!" : "The Rebellion has succeeded!")
-                            : (amIHost ? "Your statue has crumbled..." : "The Rebellion is crushed.")
-                        }
-                     </p>
-                     
-                     <div className="mt-8 animate-pulse text-stone-500 font-mono text-sm animate-subtext" style={{animationDelay: '1s'}}>
-                        Returning to base...
-                     </div>
-                 </div>
+         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-intro-fade">
+             <div className={`bg-stone-900 p-12 rounded-2xl border-4 text-center shadow-2xl ${isVictory ? 'animate-victory-modal' : 'animate-defeat-modal'}`}>
+                 <h1 className={`text-6xl font-epic mb-4 animate-flourish ${isVictory ? 'text-yellow-400' : 'text-red-600'}`}>
+                     {isVictory ? 'VICTORY!' : 'DEFEAT'}
+                 </h1>
+                 <p className="text-stone-400 animate-subtext">The Saga continues in your glory...</p>
              </div>
          </div>
       )}

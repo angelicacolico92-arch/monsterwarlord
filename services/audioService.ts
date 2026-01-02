@@ -1,281 +1,192 @@
 import { UnitType } from '../types';
 
 let audioCtx: AudioContext | null = null;
-let bgmNodes: AudioNode[] = [];
+let masterGain: GainNode | null = null;
+let musicGain: GainNode | null = null;
 let isMusicPlaying = false;
-let isUnlocked = false;
+let sequencerInterval: any = null;
+let currentStep = 0;
+let tempo = 110;
 
 const getCtx = () => {
   if (!audioCtx && typeof window !== 'undefined') {
     const CtxClass = window.AudioContext || (window as any).webkitAudioContext;
     if (CtxClass) {
-        audioCtx = new CtxClass();
+      audioCtx = new CtxClass();
+      masterGain = audioCtx.createGain();
+      masterGain.connect(audioCtx.destination);
+      masterGain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+
+      musicGain = audioCtx.createGain();
+      musicGain.connect(masterGain);
+      musicGain.gain.setValueAtTime(0.6, audioCtx.currentTime); // 60% music volume as recommended
     }
   }
   return audioCtx;
 };
 
-const resumeCtx = () => {
-    const ctx = getCtx();
-    if (ctx && ctx.state === 'suspended') {
-        ctx.resume().catch(e => console.error("Audio resume failed:", e));
-    }
-    return ctx;
+const playSynth = (freq: number, type: OscillatorType, start: number, duration: number, volume: number, decay: number) => {
+  const ctx = getCtx();
+  if (!ctx || !musicGain) return;
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, start);
+  g.gain.setValueAtTime(volume, start);
+  g.gain.exponentialRampToValueAtTime(0.001, start + duration + decay);
+  osc.connect(g);
+  g.connect(musicGain);
+  osc.start(start);
+  osc.stop(start + duration + decay + 0.1);
+};
+
+// --- DRUM SYNTHS ---
+const playKick = (time: number, vol = 0.5) => {
+  const ctx = getCtx();
+  if (!ctx || !musicGain) return;
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
+  osc.frequency.setValueAtTime(150, time);
+  osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.5);
+  g.gain.setValueAtTime(vol, time);
+  g.gain.exponentialRampToValueAtTime(0.01, time + 0.5);
+  osc.connect(g);
+  g.connect(musicGain);
+  osc.start(time);
+  osc.stop(time + 0.5);
+};
+
+const playSnare = (time: number, vol = 0.3) => {
+  const ctx = getCtx();
+  if (!ctx || !musicGain) return;
+  const noise = ctx.createBufferSource();
+  const buffer = ctx.createBuffer(1, ctx.sampleRate * 0.1, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+  noise.buffer = buffer;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(vol, time);
+  g.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'highpass';
+  filter.frequency.setValueAtTime(1000, time);
+  noise.connect(filter);
+  filter.connect(g);
+  g.connect(musicGain);
+  noise.start(time);
+};
+
+const playPluck = (freq: number, time: number, vol = 0.2) => {
+  playSynth(freq, 'triangle', time, 0.05, vol, 0.15);
+};
+
+const playBrass = (freq: number, time: number, vol = 0.15) => {
+  playSynth(freq, 'sawtooth', time, 0.15, vol, 0.3);
+};
+
+// --- SEQUENCER SCALES ---
+const HEROIC_SCALE = [130.81, 164.81, 196.00, 220.00, 261.63]; // C Major Pen
+
+const step = () => {
+  const ctx = getCtx();
+  if (!ctx || !isMusicPlaying) return;
+
+  const secondsPerStep = 60 / (tempo * 4);
+  const time = ctx.currentTime + 0.1;
+
+  const isKick = currentStep % 8 === 0 || (currentStep % 8 === 4 && Math.random() > 0.7);
+  const isSnare = currentStep % 8 === 4;
+  const isPluck = currentStep % 2 === 0;
+
+  if (isKick) playKick(time, 0.4);
+  if (isSnare) playSnare(time, 0.2);
+  
+  if (isPluck) {
+    const note = HEROIC_SCALE[Math.floor(Math.random() * HEROIC_SCALE.length)] * 2;
+    playPluck(note, time, 0.1);
+  }
+
+  if (currentStep % 16 === 0) {
+    playBrass(HEROIC_SCALE[0] * 2, time, 0.1);
+    playBrass(HEROIC_SCALE[2] * 2, time + secondsPerStep * 2, 0.1);
+  }
+
+  currentStep = (currentStep + 1) % 64;
 };
 
 export const AudioService = {
-  // Call this on the first user interaction
   unlockAudio: () => {
-      if (isUnlocked) return;
-      const ctx = getCtx();
-      if (!ctx) return;
-
-      // Play a silent buffer to fully unlock the audio engine on iOS
-      const buffer = ctx.createBuffer(1, 1, 22050);
-      const source = ctx.createBufferSource();
-      source.buffer = buffer;
-      source.connect(ctx.destination);
-      source.start(0);
-
-      resumeCtx();
-      isUnlocked = true;
+    const ctx = getCtx();
+    if (ctx && ctx.state === 'suspended') ctx.resume();
   },
 
   startMusic: () => {
     if (isMusicPlaying) return;
-    const ctx = resumeCtx();
+    const ctx = getCtx();
     if (!ctx) return;
-    
-    const t = ctx.currentTime;
     isMusicPlaying = true;
-
-    // Node creation
-    const osc1 = ctx.createOscillator(); // Bass drone
-    const osc2 = ctx.createOscillator(); // High chime
-    const filter = ctx.createBiquadFilter(); // Env filter
-    const lfo = ctx.createOscillator(); // Wobble
-    const masterGain = ctx.createGain();
-
-    // Configuration
-    osc1.type = 'sine';
-    osc1.frequency.setValueAtTime(45, t); // F1
-
-    osc2.type = 'triangle';
-    osc2.frequency.setValueAtTime(180, t); // F3
-
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(300, t);
-    filter.Q.value = 5;
-
-    lfo.type = 'sine';
-    lfo.frequency.value = 0.5; // slow wobble
-
-    const lfoGain = ctx.createGain();
-    lfoGain.gain.value = 200;
-
-    masterGain.gain.setValueAtTime(0, t);
-    masterGain.gain.linearRampToValueAtTime(0.08, t + 4); 
-
-    // Connections
-    lfo.connect(lfoGain);
-    lfoGain.connect(filter.frequency);
-
-    osc1.connect(masterGain); // Bass bypass filter
-    osc2.connect(filter);
-    filter.connect(masterGain);
-    masterGain.connect(ctx.destination);
-
-    osc1.start(t);
-    osc2.start(t);
-    lfo.start(t);
-
-    bgmNodes = [osc1, osc2, filter, lfo, lfoGain, masterGain];
+    currentStep = 0;
+    sequencerInterval = setInterval(step, (60 / (tempo * 4)) * 1000);
   },
 
   stopMusic: () => {
-     if (!isMusicPlaying) return;
-     const ctx = getCtx();
-     if (!ctx) return;
-     
-     const t = ctx.currentTime;
-
-     const masterGain = bgmNodes.find(n => n instanceof GainNode && (n as any).gain.value < 100); 
-     if (masterGain && masterGain instanceof GainNode) {
-         masterGain.gain.cancelScheduledValues(t);
-         masterGain.gain.setValueAtTime(masterGain.gain.value, t);
-         masterGain.gain.linearRampToValueAtTime(0, t + 1);
-     }
-
-     setTimeout(() => {
-         bgmNodes.forEach(node => {
-             if (node instanceof OscillatorNode) {
-                 try { node.stop(); } catch(e){}
-             }
-             node.disconnect();
-         });
-         bgmNodes = [];
-     }, 1100);
-     
-     isMusicPlaying = false;
-  },
-
-  playRecruit: () => {
-    const ctx = resumeCtx();
-    if (!ctx) return;
-    const t = ctx.currentTime;
-    
-    // Wet pop sound
-    const osc = ctx.createOscillator();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(200, t);
-    osc.frequency.exponentialRampToValueAtTime(600, t + 0.1);
-    
-    const gain = ctx.createGain();
-    gain.gain.setValueAtTime(0.1, t);
-    gain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
-    
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(t + 0.1);
+    isMusicPlaying = false;
+    if (sequencerInterval) clearInterval(sequencerInterval);
   },
 
   playSelect: () => {
-    const ctx = resumeCtx();
-    if (!ctx) return;
-    const t = ctx.currentTime;
-    
-    // Bubble blip
-    const osc = ctx.createOscillator();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(800, t);
-    
-    const gain = ctx.createGain();
-    gain.gain.setValueAtTime(0.05, t);
-    gain.gain.exponentialRampToValueAtTime(0.01, t + 0.05);
-    
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(t + 0.05);
+    const ctx = getCtx();
+    if (!ctx || !masterGain) return;
+    const time = ctx.currentTime;
+    playSynth(440, 'sine', time, 0.05, 0.2, 0.05);
+    playSynth(880, 'sine', time + 0.05, 0.05, 0.15, 0.05);
   },
 
-  playAttack: (type: UnitType) => {
-    const ctx = resumeCtx();
-    if (!ctx) return;
-    const t = ctx.currentTime;
-    
-    if (Math.random() > 0.4) return; 
-
-    const gain = ctx.createGain();
-    gain.connect(ctx.destination);
-
-    if (type === UnitType.ARCHER || type === UnitType.TOXIC) {
-        // Spit / Thwip
-        const osc = ctx.createOscillator();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(600, t);
-        osc.frequency.exponentialRampToValueAtTime(200, t + 0.1);
-        gain.gain.setValueAtTime(0.05, t);
-        gain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
-        osc.connect(gain);
-        osc.start();
-        osc.stop(t + 0.15);
-    } else if (type === UnitType.MAGE) {
-        // Magic gloop
-        const osc = ctx.createOscillator();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(300, t);
-        osc.frequency.linearRampToValueAtTime(600, t + 0.3);
-        // Add wobble
-        const lfo = ctx.createOscillator();
-        lfo.frequency.value = 20;
-        const lfoGain = ctx.createGain();
-        lfoGain.gain.value = 50;
-        lfo.connect(lfoGain);
-        lfoGain.connect(osc.frequency);
-        lfo.start();
-
-        gain.gain.setValueAtTime(0.05, t);
-        gain.gain.linearRampToValueAtTime(0, t + 0.3);
-        osc.connect(gain);
-        osc.start();
-        osc.stop(t + 0.3);
-    } else {
-        // Melee Splat (Worker, Paladin, Boss)
-        // Filtered Noise
-        const bufferSize = ctx.sampleRate * 0.15;
-        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-        const data = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-            data[i] = Math.random() * 2 - 1;
-        }
-        const noise = ctx.createBufferSource();
-        noise.buffer = buffer;
-        
-        const filter = ctx.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(600, t);
-        filter.frequency.linearRampToValueAtTime(100, t + 0.15); // Closing filter
-
-        gain.gain.setValueAtTime(0.1, t);
-        gain.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
-        
-        noise.connect(filter);
-        filter.connect(gain);
-        noise.start();
-    }
+  playRecruit: () => {
+    const ctx = getCtx();
+    if (!ctx || !masterGain) return;
+    const time = ctx.currentTime;
+    playSynth(220, 'triangle', time, 0.1, 0.3, 0.2);
+    playSynth(330, 'triangle', time + 0.1, 0.1, 0.2, 0.2);
   },
 
   playDamage: () => {
-    const ctx = resumeCtx();
-    if (!ctx) return;
-    const t = ctx.currentTime;
-    
-    if (Math.random() > 0.3) return;
+    const ctx = getCtx();
+    if (!ctx || !masterGain) return;
+    const time = ctx.currentTime;
+    playSynth(100, 'sawtooth', time, 0.1, 0.3, 0.3);
+  },
 
-    // Squish damage
-    const osc = ctx.createOscillator();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(150, t);
-    osc.frequency.exponentialRampToValueAtTime(50, t + 0.1);
-    
-    const filter = ctx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.value = 300;
+  playSummon: () => {
+    const ctx = getCtx();
+    if (!ctx || !masterGain) return;
+    const time = ctx.currentTime;
+    // Magic shimmering sound
+    playSynth(660, 'sine', time, 0.1, 0.2, 0.2);
+    playSynth(880, 'sine', time + 0.05, 0.1, 0.15, 0.2);
+    playSynth(1320, 'sine', time + 0.1, 0.1, 0.1, 0.2);
+  },
 
-    const gain = ctx.createGain();
-    gain.gain.setValueAtTime(0.1, t);
-    gain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
-    
-    osc.connect(filter);
-    filter.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(t + 0.1);
+  playAttack: (type: UnitType) => {
+    const ctx = getCtx();
+    if (!ctx || !masterGain) return;
+    const time = ctx.currentTime;
+    switch (type) {
+      case UnitType.BOSS: playKick(time, 0.6); break;
+      case UnitType.ARCHER: playSynth(1200, 'sine', time, 0.02, 0.1, 0.05); break;
+      case UnitType.MAGE: playSynth(600, 'square', time, 0.1, 0.1, 0.4); break;
+      default: playSynth(300, 'triangle', time, 0.05, 0.15, 0.1);
+    }
   },
 
   playFanfare: (isVictory: boolean) => {
-    const ctx = resumeCtx();
-    if (!ctx) return;
-    const t = ctx.currentTime;
-    const notes = isVictory 
-        ? [400, 500, 600, 800] 
-        : [300, 250, 200, 100]; 
-
-    notes.forEach((freq, i) => {
-        const osc = ctx.createOscillator();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, t + i * 0.2);
-        
-        const gain = ctx.createGain();
-        gain.gain.setValueAtTime(0.1, t + i * 0.2);
-        gain.gain.exponentialRampToValueAtTime(0.01, t + i * 0.2 + 0.4);
-        
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(t + i * 0.2);
-        osc.stop(t + i * 0.2 + 0.4);
-    });
+    const ctx = getCtx();
+    if (!ctx || !masterGain) return;
+    const time = ctx.currentTime;
+    if (isVictory) {
+      [523, 659, 783, 1046].forEach((f, i) => playBrass(f, time + i * 0.15, 0.3));
+    } else {
+      [392, 349, 311, 261].forEach((f, i) => playBrass(f, time + i * 0.2, 0.3));
+    }
   }
 };

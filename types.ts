@@ -1,4 +1,3 @@
-
 export enum UnitType {
   WORKER = 'WORKER',    // Slime Miner
   TOXIC = 'TOXIC',      // Toxic Slime (Ranged/Poison)
@@ -13,7 +12,7 @@ export interface UnitStats {
   hp: number;
   maxHp: number;
   damage: number;
-  range: number; // Distance in % of field width (approx)
+  range: number; // Distance in % of field width
   speed: number; // Movement speed
   attackSpeed: number; // ms between attacks
 }
@@ -35,15 +34,19 @@ export interface GameUnit {
   hp: number;
   maxHp: number;
   state: 'IDLE' | 'WALKING' | 'ATTACKING' | 'DYING' | 'MINING' | 'DEPOSITING';
-  lastAttackTime: number; // Used for attack cooldown OR mining/depositing timer
-  deathTime?: number; // Timestamp when death animation started
+  lastAttackTime: number; 
+  deathTime?: number;
   targetId?: string | null;
-  currentSpeed: number; // Current velocity
-  hasGold?: boolean; // For workers
-  lastDamageTime?: number; // For floating damage text
-  lastDamageAmount?: number; // For floating damage text
-  lastSummonTime?: number; // For Mage summoning
-  ownerId?: string; // ID of the unit that summoned this one (for Mages)
+  currentSpeed: number;
+  hasGold?: boolean;
+  lastDamageTime?: number;
+  lastDamageAmount?: number;
+  lastSummonTime?: number;
+  ownerId?: string;
+  
+  // Tactical Effects
+  poisonTicks?: number;
+  lastPoisonTickTime?: number;
 }
 
 export interface PlayerState {
@@ -52,9 +55,9 @@ export interface PlayerState {
 }
 
 export enum GameCommand {
-  ATTACK = 'ATTACK', // Charge enemy
-  DEFEND = 'DEFEND', // Hold line
-  RETREAT = 'RETREAT', // Fall back to base
+  ATTACK = 'ATTACK',
+  DEFEND = 'DEFEND',
+  RETREAT = 'RETREAT',
 }
 
 export enum MapId {
@@ -67,8 +70,8 @@ export interface GameState {
   units: GameUnit[];
   playerStatueHP: number;
   enemyStatueHP: number;
-  p1Gold: number; // Host Gold
-  p2Gold: number; // Client Gold
+  p1Gold: number;
+  p2Gold: number;
   p1Command: GameCommand;
   p2Command: GameCommand;
   lastTick: number;
@@ -90,8 +93,6 @@ export interface EnemyArmy {
   difficultyRating: number;
   reward: number;
 }
-
-// --- MULTIPLAYER TYPES ---
 
 export enum PlayerRole {
   HOST = 'HOST',
