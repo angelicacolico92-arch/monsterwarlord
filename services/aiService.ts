@@ -1,11 +1,17 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { UnitType, EnemyArmy } from "../types";
 
-// Initialize the AI client
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Initialize the AI client safely
+const apiKey = process.env.API_KEY;
+const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
 export const generateEnemyArmy = async (playerPower: number): Promise<EnemyArmy> => {
   const model = "gemini-3-flash-preview";
+
+  if (!ai) {
+      console.warn("API Key missing, using fallback enemy.");
+      return getFallbackEnemy(playerPower);
+  }
 
   const prompt = `
     Generate a fantasy SLIME enemy army configuration for a game. 
@@ -63,7 +69,31 @@ export const generateEnemyArmy = async (playerPower: number): Promise<EnemyArmy>
     throw new Error("No response text");
   } catch (error) {
     console.error("AI Generation failed, falling back to basic enemy", error);
-    // Fallback enemy
+    return getFallbackEnemy(playerPower);
+  }
+};
+
+export const generateBattleReport = async (winner: string, playerUnitsLost: number, enemyName: string) => {
+   if (!ai) {
+       return `The battle against ${enemyName} is over. ${winner} emerged victorious!`;
+   }
+   
+   const model = "gemini-3-flash-preview";
+   try {
+     const response = await ai.models.generateContent({
+        model,
+        contents: `Write a very short, humorous, 2-sentence battle report for a fight between the Player's slime army and ${enemyName}. 
+        The winner was: ${winner}. 
+        The player lost ${playerUnitsLost} slimes.
+        Tone: Sticky, gooey, epic.`
+     });
+     return response.text;
+   } catch (e) {
+     return `The battle against ${enemyName} is over. ${winner} emerged victorious!`;
+   }
+}
+
+function getFallbackEnemy(playerPower: number): EnemyArmy {
     return {
       name: "Wild Jellies",
       description: "A loose pack of wandering globs.",
@@ -78,21 +108,4 @@ export const generateEnemyArmy = async (playerPower: number): Promise<EnemyArmy>
       difficultyRating: 1,
       reward: 100
     };
-  }
-};
-
-export const generateBattleReport = async (winner: string, playerUnitsLost: number, enemyName: string) => {
-   const model = "gemini-3-flash-preview";
-   try {
-     const response = await ai.models.generateContent({
-        model,
-        contents: `Write a very short, humorous, 2-sentence battle report for a fight between the Player's slime army and ${enemyName}. 
-        The winner was: ${winner}. 
-        The player lost ${playerUnitsLost} slimes.
-        Tone: Sticky, gooey, epic.`
-     });
-     return response.text;
-   } catch (e) {
-     return `The battle against ${enemyName} is over. ${winner} emerged victorious!`;
-   }
 }

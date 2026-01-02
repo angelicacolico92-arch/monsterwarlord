@@ -37,6 +37,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
   } else if (isAttacking || isMining) {
       if (type === UnitType.TOXIC) animClass = "animate-slime-attack"; // Lunge/Spit
       else if (type === UnitType.ARCHER) animClass = "animate-idle-breathe"; // Archer uses internal bow animation, body stays mostly steady
+      else if (type === UnitType.BOSS) animClass = "animate-boss-roar"; // Boss Roar
       else animClass = "animate-slime-attack"; // Generic lunge
   } else if (isMoving || isDepositing) {
       animClass = "animate-slime-bounce";
@@ -270,6 +271,11 @@ export const StickmanRender: React.FC<StickmanProps> = ({
         <Eyes />
         <Accessories />
       </g>
+      
+      {/* Boss Shockwave Effect */}
+      {isAttacking && !isDying && type === UnitType.BOSS && (
+         <circle cx="50" cy="50" r="25" fill="none" stroke="white" strokeWidth="2" className="animate-shockwave" />
+      )}
       
       {/* Magic Effects */}
       {isAttacking && !isDying && type === UnitType.MAGE && (

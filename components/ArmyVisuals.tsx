@@ -18,8 +18,8 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({ units, selectedUnitId,
         const isMining = unit.state === 'MINING' || unit.state === 'ATTACKING'; 
         const isDepositing = unit.state === 'DEPOSITING';
         
-        // Random jitter for depth to prevent perfect stacking within rows
-        const depthJitter = parseInt(unit.id.slice(-2), 16) % 15; 
+        // Use char codes for robust random visual jitter
+        const depthJitter = (unit.id.charCodeAt(unit.id.length - 1) + (unit.id.charCodeAt(unit.id.length - 2) || 0)) % 15;
 
         // Row Logic: Define base depth offset (pixels from bottom)
         // Front Row (Closer to camera, bottom of container): Toxic
