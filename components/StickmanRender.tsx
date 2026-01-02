@@ -30,6 +30,9 @@ export const StickmanRender: React.FC<StickmanProps> = ({
 }) => {
   const animationDelay = useMemo(() => Math.random() * 1, []);
   
+  // Memoize random delays for the bubbles so they don't look uniform across all units
+  const bubbleDelays = useMemo(() => [Math.random() * 2, Math.random() * 2, Math.random() * 2], []);
+  
   // -- ANIMATION CLASS SELECTOR --
   let animClass = "";
   if (isDying) {
@@ -93,6 +96,16 @@ export const StickmanRender: React.FC<StickmanProps> = ({
         strokeWidth="3"
         fillOpacity="0.95"
       />
+  );
+  
+  // New Component: Internal Bubbles
+  const SlimeBubbles = () => (
+      <g opacity="0.4" className="pointer-events-none">
+          {/* Bubbles positioned carefully within the body path safe zone */}
+          <circle cx="40" cy="90" r="3" fill="white" className="animate-bubble-rise" style={{ animationDelay: `${bubbleDelays[0]}s` }} />
+          <circle cx="60" cy="85" r="2" fill="white" className="animate-bubble-rise" style={{ animationDelay: `${bubbleDelays[1]}s`, animationDuration: '2.5s' }} />
+          <circle cx="50" cy="80" r="2.5" fill="white" className="animate-bubble-rise" style={{ animationDelay: `${bubbleDelays[2]}s`, animationDuration: '3s' }} />
+      </g>
   );
 
   const Eyes = () => {
@@ -293,6 +306,8 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       {/* Main Slime Group - REMOVED FILTER FOR MOBILE PERFORMANCE */}
       <g>
         <SlimeBody />
+        {/* Bubbles Rendered Inside Body */}
+        <SlimeBubbles />
         <Eyes />
         <Accessories />
       </g>

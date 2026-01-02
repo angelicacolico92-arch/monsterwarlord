@@ -47,47 +47,45 @@ export const IntroSequence: React.FC<IntroSequenceProps> = ({ onComplete }) => {
          <div className="absolute inset-0 bg-gradient-to-b from-green-950 to-black"></div>
          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-40 animate-pulse"></div>
          
-         <div className="z-10 text-center flex flex-col items-center animate-pulse pointer-events-none">
-            <h1 className="text-4xl sm:text-6xl font-sketch text-green-500 mb-8 drop-shadow-lg">SLIME WARS</h1>
-            <div className="border-2 border-green-600 bg-green-900/30 px-10 py-4 rounded-xl text-green-100 font-bold tracking-widest hover:bg-green-800/50 transition-all shadow-[0_0_30px_rgba(22,163,74,0.3)]">
+         <div className="z-10 text-center flex flex-col items-center justify-center h-full gap-8 animate-pulse pointer-events-none p-4">
+            <h1 className="text-5xl sm:text-7xl font-sketch text-green-500 drop-shadow-lg tracking-tighter">SLIME WARS</h1>
+            <div className="border-2 border-green-600 bg-green-900/30 px-8 py-3 sm:px-12 sm:py-5 rounded-xl text-green-100 font-bold tracking-widest hover:bg-green-800/50 transition-all shadow-[0_0_30px_rgba(22,163,74,0.3)] text-sm sm:text-lg">
                 TAP TO START
             </div>
          </div>
          
          {/* Hint for mobile users */}
-         <div className="absolute bottom-10 text-xs text-green-500/50">Tap anywhere to begin</div>
+         <div className="absolute bottom-6 text-[10px] sm:text-xs text-green-500/50 uppercase tracking-widest">Tap anywhere to begin</div>
       </div>
     );
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-stone-900 select-none h-[100dvh]">
+    <div className="fixed inset-0 z-50 flex flex-col items-center overflow-hidden bg-stone-900 select-none h-[100dvh] w-screen">
       {/* Background: subtle forest or slime-themed gradient */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-green-900 via-stone-950 to-black"></div>
       
       {/* Slime overlay pattern */}
       <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/gooey-pattern.png')]"></div>
 
-      <div className="relative z-10 flex flex-col items-center w-full max-w-md px-6 h-full py-8">
+      {/* Main Content Container - Flex layout distributes space vertically */}
+      <div className="relative z-10 flex flex-col items-center justify-between w-full h-full max-w-4xl mx-auto py-4 sm:py-8 px-4">
         
-        {/* Spacer to push content towards center */}
-        <div className="flex-1"></div>
-
-        {/* Game Logo: Place above Big Slime */}
-        <div className="mb-8 sm:mb-12 text-center transform hover:scale-105 transition-transform duration-500">
-            <h1 className="text-5xl sm:text-7xl font-sketch text-transparent bg-clip-text bg-gradient-to-b from-lime-400 to-green-700 drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] filter">
+        {/* Game Logo */}
+        <div className="text-center transform transition-transform duration-500 pt-2 sm:pt-4">
+            <h1 className="text-4xl sm:text-6xl md:text-7xl font-sketch text-transparent bg-clip-text bg-gradient-to-b from-lime-400 to-green-700 drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] filter">
               SLIME WARS
             </h1>
-            <p className="text-2xl font-epic text-yellow-500 tracking-[0.4em] mt-0 sm:mt-2 drop-shadow-md">SAGA</p>
+            <p className="text-lg sm:text-2xl font-epic text-yellow-500 tracking-[0.4em] -mt-1 sm:mt-2 drop-shadow-md">SAGA</p>
         </div>
 
-        {/* Big Slime Animation Placeholder */}
-        {/* Suggested motion: bouncing or stomping */}
-        <div className="relative mb-12 sm:mb-20">
+        {/* Big Slime Animation Container - Takes available middle space */}
+        <div className="flex-1 flex items-center justify-center w-full relative min-h-[150px]">
             {/* Glow/Puddle effect */}
-            <div className="absolute top-3/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-10 bg-green-500/30 rounded-full blur-xl animate-pulse"></div>
+            <div className="absolute w-32 h-8 sm:w-48 sm:h-12 bg-green-500/30 rounded-full blur-xl animate-pulse translate-y-12 sm:translate-y-16"></div>
             
-            <div className="transform scale-[2.5] sm:scale-[3.5]">
+            {/* Scaled Render */}
+            <div className="transform scale-[2.0] sm:scale-[2.5] md:scale-[3.5] transition-transform duration-700">
                <StickmanRender 
                   type={UnitType.TOXIC} // Green Slime for "green slime tones"
                   isPlayer={true} // Lime green color
@@ -97,13 +95,10 @@ export const IntroSequence: React.FC<IntroSequenceProps> = ({ onComplete }) => {
             </div>
         </div>
 
-        {/* Spacer */}
-        <div className="flex-1"></div>
-
         {/* Progress Bar / Loading Indicator: Place at bottom */}
-        <div className="w-full max-w-sm space-y-3 mb-8">
+        <div className="w-full max-w-xs sm:max-w-md space-y-2 sm:space-y-3 pb-2 sm:pb-6">
            {/* Bar Container */}
-           <div className="h-6 bg-black/60 rounded-full border-2 border-stone-600 p-1 overflow-hidden backdrop-blur-md relative shadow-lg">
+           <div className="h-4 sm:h-6 bg-black/60 rounded-full border-2 border-stone-600 p-0.5 sm:p-1 overflow-hidden backdrop-blur-md relative shadow-lg">
               {/* Fill Animation */}
               <div 
                 className="h-full bg-gradient-to-r from-yellow-700 via-yellow-500 to-yellow-300 rounded-full transition-all duration-300 ease-out shadow-[0_0_15px_rgba(234,179,8,0.5)] relative"
@@ -115,8 +110,8 @@ export const IntroSequence: React.FC<IntroSequenceProps> = ({ onComplete }) => {
            </div>
            
            {/* Tip Text / Message */}
-           <div className="flex justify-between items-center text-xs font-mono px-1">
-               <span className="text-green-200/90 animate-pulse tracking-wide">Tip: Protect your miners!</span>
+           <div className="flex justify-between items-center text-[10px] sm:text-xs font-mono px-1">
+               <span className="text-green-200/90 animate-pulse tracking-wide truncate mr-2">Tip: Protect your miners!</span>
                <span className="text-stone-500 font-bold">{Math.floor(progress)}%</span>
            </div>
         </div>

@@ -18,42 +18,36 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({ units, selectedUnitId,
         const isMining = unit.state === 'MINING' || unit.state === 'ATTACKING'; 
         const isDepositing = unit.state === 'DEPOSITING';
         
-        // Single Line Formation: Fixed rows, no random jitter to ensure clean lines.
-        
-        // Row Logic: Depth offset (pixels from bottom)
-        // 1st row (Front): Toxic
-        // 2nd row: Paladin
-        // 3rd row: Archer
-        // 4th row: Mage
-        // 5th row (Back): Boss
-        // Miner: Back near mines
+        // VISUAL LAYERING SYSTEM (Slide 2)
+        // Adjust "baseDepth" to control vertical stacking on the 2.5D plane.
+        // Higher baseDepth = Higher up on screen = "Further Back" visually.
         
         let baseDepth = 40; 
         
         switch (unit.type) {
             case UnitType.TOXIC:
-                baseDepth = 10; // 1st Row (Front/Bottom)
+                baseDepth = 10; // Row 1 (Front)
                 break;
             case UnitType.PALADIN:
-                baseDepth = 25; // 2nd Row
+                baseDepth = 30; // Row 2
                 break;
             case UnitType.ARCHER:
-                baseDepth = 40; // 3rd Row
+                baseDepth = 50; // Row 3
                 break;
             case UnitType.MAGE:
-                baseDepth = 55; // 4th Row
+                baseDepth = 70; // Row 4
                 break;
             case UnitType.BOSS:
-                baseDepth = 70; // Last Row
+                baseDepth = 90; // Row 5 (Back)
                 break;
             case UnitType.WORKER:
-                baseDepth = 85; // Furthest back to align with mines
+                baseDepth = 80; // Workers stay back/around mines
                 break;
             default:
                 baseDepth = 40;
         }
 
-        const depthOffset = baseDepth; // Removed jitter for strict single line
+        const depthOffset = baseDepth;
 
         // Calculate visual position
         // If mirrored (Client view), the world is flipped horizontally: x -> 100 - x
@@ -66,6 +60,12 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({ units, selectedUnitId,
 
         // We use transform for centering (-50%), depth offset (Y), and facing direction.
         const transformString = `translate3d(-50%, -${depthOffset}px, 0) scaleX(${facingScale})`;
+        
+        // Damage Number Logic
+        const showDamage = unit.lastDamageTime && (Date.now() - unit.lastDamageTime < 600);
+        
+        // Clamp HP bar calculation
+        const hpPercent = Math.max(0, Math.min(100, (unit.hp / unit.maxHp) * 100));
 
         return (
           <div 
@@ -83,16 +83,27 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({ units, selectedUnitId,
                height: '80px'
             }}
           >
-            {/* Health Bar */}
+            {/* Health Bar - Apply facingScale again to flip it back to "normal" if unit is flipped */}
             <div 
-                className={`absolute -top-4 left-1/2 -translate-x-1/2 w-10 h-1 bg-gray-700 rounded overflow-hidden ${unit.hp < unit.maxHp && !isDying ? 'opacity-100' : 'opacity-0'} transition-opacity`}
+                className={`absolute -top-4 left-1/2 -translate-x-1/2 w-10 h-1 bg-gray-700 rounded overflow-hidden ${hpPercent < 100 && !isDying ? 'opacity-100' : 'opacity-0'} transition-opacity`}
                 style={{ transform: `scaleX(${facingScale})` }} 
             >
                 <div 
                     className={`h-full ${isPlayer ? 'bg-green-500' : 'bg-red-500'}`} 
-                    style={{ width: `${(unit.hp / unit.maxHp) * 100}%` }}
+                    style={{ width: `${hpPercent}%` }}
                 />
             </div>
+            
+            {/* Damage Floating Text */}
+            {showDamage && (
+                 <div 
+                    key={`${unit.id}-dmg-${unit.lastDamageTime}`}
+                    className="absolute top-0 left-1/2 -translate-x-1/2 text-white font-black text-xl drop-shadow-[0_2px_2px_rgba(0,0,0,1)] animate-float-damage z-50 pointer-events-none whitespace-nowrap"
+                    style={{ transform: `scaleX(${facingScale})`, textShadow: '2px 2px 0 #cc0000' }}
+                 >
+                    -{unit.lastDamageAmount}
+                 </div>
+            )}
 
             <StickmanRender 
                 type={unit.type} 

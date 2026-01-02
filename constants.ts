@@ -11,13 +11,24 @@ export const STATUE_ENEMY_POS = 98;
 
 export const MAX_UNITS = 40;
 
-// Mine Positions (Absolute % on the 300% width map)
-export const GOLD_MINE_PLAYER_X = 12; 
-export const GOLD_MINE_ENEMY_X = 88;
+// Mine Positions (Absolute % on the map)
+export const GOLD_MINE_PLAYER_X = 15; 
+export const GOLD_MINE_ENEMY_X = 85;
 
 export const ATTACK_RANGE_MELEE = 1.5; 
 export const ATTACK_RANGE_RANGED = 15; 
 export const ATTACK_RANGE_MAGIC = 12;
+
+// Formation Offsets: Relative distance (%) from the frontline unit
+// Lower number = closer to front
+export const FORMATION_OFFSETS: Record<UnitType, number> = {
+  [UnitType.TOXIC]: 0,    // Frontline
+  [UnitType.PALADIN]: 4,  // 2nd Row
+  [UnitType.ARCHER]: 9,   // 3rd Row
+  [UnitType.MAGE]: 14,    // 4th Row
+  [UnitType.BOSS]: 18,    // Backline
+  [UnitType.WORKER]: 0    // Workers ignore formation
+};
 
 export const UNIT_CONFIGS: Record<UnitType, UnitConfig> = {
   [UnitType.WORKER]: {

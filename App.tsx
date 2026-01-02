@@ -9,9 +9,10 @@ import {
   GOLD_MINE_ENEMY_X, 
   STATUE_PLAYER_POS, 
   STATUE_ENEMY_POS,
-  MAX_UNITS
+  MAX_UNITS,
+  FORMATION_OFFSETS
 } from './constants';
-import { UnitCard } from './components/UnitCard';
+import { StickmanRender } from './components/StickmanRender'; // Directly use renderer for buttons
 import { ArmyVisuals } from './components/ArmyVisuals';
 import { LandingPage } from './components/LandingPage';
 import { IntroSequence } from './components/IntroSequence';
@@ -19,13 +20,13 @@ import { MapSelection } from './components/MapSelection';
 import { BattlefieldBackground } from './components/BattlefieldBackground';
 import { AudioService } from './services/audioService';
 import { mpService } from './services/multiplayerService';
-import { Coins, Shield, Swords, Users, X, Music, VolumeX, CornerDownLeft, Flag, AlertTriangle } from 'lucide-react';
+import { Coins, Shield, Swords, Music, VolumeX, CornerDownLeft, Flag, AlertTriangle, Users } from 'lucide-react';
 
 // --- SUB-COMPONENTS ---
 
 const GoldMine: React.FC<{ x: number; isFlipped?: boolean }> = ({ x, isFlipped }) => (
   <div 
-    className="absolute bottom-28 w-24 h-24 z-0 pointer-events-none"
+    className="absolute bottom-20 w-32 h-32 z-0 pointer-events-none"
     style={{ left: `${x}%`, transform: 'translateX(-50%)' }}
   >
      <div className={`w-full h-full ${isFlipped ? 'scale-x-[-1]' : ''}`}>
@@ -46,44 +47,97 @@ const GoldMine: React.FC<{ x: number; isFlipped?: boolean }> = ({ x, isFlipped }
 const BaseStatue: React.FC<{ x: number; hp: number; variant: 'BLUE' | 'RED'; isFlipped?: boolean }> = ({ x, hp, variant, isFlipped }) => {
     const hpPercent = Math.max(0, (hp / STATUE_HP) * 100);
     const isRed = variant === 'RED';
+
+    // Slime Tower Colors
+    const primaryColor = isRed ? '#ef4444' : '#3b82f6'; // Red-500 : Blue-500
+    const darkColor = isRed ? '#7f1d1d' : '#1e3a8a';    // Red-900 : Blue-900
+    const lightColor = isRed ? '#fca5a5' : '#93c5fd';   // Red-300 : Blue-300
+    const glowColor = isRed ? 'rgba(239, 68, 68, 0.6)' : 'rgba(59, 130, 246, 0.6)';
+
     return (
         <div 
-            className="absolute bottom-24 w-40 h-56 z-5 pointer-events-none"
-            style={{ left: `${x}%`, transform: 'translateX(-50%)' }}
+            className="absolute bottom-16 z-10 pointer-events-none origin-bottom transition-all duration-300"
+            style={{ 
+                left: `${x}%`, 
+                transform: 'translateX(-50%)',
+                // Responsive Scaling:
+                // Height is based on viewport height (vh) to fit mobile screens, capped at max pixel values.
+                // Aspect ratio ensures width adjusts automatically.
+                height: 'min(340px, 55vh)', 
+                width: 'auto', 
+                aspectRatio: '200 / 350'
+            }}
         >
-            <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-32 h-4 bg-black/70 rounded border border-white/20 p-1 mb-2">
+            {/* HP Bar - Scaled relative to tower width, ensuring readability */}
+            <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-[140%] h-3 sm:h-4 bg-black/70 rounded-full border border-white/30 backdrop-blur-md overflow-hidden z-20 shadow-lg">
                 <div 
-                    className={`h-full rounded-sm transition-all duration-300 ${isRed ? 'bg-red-600' : 'bg-blue-500'}`} 
+                    className={`h-full transition-all duration-300 ${isRed ? 'bg-gradient-to-r from-red-600 to-rose-400' : 'bg-gradient-to-r from-blue-600 to-cyan-400'}`} 
                     style={{ width: `${hpPercent}%` }}
                 />
             </div>
             
-            <div className={`w-full h-full ${isFlipped ? 'scale-x-[-1]' : ''}`}>
-                <svg viewBox="0 0 100 140" className="drop-shadow-2xl overflow-visible">
-                    <path d="M10 140 L 20 120 L 80 120 L 90 140 Z" fill="#57534e" stroke="black" strokeWidth="2" />
-                    {isRed ? (
-                        <g>
-                            <path d="M30 120 L 35 20 L 65 20 L 70 120 Z" fill="#450a0a" stroke="black" strokeWidth="2" />
-                            <path d="M20 40 L 80 40 L 50 100 Z" fill="#7f1d1d" opacity="0.5" />
-                            <circle cx="50" cy="30" r="12" fill="#e5e5e5" stroke="black" />
-                            <circle cx="46" cy="28" r="2" fill="black" />
-                            <circle cx="54" cy="28" r="2" fill="black" />
-                            <path d="M38 20 L 20 5 L 40 25" fill="#fefce8" stroke="black" />
-                            <path d="M62 20 L 80 5 L 60 25" fill="#fefce8" stroke="black" />
-                            <circle cx="50" cy="60" r="15" fill="red" filter="blur(10px)" opacity="0.5" className="animate-pulse" />
-                        </g>
-                    ) : (
-                        <g>
-                            <path d="M35 120 L 40 80 L 30 50 L 50 10 L 70 50 L 60 80 L 65 120 Z" fill="#1e293b" stroke="#64748b" strokeWidth="2" />
-                            <path d="M50 10 L 50 120" stroke="#3b82f6" strokeWidth="1" opacity="0.6" />
-                            <path d="M30 50 L 70 50" stroke="#3b82f6" strokeWidth="1" opacity="0.6" />
-                            <path d="M50 35 L 60 50 L 50 65 L 40 50 Z" fill="#60a5fa" className="animate-pulse">
-                                <animateTransform attributeName="transform" type="translate" values="0 0; 0 -5; 0 0" dur="3s" repeatCount="indefinite" />
-                            </path>
-                            <circle cx="50" cy="50" r="20" fill="#3b82f6" filter="blur(15px)" opacity="0.4" />
-                        </g>
-                    )}
+            <div className={`w-full h-full relative ${isFlipped ? 'scale-x-[-1]' : ''}`}>
+                <svg viewBox="0 0 200 350" className="w-full h-full overflow-visible drop-shadow-2xl">
+                    <defs>
+                        <linearGradient id={`slime-body-${variant}`} x1="0" y1="1" x2="0" y2="0">
+                            <stop offset="0%" stopColor={darkColor} />
+                            <stop offset="40%" stopColor={primaryColor} />
+                            <stop offset="100%" stopColor={lightColor} stopOpacity="0.9" />
+                        </linearGradient>
+                        <radialGradient id={`slime-core-${variant}`} cx="0.5" cy="0.4" r="0.5">
+                            <stop offset="0%" stopColor="white" stopOpacity="0.8" />
+                            <stop offset="40%" stopColor={lightColor} stopOpacity="0.6" />
+                            <stop offset="100%" stopColor={primaryColor} stopOpacity="0" />
+                        </radialGradient>
+                    </defs>
+
+                    {/* Base Puddle */}
+                    <path d="M20 340 Q 0 340 10 320 Q 50 300 100 310 Q 150 300 190 320 Q 200 340 180 340 Q 140 355 100 350 Q 60 355 20 340" 
+                          fill={darkColor} opacity="0.8" />
+
+                    {/* Main Tower Spire */}
+                    <path 
+                        d="M50 320 
+                           C 20 250, 40 150, 70 80 
+                           Q 100 50, 130 80 
+                           C 160 150, 180 250, 150 320 
+                           Q 100 340, 50 320 Z" 
+                        fill={`url(#slime-body-${variant})`} 
+                        stroke={lightColor} 
+                        strokeWidth="2" 
+                        strokeOpacity="0.5"
+                    />
+
+                    {/* Animated Bubbles inside */}
+                    <g opacity="0.7">
+                        <circle cx="100" cy="300" r="6" fill="white" opacity="0.5">
+                            <animate attributeName="cy" values="300;80" dur="4s" repeatCount="indefinite" />
+                            <animate attributeName="opacity" values="0.5;0" dur="4s" repeatCount="indefinite" />
+                        </circle>
+                        <circle cx="80" cy="250" r="4" fill="white" opacity="0.4">
+                            <animate attributeName="cy" values="250;70" dur="3s" repeatCount="indefinite" delay="1s" />
+                            <animate attributeName="opacity" values="0.4;0" dur="3s" repeatCount="indefinite" delay="1s" />
+                        </circle>
+                        <circle cx="120" cy="200" r="5" fill="white" opacity="0.4">
+                            <animate attributeName="cy" values="200;60" dur="5s" repeatCount="indefinite" delay="0.5s" />
+                            <animate attributeName="opacity" values="0.4;0" dur="5s" repeatCount="indefinite" delay="0.5s" />
+                        </circle>
+                    </g>
+
+                    {/* Glowing Core / Heart */}
+                    <circle cx="100" cy="70" r="25" fill={`url(#slime-core-${variant})`} className="animate-pulse" />
+                    
+                    {/* Floating Ring/Crown */}
+                    <ellipse cx="100" cy="70" rx="40" ry="12" fill="none" stroke={lightColor} strokeWidth="3" opacity="0.8">
+                         <animateTransform attributeName="transform" type="rotate" from="0 100 70" to="360 100 70" dur="8s" repeatCount="indefinite" />
+                    </ellipse>
                 </svg>
+
+                {/* Outer Glow Div */}
+                <div 
+                    className="absolute top-[10%] left-1/2 -translate-x-1/2 w-32 h-32 rounded-full blur-3xl -z-10 opacity-50"
+                    style={{ backgroundColor: isRed ? '#f87171' : '#60a5fa' }} 
+                ></div>
             </div>
         </div>
     );
@@ -113,16 +167,17 @@ export const App: React.FC = () => {
   const [role, setRole] = useState<PlayerRole>(PlayerRole.HOST);
 
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
-  const [isArmyMenuOpen, setIsArmyMenuOpen] = useState(false);
   const [isMusicEnabled, setIsMusicEnabled] = useState(false);
   const [shakeTrigger, setShakeTrigger] = useState<number>(0);
   const [isSurrenderConfirming, setIsSurrenderConfirming] = useState(false);
+  const [goldPopups, setGoldPopups] = useState<{id: number, amount: number}[]>([]);
   
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
   const dragStatusRef = useRef({ hasMoved: false });
+  const prevGoldRef = useRef(INITIAL_GOLD);
 
   // Game State
   const [gameState, setGameState] = useState<GameState>({
@@ -148,7 +203,10 @@ export const App: React.FC = () => {
   
   useEffect(() => { stateRef.current = gameState; }, [gameState]);
 
+  // Derived Values needed for Hooks
   const isMirrored = role === PlayerRole.CLIENT;
+  const currentGold = role === PlayerRole.HOST || role === PlayerRole.OFFLINE ? gameState.p1Gold : gameState.p2Gold;
+
   const getVisualX = useCallback((x: number) => {
       return isMirrored ? 100 - x : x;
   }, [isMirrored]);
@@ -179,6 +237,7 @@ export const App: React.FC = () => {
     
     // Clear queue
     actionQueueRef.current = [];
+    prevGoldRef.current = INITIAL_GOLD;
     
     if (role === PlayerRole.HOST || role === PlayerRole.OFFLINE) {
         setGameState(newState);
@@ -334,6 +393,19 @@ export const App: React.FC = () => {
     };
   }, [appMode, role, resetGame, addLog]);
 
+  // Track gold changes for visual effect (Moved up before conditional returns)
+  useEffect(() => {
+    const diff = Math.floor(currentGold) - Math.floor(prevGoldRef.current);
+    if (diff > 0) {
+        const id = Date.now() + Math.random();
+        setGoldPopups(prev => [...prev, { id, amount: diff }]);
+        setTimeout(() => {
+            setGoldPopups(prev => prev.filter(p => p.id !== id));
+        }, 1000);
+    }
+    prevGoldRef.current = currentGold;
+  }, [currentGold]);
+
 
   // --- ACTIONS (UI) ---
   const handleRecruit = (type: UnitType) => {
@@ -345,15 +417,16 @@ export const App: React.FC = () => {
         return; 
     }
     
-    if (role === PlayerRole.HOST || role === PlayerRole.OFFLINE) {
-        if (gameState.p1Gold >= config.cost) {
-            AudioService.playRecruit();
-            actionQueueRef.current.push({ type: 'RECRUIT', unitType: type, side: 'player' });
-        }
-    } else {
-        if (gameState.p2Gold >= config.cost) {
-            AudioService.playRecruit();
-            mpService.send({ type: 'RECRUIT_REQUEST', payload: { unitType: type } });
+    // Check affordability instantly for UI/Audio feedback, 
+    // though actual deduction happens in game loop for synchronization.
+    const myGold = role === PlayerRole.HOST || role === PlayerRole.OFFLINE ? gameState.p1Gold : gameState.p2Gold;
+    
+    if (myGold >= config.cost) {
+        AudioService.playRecruit();
+        if (role === PlayerRole.HOST || role === PlayerRole.OFFLINE) {
+             actionQueueRef.current.push({ type: 'RECRUIT', unitType: type, side: 'player' });
+        } else {
+             mpService.send({ type: 'RECRUIT_REQUEST', payload: { unitType: type } });
         }
     }
   };
@@ -375,7 +448,6 @@ export const App: React.FC = () => {
   const handleBackgroundClick = (e: React.MouseEvent) => {
     if (dragStatusRef.current.hasMoved) return;
     setSelectedUnitId(null);
-    if (isArmyMenuOpen) setIsArmyMenuOpen(false);
   };
 
   const handleSurrender = () => {
@@ -442,13 +514,17 @@ export const App: React.FC = () => {
   };
   const handleTouchEnd = () => setIsDragging(false);
 
+
   // --- GAME LOOP ---
   useEffect(() => {
     if ((role !== PlayerRole.HOST && role !== PlayerRole.OFFLINE) || appMode !== 'GAME') return;
 
     const intervalId = setInterval(() => {
-      // Create a shallow copy of units for processing.
-      let currentUnits = [...stateRef.current.units];
+      // 1. Snapshot current state
+      const startTickUnits = stateRef.current.units;
+      
+      // 2. Create working copy for next state
+      let nextUnits = startTickUnits.map(u => ({ ...u }));
       
       let pStatueHP = stateRef.current.playerStatueHP;
       let eStatueHP = stateRef.current.enemyStatueHP;
@@ -464,7 +540,7 @@ export const App: React.FC = () => {
       const now = Date.now();
       const deltaTime = (now - stateRef.current.lastTick) / 1000;
 
-      // 1. PROCESS ACTION QUEUE
+      // PROCESS ACTION QUEUE
       while (actionQueueRef.current.length > 0) {
           const action = actionQueueRef.current.shift();
           if (!action) break;
@@ -474,7 +550,7 @@ export const App: React.FC = () => {
               const cost = config.cost;
               const isP1 = action.side === 'player';
               
-              const currentSideUnits = currentUnits.filter(u => u.side === action.side && u.state !== 'DYING').length;
+              const currentSideUnits = nextUnits.filter(u => u.side === action.side && u.state !== 'DYING').length;
               
               if (currentSideUnits < MAX_UNITS) {
                   const canAfford = isP1 ? (p1Gold >= cost) : (p2Gold >= cost);
@@ -489,13 +565,13 @@ export const App: React.FC = () => {
                           x: action.side === 'player' ? SPAWN_X_PLAYER : SPAWN_X_ENEMY,
                           hp: config.stats.hp,
                           maxHp: config.stats.hp,
-                          state: 'IDLE',
+                          state: 'WALKING', // Start walking immediately for instant feedback
                           lastAttackTime: 0,
                           targetId: null,
                           currentSpeed: 0,
                           hasGold: false
                       };
-                      currentUnits.push(newUnit);
+                      nextUnits.push(newUnit);
                   }
               }
           }
@@ -505,25 +581,25 @@ export const App: React.FC = () => {
           }
       }
 
-      // 2. AI LOGIC (Offline only)
+      // AI LOGIC (Offline)
       if (role === PlayerRole.OFFLINE && now - aiStateRef.current.lastDecisionTime > 1000) {
           aiStateRef.current.lastDecisionTime = now;
-          const enemyUnits = currentUnits.filter(u => u.side === 'enemy' && u.state !== 'DYING');
+          const enemyUnits = nextUnits.filter(u => u.side === 'enemy' && u.state !== 'DYING');
           const enemyMiners = enemyUnits.filter(u => u.type === UnitType.WORKER).length;
           
           if (enemyMiners < 4 && p2Gold >= UNIT_CONFIGS[UnitType.WORKER].cost) {
-              const currentCount = enemyUnits.length;
-              if (currentCount < MAX_UNITS) {
+              // Priority: Eco
+              if (enemyUnits.length < MAX_UNITS) {
                   p2Gold -= UNIT_CONFIGS[UnitType.WORKER].cost;
                   const config = UNIT_CONFIGS[UnitType.WORKER];
-                  currentUnits.push({
+                  nextUnits.push({
                       id: Math.random().toString(36).substr(2, 9),
                       type: UnitType.WORKER,
                       side: 'enemy',
                       x: SPAWN_X_ENEMY,
                       hp: config.stats.hp,
                       maxHp: config.stats.hp,
-                      state: 'IDLE',
+                      state: 'WALKING',
                       lastAttackTime: 0,
                       targetId: null,
                       currentSpeed: 0,
@@ -535,19 +611,18 @@ export const App: React.FC = () => {
               const types = [UnitType.TOXIC, UnitType.ARCHER, UnitType.PALADIN, UnitType.MAGE];
               const affordableTypes = types.filter(t => UNIT_CONFIGS[t].cost <= p2Gold);
               if (affordableTypes.length > 0) {
-                  const currentCount = enemyUnits.length;
-                  if (currentCount < MAX_UNITS) {
+                  if (enemyUnits.length < MAX_UNITS) {
                       const typeToBuy = affordableTypes[Math.floor(Math.random() * affordableTypes.length)];
                       p2Gold -= UNIT_CONFIGS[typeToBuy].cost;
                       const config = UNIT_CONFIGS[typeToBuy];
-                      currentUnits.push({
+                      nextUnits.push({
                           id: Math.random().toString(36).substr(2, 9),
                           type: typeToBuy,
                           side: 'enemy',
                           x: SPAWN_X_ENEMY,
                           hp: config.stats.hp,
                           maxHp: config.stats.hp,
-                          state: 'IDLE',
+                          state: 'WALKING',
                           lastAttackTime: 0,
                           targetId: null,
                           currentSpeed: 0,
@@ -564,35 +639,32 @@ export const App: React.FC = () => {
           else p2Cmd = GameCommand.DEFEND;
       }
 
-      // 3. PHYSICS & LOGIC LOOP
-      currentUnits = currentUnits.map(u => {
-        if (u.state === 'DYING') return u;
-        
-        const unit = { ...u };
+      // --- FORMATION & PHYSICS LOOP ---
+      
+      const getFormationAnchor = (side: 'player' | 'enemy') => {
+          const units = nextUnits.filter(u => u.side === side && u.type !== UnitType.WORKER && u.state !== 'DYING');
+          if (units.length === 0) return side === 'player' ? SPAWN_X_PLAYER : SPAWN_X_ENEMY;
+          if (side === 'player') {
+              return Math.max(...units.map(u => u.x));
+          } else {
+              return Math.min(...units.map(u => u.x));
+          }
+      };
+
+      const p1Anchor = getFormationAnchor('player');
+      const p2Anchor = getFormationAnchor('enemy');
+
+      nextUnits.forEach(unit => {
+        if (unit.state === 'DYING') return;
         
         const config = UNIT_CONFIGS[unit.type];
         const isPlayer = unit.side === 'player';
         let targetVelocity = 0;
-
-        // Apply Map Modifiers to Speed
         let speedMultiplier = 1.0;
 
-        if (currentMap === MapId.FOREST) {
-            // Poison Swamp in center (45-55) slows by 50%
-            if (unit.x > 45 && unit.x < 55) {
-                speedMultiplier *= 0.5;
-            }
-        } else if (currentMap === MapId.MINE) {
-            // Tunnels: Ranged units faster
-            if (unit.type === UnitType.ARCHER || unit.type === UnitType.MAGE) {
-                speedMultiplier *= 1.2;
-            }
-        } else if (currentMap === MapId.SWAMP) {
-            // Deep Mud: Frontline units slower globally
-            if ([UnitType.TOXIC, UnitType.PALADIN, UnitType.BOSS, UnitType.WORKER].includes(unit.type)) {
-                speedMultiplier *= 0.7;
-            }
-        }
+        if (currentMap === MapId.FOREST && unit.x > 45 && unit.x < 55) speedMultiplier *= 0.5;
+        if (currentMap === MapId.MINE && (unit.type === UnitType.ARCHER || unit.type === UnitType.MAGE)) speedMultiplier *= 1.2;
+        if (currentMap === MapId.SWAMP && [UnitType.TOXIC, UnitType.PALADIN, UnitType.BOSS, UnitType.WORKER].includes(unit.type)) speedMultiplier *= 0.7;
 
         if (unit.type === UnitType.WORKER) {
              const mineLocation = isPlayer ? GOLD_MINE_PLAYER_X : GOLD_MINE_ENEMY_X;
@@ -623,8 +695,7 @@ export const App: React.FC = () => {
              }
              else {
                 if (unit.hasGold) {
-                    const distToStatue = Math.abs(unit.x - statueLocation);
-                    if (distToStatue <= miningRange) {
+                    if (Math.abs(unit.x - statueLocation) <= miningRange) {
                        unit.state = 'DEPOSITING';
                        unit.lastAttackTime = now;
                        targetVelocity = 0;
@@ -632,8 +703,7 @@ export const App: React.FC = () => {
                        targetVelocity = (unit.x < statueLocation ? 1 : -1) * config.stats.speed;
                     }
                 } else {
-                    const distToMine = Math.abs(unit.x - mineLocation);
-                    if (distToMine <= miningRange) {
+                    if (Math.abs(unit.x - mineLocation) <= miningRange) {
                        unit.state = 'MINING';
                        unit.lastAttackTime = now;
                        targetVelocity = 0;
@@ -645,38 +715,43 @@ export const App: React.FC = () => {
         } 
         else {
             const statuePos = isPlayer ? STATUE_ENEMY_POS : STATUE_PLAYER_POS;
-            const distToStatue = Math.abs(unit.x - statuePos);
+            
             let target: GameUnit | undefined;
             let distToTarget = 10000;
-            const enemies = currentUnits.filter(other => other.side !== unit.side && other.hp > 0 && other.state !== 'DYING');
-            enemies.forEach(e => {
-                 const dist = Math.abs(e.x - unit.x);
-                 if (dist < distToTarget) {
-                     distToTarget = dist;
-                     target = e;
-                 }
+            
+            nextUnits.forEach(other => {
+                if (other.side !== unit.side && other.hp > 0 && other.state !== 'DYING') {
+                     const dist = Math.abs(other.x - unit.x);
+                     if (dist < distToTarget) {
+                         distToTarget = dist;
+                         target = other;
+                     }
+                }
             });
-            let hittingStatue = false;
-            let hittingUnit = false;
-            if (distToStatue <= config.stats.range + 1) {
-                 if (!target || distToTarget > distToStatue) {
-                     hittingStatue = true;
-                 }
-            }
-            if (!hittingStatue && target && distToTarget <= config.stats.range) {
-                 hittingUnit = true;
-            }
+            
+            const distToStatue = Math.abs(unit.x - statuePos);
+            let hittingStatue = (!target || distToTarget > distToStatue) && distToStatue <= config.stats.range + 1;
+            let hittingUnit = target && distToTarget <= config.stats.range;
+            
             if (hittingStatue || hittingUnit) {
                 unit.state = 'ATTACKING';
                 targetVelocity = 0;
+                
                 if (now - unit.lastAttackTime > config.stats.attackSpeed) {
                     AudioService.playAttack(unit.type);
+                    
                     if (hittingUnit && target) {
                          let damage = config.stats.damage;
-                         if (target.type === UnitType.PALADIN) {
-                            damage = Math.floor(damage * 0.7);
+                         if (target.type === UnitType.PALADIN) damage = Math.floor(damage * 0.7);
+                         
+                         const targetCmd = target.side === 'player' ? p1Cmd : p2Cmd;
+                         if (targetCmd === GameCommand.DEFEND) {
+                             damage = Math.floor(damage * 0.7); 
                          }
+
                          target.hp -= damage; 
+                         target.lastDamageTime = now;
+                         target.lastDamageAmount = damage;
                     }
                     else if (hittingStatue) {
                         if (isPlayer) {
@@ -688,55 +763,59 @@ export const App: React.FC = () => {
                         }
                     }
                     unit.lastAttackTime = now;
-                    
-                    if (unit.type === UnitType.BOSS) {
-                        setShakeTrigger(Date.now());
-                    }
+                    if (unit.type === UnitType.BOSS) setShakeTrigger(Date.now());
                 }
             }
             else {
-                let moveDir = 0;
-                const dirToStatue = unit.x < statuePos ? 1 : -1;
-                const dirToTarget = target ? (unit.x < target.x ? 1 : -1) : dirToStatue;
-
                 const cmd = isPlayer ? p1Cmd : (role === PlayerRole.OFFLINE ? p2Cmd : p2Cmd);
+                const formationAnchor = isPlayer ? p1Anchor : p2Anchor;
+                
+                let strategicX = unit.x;
                 
                 if (cmd === GameCommand.ATTACK) {
-                     moveDir = dirToStatue; 
-                } else if (cmd === GameCommand.DEFEND) { 
-                    const DEFEND_LINE = isPlayer ? 30 : 70;
-                    const THREAT_RANGE = 50; 
-                    const isThreatened = isPlayer 
-                        ? (target && target.x < THREAT_RANGE && Math.abs(target.x - unit.x) < config.stats.range + 10)
-                        : (target && target.x > THREAT_RANGE && Math.abs(target.x - unit.x) < config.stats.range + 10);
-
-                    if (isThreatened) {
-                         moveDir = dirToTarget; 
-                    } else {
-                        if (unit.x > DEFEND_LINE + 1) moveDir = -1;
-                        else if (unit.x < DEFEND_LINE - 1) moveDir = 1; 
-                        else moveDir = 0; 
-                    }
+                    strategicX = isPlayer ? STATUE_ENEMY_POS : STATUE_PLAYER_POS;
+                } else if (cmd === GameCommand.DEFEND) {
+                    strategicX = isPlayer ? 30 : 70;
                 } else if (cmd === GameCommand.RETREAT) {
-                    const BASE_POS = isPlayer ? 10 : 90;
-                    if (unit.x > BASE_POS + 1) moveDir = -1;
-                    else if (unit.x < BASE_POS - 1) moveDir = 1;
-                    else moveDir = 0;
+                    strategicX = isPlayer ? 10 : 90;
                 }
 
-                if (moveDir === 0) {
+                const myOffset = FORMATION_OFFSETS[unit.type];
+                let formationTargetX = strategicX;
+                
+                if (cmd === GameCommand.ATTACK) {
+                    const idealFormationX = isPlayer 
+                        ? formationAnchor - myOffset 
+                        : formationAnchor + myOffset;
+                        
+                    const isAhead = isPlayer ? unit.x >= idealFormationX - 0.5 : unit.x <= idealFormationX + 0.5;
+                    
+                    if (isAhead) {
+                         formationTargetX = strategicX;
+                    } else {
+                         formationTargetX = idealFormationX;
+                    }
+                } 
+                else {
+                    formationTargetX = isPlayer 
+                        ? strategicX - myOffset 
+                        : strategicX + myOffset;
+                }
+
+                const dir = formationTargetX > unit.x ? 1 : -1;
+                const dist = Math.abs(formationTargetX - unit.x);
+                
+                if (dist < 0.5) {
                     unit.state = 'IDLE';
                     targetVelocity = 0;
                 } else {
                     unit.state = 'WALKING';
-                    targetVelocity = moveDir * config.stats.speed;
+                    targetVelocity = dir * config.stats.speed;
                 }
             }
         }
         
-        if (targetVelocity !== 0) {
-            targetVelocity *= speedMultiplier;
-        }
+        if (targetVelocity !== 0) targetVelocity *= speedMultiplier;
 
         if (typeof unit.currentSpeed === 'undefined') unit.currentSpeed = 0;
         const agility = UNIT_AGILITY[unit.type] || 5.0;
@@ -751,19 +830,16 @@ export const App: React.FC = () => {
              unit.x += unit.currentSpeed * deltaTime;
              unit.x = Math.max(0, Math.min(100, unit.x));
         }
-        
-        return unit;
       });
 
-      // Cleanup Dead Units
-      currentUnits = currentUnits.map(u => {
+      nextUnits = nextUnits.map(u => {
          if (u.hp <= 0 && u.state !== 'DYING') {
              return { ...u, state: 'DYING', deathTime: now, hp: 0 };
          }
          return u;
       });
 
-      currentUnits = currentUnits.filter(u => {
+      nextUnits = nextUnits.filter(u => {
           if (u.state === 'DYING') {
               const timeSinceDeath = now - (u.deathTime || 0);
               return timeSinceDeath < DEATH_DURATION;
@@ -781,7 +857,7 @@ export const App: React.FC = () => {
       }
 
       const nextState: GameState = {
-        units: currentUnits,
+        units: nextUnits,
         playerStatueHP: pStatueHP,
         enemyStatueHP: eStatueHP,
         p1Gold,
@@ -815,22 +891,22 @@ export const App: React.FC = () => {
       return <MapSelection onSelectMap={handleMapSelected} onBack={() => setAppMode('LANDING')} />;
   }
 
-  const currentGold = role === PlayerRole.HOST || role === PlayerRole.OFFLINE ? gameState.p1Gold : gameState.p2Gold;
   const currentCommand = role === PlayerRole.HOST || role === PlayerRole.OFFLINE ? gameState.p1Command : gameState.p2Command;
-  const roleLabel = role === PlayerRole.HOST ? 'HOST (BLUE)' : (role === PlayerRole.OFFLINE ? 'SINGLE PLAYER' : 'CLIENT (RED)');
+  const roleLabel = role === PlayerRole.HOST ? 'HOST' : (role === PlayerRole.OFFLINE ? 'SINGLE PLAYER' : 'CLIENT');
   
   const isShaking = (Date.now() - shakeTrigger) < 400;
 
   const mySide = role === PlayerRole.HOST || role === PlayerRole.OFFLINE ? 'player' : 'enemy';
   const currentPop = gameState.units.filter(u => u.side === mySide && u.state !== 'DYING').length;
+  const allConfigs = Object.values(UNIT_CONFIGS);
 
   return (
     <div className="h-[100dvh] w-screen bg-black overflow-hidden relative">
       
-      {/* GAME AREA */}
+      {/* GAME AREA - SCROLLABLE WORLD CONTAINER */}
       <div 
         ref={scrollContainerRef}
-        className={`absolute inset-0 flex flex-col bg-inamorta select-none overflow-x-hidden touch-none ${isShaking ? 'animate-shake' : ''}`}
+        className={`absolute inset-0 flex flex-col bg-inamorta select-none overflow-x-auto overflow-y-hidden touch-pan-x ${isShaking ? 'animate-shake' : ''}`}
         onMouseDown={handleMouseDown}
         onMouseLeave={handleMouseLeave}
         onMouseUp={handleMouseUp}
@@ -840,158 +916,165 @@ export const App: React.FC = () => {
         onTouchEnd={handleTouchEnd}
         onClick={handleBackgroundClick}
       >
-          {/* Dynamic Background */}
-          <BattlefieldBackground mapId={gameState.mapId} />
-
-          <div className="absolute top-10 left-20 opacity-20 pointer-events-none">
-              <div className="w-32 h-32 bg-white rounded-full blur-3xl"></div>
-          </div>
-          
-          <BaseStatue x={getVisualX(STATUE_PLAYER_POS)} hp={gameState.playerStatueHP} variant="BLUE" isFlipped={isMirrored} />
-          <GoldMine x={getVisualX(GOLD_MINE_PLAYER_X)} isFlipped={isMirrored} />
-
-          <BaseStatue x={getVisualX(STATUE_ENEMY_POS)} hp={gameState.enemyStatueHP} variant="RED" isFlipped={!isMirrored} />
-          <GoldMine x={getVisualX(GOLD_MINE_ENEMY_X)} isFlipped={!isMirrored} />
-
-          <ArmyVisuals 
-            units={gameState.units} 
-            selectedUnitId={selectedUnitId}
-            onSelectUnit={handleSelectUnit}
-            isMirrored={isMirrored}
-          />
-          
-          {/* Mobile Backdrop for Menu */}
-          {isArmyMenuOpen && (
-              <div 
-                  className="fixed inset-0 bg-black/20 backdrop-blur-[1px] z-30"
-                  onClick={() => setIsArmyMenuOpen(false)}
-              ></div>
-          )}
-
-          <div 
-            className="absolute top-0 left-0 right-0 p-2 sm:p-4 flex justify-between items-start z-30 pointer-events-none"
-            style={{
-                paddingTop: 'max(0.5rem, env(safe-area-inset-top))',
-                paddingLeft: 'max(0.5rem, env(safe-area-inset-left))',
-                paddingRight: 'max(0.5rem, env(safe-area-inset-right))'
-            }}
-          >
-             <div className="bg-black/80 backdrop-blur p-2 rounded-lg border border-yellow-500/30 text-white shadow-xl pointer-events-auto flex items-center gap-2 sm:gap-6 max-w-full overflow-x-auto no-scrollbar touch-manipulation">
-                
-                <div className={`px-2 py-1 rounded text-[10px] font-bold whitespace-nowrap ${role === PlayerRole.CLIENT ? 'bg-red-600' : 'bg-blue-600'}`}>
-                    {roleLabel}
-                </div>
-
-                <div className="flex items-center gap-2 min-w-[60px] sm:min-w-[80px]">
-                    <Coins className="text-yellow-400 w-4 h-4 sm:w-6 sm:h-6" />
-                    <span className="text-sm sm:text-xl font-bold font-mono text-yellow-100">{Math.floor(currentGold)}</span>
-                </div>
-                
-                <div className="flex items-center gap-2 ml-2 sm:ml-4">
-                    <span className="text-[10px] sm:text-xs text-stone-400 font-bold hidden sm:inline">POP</span>
-                    <span className={`text-sm sm:text-xl font-bold font-mono ${currentPop >= MAX_UNITS ? 'text-red-500' : 'text-stone-200'}`}>
-                        {currentPop}/{MAX_UNITS}
-                    </span>
-                </div>
-                
-                <div className="h-6 sm:h-8 w-px bg-white/20 ml-1 sm:ml-2"></div>
-                
-                <div className="flex gap-1 sm:gap-2">
-                    <button 
-                        onClick={() => handleCommandChange(GameCommand.ATTACK)}
-                        className={`p-1.5 sm:p-2 rounded flex items-center gap-1 sm:gap-2 font-bold transition-all border-b-4 active:border-b-0 active:translate-y-1 ${currentCommand === GameCommand.ATTACK ? 'bg-red-600 border-red-800' : 'bg-gray-700 border-gray-900 text-gray-400'}`}
-                    >
-                        <Swords size={14} className="sm:w-4 sm:h-4" /> <span className="hidden md:inline">ATTACK</span>
-                    </button>
-                    <button 
-                        onClick={() => handleCommandChange(GameCommand.DEFEND)}
-                        className={`p-1.5 sm:p-2 rounded flex items-center gap-1 sm:gap-2 font-bold transition-all border-b-4 active:border-b-0 active:translate-y-1 ${currentCommand === GameCommand.DEFEND ? 'bg-blue-600 border-blue-800' : 'bg-gray-700 border-gray-900 text-gray-400'}`}
-                    >
-                        <Shield size={14} className="sm:w-4 sm:h-4" /> <span className="hidden md:inline">DEFEND</span>
-                    </button>
-                    <button 
-                        onClick={() => handleCommandChange(GameCommand.RETREAT)}
-                        className={`p-1.5 sm:p-2 rounded flex items-center gap-1 sm:gap-2 font-bold transition-all border-b-4 active:border-b-0 active:translate-y-1 ${currentCommand === GameCommand.RETREAT ? 'bg-orange-600 border-orange-800' : 'bg-gray-700 border-gray-900 text-gray-400'}`}
-                    >
-                        <CornerDownLeft size={14} className="sm:w-4 sm:h-4" /> <span className="hidden md:inline">RETREAT</span>
-                    </button>
-                </div>
-                
-                <button
-                    onClick={() => {
-                        AudioService.playSelect();
-                        setIsArmyMenuOpen(true);
-                    }}
-                    className="p-1.5 sm:p-2 bg-yellow-600 border-yellow-800 rounded flex items-center gap-1 sm:gap-2 font-bold transition-all border-b-4 active:border-b-0 active:translate-y-1 hover:bg-yellow-500 text-white ml-2"
-                >
-                    <Users size={16} />
-                    <span className="hidden sm:inline">ARMY</span>
-                </button>
-                
-                 <button
-                    onClick={() => {
-                        AudioService.playSelect();
-                        toggleMusic();
-                    }}
-                    className={`p-1.5 sm:p-2 rounded transition-colors ${isMusicEnabled ? 'text-yellow-400 hover:text-yellow-200' : 'text-stone-500 hover:text-stone-300'}`}
-                    title="Toggle Music"
-                >
-                    {isMusicEnabled ? <Music size={16} /> : <VolumeX size={16} />}
-                </button>
-
-                <button
-                    onClick={handleSurrender}
-                    className={`p-1.5 sm:p-2 rounded transition-all ${isSurrenderConfirming ? 'bg-red-600 text-white animate-pulse' : 'text-stone-500 hover:text-red-500'}`}
-                    title={isSurrenderConfirming ? "Confirm Surrender?" : "Surrender"}
-                >
-                    {isSurrenderConfirming ? <AlertTriangle size={16} /> : <Flag size={16} />}
-                </button>
-             </div>
-          </div>
-
-          <div 
-            className={`fixed inset-y-0 right-0 w-64 sm:w-80 bg-stone-900 border-l-4 border-black flex flex-col z-40 shadow-2xl transition-transform duration-300 ease-in-out transform ${isArmyMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}
-            style={{
-                paddingRight: 'env(safe-area-inset-right)',
-                paddingBottom: 'env(safe-area-inset-bottom)'
-            }}
-          >
-              <div className="p-2 sm:p-4 bg-stone-950 border-b border-stone-800 flex justify-between items-center">
-                 <h2 className="text-stone-300 font-epic text-lg sm:text-xl">Barracks</h2>
-                 <button onClick={() => setIsArmyMenuOpen(false)} className="text-stone-500 hover:text-white transition-colors p-1">
-                    <X />
-                 </button>
-              </div>
-              <div className="flex-1 overflow-y-auto p-2 space-y-2 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] touch-pan-y">
-                {Object.values(UNIT_CONFIGS).map(unit => {
-                    const mySide = role === PlayerRole.HOST || role === PlayerRole.OFFLINE ? 'player' : 'enemy';
-                    const count = gameState.units.filter(u => u.side === mySide && u.type === unit.type).length;
-                    const totalCount = gameState.units.filter(u => u.side === mySide && u.state !== 'DYING').length;
-
-                    return (
-                        <UnitCard 
-                            key={unit.type}
-                            unit={unit}
-                            count={count}
-                            canAfford={currentGold >= unit.cost && totalCount < MAX_UNITS}
-                            onRecruit={handleRecruit}
-                            variant={role === PlayerRole.HOST || role === PlayerRole.OFFLINE ? 'BLUE' : 'RED'}
-                        />
-                    );
-                })}
-              </div>
-              
-              <div className="h-24 sm:h-32 bg-black border-t border-stone-700 p-2 overflow-y-auto text-xs font-mono text-stone-400 touch-pan-y">
-                 {logs.map(log => (
-                     <div key={log.id} className="mb-1">
-                        <span className="opacity-50">[{new Date(log.timestamp).toLocaleTimeString().split(' ')[0]}]</span> {log.message}
-                     </div>
-                 ))}
-              </div>
+          {/* Extended World Width for Scrolling */}
+          <div className="relative h-full min-w-[250vw] sm:min-w-[200vw]">
+            <BattlefieldBackground mapId={gameState.mapId} />
+            <div className="absolute top-10 left-20 opacity-20 pointer-events-none">
+                <div className="w-32 h-32 bg-white rounded-full blur-3xl"></div>
+            </div>
+            <BaseStatue x={getVisualX(STATUE_PLAYER_POS)} hp={gameState.playerStatueHP} variant="BLUE" isFlipped={isMirrored} />
+            <GoldMine x={getVisualX(GOLD_MINE_PLAYER_X)} isFlipped={isMirrored} />
+            <GoldMine x={getVisualX(GOLD_MINE_ENEMY_X)} isFlipped={!isMirrored} />
+            <BaseStatue x={getVisualX(STATUE_ENEMY_POS)} hp={gameState.enemyStatueHP} variant="RED" isFlipped={!isMirrored} />
+            <ArmyVisuals 
+                units={gameState.units} 
+                selectedUnitId={selectedUnitId}
+                onSelectUnit={handleSelectUnit}
+                isMirrored={isMirrored}
+            />
           </div>
       </div>
       
-      {/* Game Over Overlay - moved outside scroll container for proper z-index and positioning */}
+      {/* --- TOP HUD (System, Army Bar, Resources) --- */}
+      <div 
+        className="fixed top-0 left-0 right-0 z-30 pointer-events-none flex flex-col w-full"
+        style={{
+            paddingTop: 'max(0.5rem, env(safe-area-inset-top))',
+            paddingLeft: 'max(0.5rem, env(safe-area-inset-left))',
+            paddingRight: 'max(0.5rem, env(safe-area-inset-right))'
+        }}
+      >
+         {/* Header Row: Flex for side elements to avoid overlap, but Army bar is centered absolutely to be true center */}
+         <div className="flex justify-between items-start w-full pointer-events-none relative z-50">
+             
+             {/* Left: System Controls */}
+             <div className="flex gap-2 pointer-events-auto ml-2">
+                 <div className={`px-2 py-1 rounded text-[10px] font-bold h-8 flex items-center shadow-md ${role === PlayerRole.CLIENT ? 'bg-red-600' : 'bg-blue-600'} text-white`}>
+                    {roleLabel}
+                 </div>
+                 
+                 <button
+                    onClick={() => { AudioService.playSelect(); toggleMusic(); }}
+                    className={`w-8 h-8 flex items-center justify-center rounded bg-black/60 backdrop-blur border border-white/20 transition-colors ${isMusicEnabled ? 'text-yellow-400' : 'text-stone-400'}`}
+                 >
+                    {isMusicEnabled ? <Music size={14} /> : <VolumeX size={14} />}
+                 </button>
+             </div>
+
+             {/* Right: Resources & Surrender */}
+             <div className="flex flex-col items-end gap-1 pointer-events-auto mr-2">
+                 <div className="flex gap-3 bg-black/70 px-3 py-1.5 rounded-full border border-stone-600 backdrop-blur-md shadow-xl">
+                     <div className="flex items-center gap-2 relative">
+                         <Coins className="text-yellow-400 w-4 h-4" />
+                         <span className="text-lg font-bold font-mono text-yellow-100">{Math.floor(currentGold)}</span>
+                         
+                         {/* Gold Popups */}
+                         {goldPopups.map(popup => (
+                             <div 
+                                key={popup.id}
+                                className="absolute top-0 left-full ml-2 text-yellow-300 font-bold text-sm animate-gold-float pointer-events-none whitespace-nowrap"
+                                style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}
+                             >
+                                +{popup.amount}
+                             </div>
+                         ))}
+                     </div>
+                     <div className="w-px bg-white/20 h-5 self-center"></div>
+                     <div className="flex items-center gap-2">
+                         <Users className="text-stone-400 w-4 h-4" />
+                         <span className={`text-lg font-bold font-mono ${currentPop >= MAX_UNITS ? 'text-red-500' : 'text-stone-200'}`}>
+                            {currentPop}/{MAX_UNITS}
+                         </span>
+                     </div>
+                 </div>
+
+                 {/* Surrender Button - Moved here */}
+                 <button
+                    onClick={handleSurrender}
+                    className={`h-6 px-2 flex items-center justify-center rounded bg-black/40 backdrop-blur border border-white/10 hover:bg-black/60 transition-all ${isSurrenderConfirming ? 'bg-red-600/80 text-white animate-pulse border-red-500' : 'text-stone-500 hover:text-red-400'}`}
+                    title="Surrender"
+                 >
+                    {isSurrenderConfirming ? (
+                         <span className="text-[10px] font-bold uppercase tracking-wider mr-1">Confirm</span>
+                    ) : null}
+                    {isSurrenderConfirming ? <AlertTriangle size={12} /> : <Flag size={12} />}
+                 </button>
+             </div>
+         </div>
+
+         {/* Army Bar Layer - Positioned Absolutely to be true center, but limited width to prevent overlap */}
+         <div className="absolute top-0 left-0 w-full flex justify-center pointer-events-none z-40">
+               <div className="pointer-events-auto mt-0 max-w-[45vw] sm:max-w-md lg:max-w-xl">
+                   <div className="flex gap-1 sm:gap-2 overflow-x-auto no-scrollbar py-2 px-3 bg-black/90 backdrop-blur-md rounded-b-2xl border border-t-0 border-stone-600 shadow-2xl">
+                       {allConfigs.map((unit) => {
+                           const canAfford = currentGold >= unit.cost && currentPop < MAX_UNITS;
+                           const isRed = role === PlayerRole.CLIENT; 
+                           
+                           return (
+                               <button
+                                   key={unit.type}
+                                   disabled={!canAfford}
+                                   onClick={() => handleRecruit(unit.type)}
+                                   className={`
+                                      group relative w-10 h-10 sm:w-14 sm:h-14 rounded-lg border-2 flex-shrink-0 flex items-center justify-center transition-all active:scale-95 touch-manipulation
+                                      ${canAfford 
+                                         ? 'bg-stone-800 border-stone-600 hover:border-yellow-500 hover:bg-stone-700' 
+                                         : 'bg-stone-900 border-stone-800 opacity-40 cursor-not-allowed grayscale'}
+                                   `}
+                               >
+                                   {/* Unit Icon - Scaled Down */}
+                                   <div className="scale-[0.5] sm:scale-[0.7]">
+                                       <StickmanRender type={unit.type} isPlayer={!isRed} />
+                                   </div>
+
+                                   {/* Cost Label */}
+                                   <div className={`
+                                       absolute -bottom-1.5 right-1/2 translate-x-1/2 px-1 rounded-full text-[8px] sm:text-[10px] font-bold border shadow-sm leading-none
+                                       ${canAfford ? 'bg-yellow-500 text-black border-yellow-300' : 'bg-stone-700 text-stone-400 border-stone-600'}
+                                   `}>
+                                       {unit.cost}
+                                   </div>
+                               </button>
+                           );
+                       })}
+                   </div>
+               </div>
+         </div>
+      </div>
+
+      {/* --- BOTTOM HUD (Commands Only) --- */}
+      <div 
+        className="fixed bottom-0 left-0 right-0 z-30 pointer-events-none flex flex-col justify-end items-center"
+        style={{
+            paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))',
+            paddingLeft: 'max(0.5rem, env(safe-area-inset-left))',
+            paddingRight: 'max(0.5rem, env(safe-area-inset-right))'
+        }}
+      >
+          {/* Bottom Right: Commands */}
+          <div className="absolute bottom-4 right-4 pointer-events-auto flex flex-col gap-2 scale-90 sm:scale-100 origin-bottom-right">
+             <button 
+                onClick={() => handleCommandChange(GameCommand.ATTACK)}
+                className={`w-12 h-12 rounded-full flex items-center justify-center border-2 shadow-lg transition-all active:scale-95 ${currentCommand === GameCommand.ATTACK ? 'bg-red-600 border-red-300 ring-4 ring-red-900/50' : 'bg-stone-800 border-stone-600 text-stone-400'}`}
+             >
+                 <Swords size={20} fill="currentColor" />
+             </button>
+             <button 
+                onClick={() => handleCommandChange(GameCommand.DEFEND)}
+                className={`w-12 h-12 rounded-full flex items-center justify-center border-2 shadow-lg transition-all active:scale-95 ${currentCommand === GameCommand.DEFEND ? 'bg-blue-600 border-blue-300 ring-4 ring-blue-900/50' : 'bg-stone-800 border-stone-600 text-stone-400'}`}
+             >
+                 <Shield size={20} fill="currentColor" />
+             </button>
+             <button 
+                onClick={() => handleCommandChange(GameCommand.RETREAT)}
+                className={`w-12 h-12 rounded-full flex items-center justify-center border-2 shadow-lg transition-all active:scale-95 ${currentCommand === GameCommand.RETREAT ? 'bg-orange-600 border-orange-300 ring-4 ring-orange-900/50' : 'bg-stone-800 border-stone-600 text-stone-400'}`}
+             >
+                 <CornerDownLeft size={20} />
+             </button>
+          </div>
+      </div>
+      
+      {/* Game Over Overlay */}
       {gameState.gameStatus !== 'PLAYING' && (
          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-intro-fade">
              <div className="bg-stone-900 p-8 rounded-xl border-4 border-stone-600 text-center shadow-2xl max-w-md w-full relative overflow-hidden">

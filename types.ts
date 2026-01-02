@@ -38,6 +38,8 @@ export interface GameUnit {
   targetId?: string | null;
   currentSpeed: number; // Current velocity
   hasGold?: boolean; // For workers
+  lastDamageTime?: number; // For floating damage text
+  lastDamageAmount?: number; // For floating damage text
 }
 
 export interface PlayerState {
