@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { GameUnit, UnitType } from '../types';
 import { StickmanRender } from './StickmanRender';
@@ -25,6 +26,9 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({ units, selectedUnitId,
         let baseDepth = 40; 
         
         switch (unit.type) {
+            case UnitType.SMALL:
+                baseDepth = 5; // Very front, below toxic? or interspersed.
+                break;
             case UnitType.TOXIC:
                 baseDepth = 10; // Row 1 (Front)
                 break;
@@ -67,6 +71,10 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({ units, selectedUnitId,
         // Clamp HP bar calculation
         const hpPercent = Math.max(0, Math.min(100, (unit.hp / unit.maxHp) * 100));
 
+        // Scale Adjustments for different unit types
+        let unitScale = 0.8;
+        if (unit.type === UnitType.SMALL) unitScale = 0.5;
+
         return (
           <div 
             key={unit.id} 
@@ -107,7 +115,7 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({ units, selectedUnitId,
 
             <StickmanRender 
                 type={unit.type} 
-                scale={0.8} 
+                scale={unitScale} 
                 isPlayer={isPlayer}
                 color={isPlayer ? "#1a1a1a" : "#3f0000"} 
                 isAttacking={unit.state === 'ATTACKING'} 

@@ -54,6 +54,7 @@ export const generateEnemyArmy = async (playerPower: number): Promise<EnemyArmy>
                 [UnitType.PALADIN]: { type: Type.INTEGER },
                 [UnitType.MAGE]: { type: Type.INTEGER },
                 [UnitType.BOSS]: { type: Type.INTEGER },
+                [UnitType.SMALL]: { type: Type.INTEGER },
               }
             },
             difficultyRating: { type: Type.NUMBER },
@@ -103,7 +104,8 @@ function getFallbackEnemy(playerPower: number): EnemyArmy {
         [UnitType.ARCHER]: Math.floor(playerPower / 20),
         [UnitType.PALADIN]: Math.floor(playerPower / 30),
         [UnitType.MAGE]: 0,
-        [UnitType.BOSS]: 0
+        [UnitType.BOSS]: 0,
+        [UnitType.SMALL]: 0
       },
       difficultyRating: 1,
       reward: 100

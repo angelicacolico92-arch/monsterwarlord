@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { UnitType, GameUnit, GameState, GameCommand, BattleLogEntry, PlayerRole, NetworkMessage, MapId } from './types';
 import { 
@@ -10,7 +11,9 @@ import {
   STATUE_PLAYER_POS, 
   STATUE_ENEMY_POS,
   MAX_UNITS,
-  FORMATION_OFFSETS
+  FORMATION_OFFSETS,
+  INITIAL_GOLD,
+  INITIAL_GOLD_SURGE
 } from './constants';
 import { StickmanRender } from './components/StickmanRender'; // Directly use renderer for buttons
 import { ArmyVisuals } from './components/ArmyVisuals';
@@ -20,7 +23,7 @@ import { MapSelection } from './components/MapSelection';
 import { BattlefieldBackground } from './components/BattlefieldBackground';
 import { AudioService } from './services/audioService';
 import { mpService } from './services/multiplayerService';
-import { Coins, Shield, Swords, Music, VolumeX, CornerDownLeft, Flag, AlertTriangle, Users } from 'lucide-react';
+import { Coins, Shield, Swords, Music, VolumeX, CornerDownLeft, Flag, AlertTriangle, Users, Zap } from 'lucide-react';
 
 // --- SUB-COMPONENTS ---
 
@@ -145,10 +148,10 @@ const BaseStatue: React.FC<{ x: number; hp: number; variant: 'BLUE' | 'RED'; isF
 
 const TICK_RATE = 50; 
 const DEATH_DURATION = 1500;
-const INITIAL_GOLD = 50;
 
 const UNIT_AGILITY: Record<string, number> = {
   [UnitType.WORKER]: 8.0,
+  [UnitType.SMALL]: 10.0,
   [UnitType.TOXIC]: 6.0,
   [UnitType.ARCHER]: 5.0,
   [UnitType.MAGE]: 3.0,
@@ -165,6 +168,7 @@ type GameAction =
 export const App: React.FC = () => {
   const [appMode, setAppMode] = useState<'INTRO' | 'LANDING' | 'MAP_SELECT' | 'GAME'>('INTRO');
   const [role, setRole] = useState<PlayerRole>(PlayerRole.HOST);
+  const [isSurgeMode, setIsSurgeMode] = useState(false);
 
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const [isMusicEnabled, setIsMusicEnabled] = useState(false);
@@ -222,12 +226,13 @@ export const App: React.FC = () => {
 
   const resetGame = useCallback(() => {
     AudioService.playSelect();
+    const startGold = isSurgeMode ? INITIAL_GOLD_SURGE : INITIAL_GOLD;
     const newState: GameState = {
         units: [],
         playerStatueHP: STATUE_HP,
         enemyStatueHP: STATUE_HP,
-        p1Gold: INITIAL_GOLD,
-        p2Gold: INITIAL_GOLD,
+        p1Gold: startGold,
+        p2Gold: startGold,
         p1Command: GameCommand.DEFEND,
         p2Command: GameCommand.DEFEND,
         lastTick: Date.now(),
@@ -237,7 +242,7 @@ export const App: React.FC = () => {
     
     // Clear queue
     actionQueueRef.current = [];
-    prevGoldRef.current = INITIAL_GOLD;
+    prevGoldRef.current = startGold;
     
     if (role === PlayerRole.HOST || role === PlayerRole.OFFLINE) {
         setGameState(newState);
@@ -257,10 +262,13 @@ export const App: React.FC = () => {
     if (scrollContainerRef.current) {
         scrollContainerRef.current.scrollLeft = 0;
     }
-  }, [role, addLog]);
+  }, [role, addLog, isSurgeMode]);
 
   const handleReturnToMenu = useCallback(() => {
     // AudioService.playSelect(); // Optional, avoiding double sound on auto-nav
+    // Reset internal surge mode
+    setIsSurgeMode(false);
+    
     const resetState: GameState = {
         units: [],
         playerStatueHP: STATUE_HP,
@@ -282,33 +290,38 @@ export const App: React.FC = () => {
   }, []);
 
   // --- NAVIGATION ---
-  const handleStartHost = () => {
+  const handleStartHost = (surge: boolean) => {
       setRole(PlayerRole.HOST);
+      setIsSurgeMode(surge);
       setAppMode('MAP_SELECT');
       if (!isMusicEnabled) toggleMusic();
   };
 
   const handleStartClient = () => {
       setRole(PlayerRole.CLIENT);
+      // Client adopts host's mode via state updates, default local is false (irrelevant)
+      setIsSurgeMode(false);
       setAppMode('GAME');
       addLog("Connected to Server. Waiting for Host...", "info");
       if (!isMusicEnabled) toggleMusic();
   };
 
-  const handleStartOffline = () => {
+  const handleStartOffline = (surge: boolean) => {
       setRole(PlayerRole.OFFLINE);
+      setIsSurgeMode(surge);
       setAppMode('MAP_SELECT');
       if (!isMusicEnabled) toggleMusic();
   };
 
   const handleMapSelected = (mapId: MapId) => {
-      // Initialize state with selected map
+      // Initialize state with selected map and correct gold
+      const startGold = isSurgeMode ? INITIAL_GOLD_SURGE : INITIAL_GOLD;
       const initialState: GameState = {
         units: [],
         playerStatueHP: STATUE_HP,
         enemyStatueHP: STATUE_HP,
-        p1Gold: INITIAL_GOLD,
-        p2Gold: INITIAL_GOLD,
+        p1Gold: startGold,
+        p2Gold: startGold,
         p1Command: GameCommand.DEFEND,
         p2Command: GameCommand.DEFEND,
         lastTick: Date.now(),
@@ -317,12 +330,13 @@ export const App: React.FC = () => {
       };
       
       setGameState(initialState);
+      prevGoldRef.current = startGold;
       
       if (role === PlayerRole.HOST) {
           mpService.send({ type: 'GAME_STATE_UPDATE', payload: initialState });
-          addLog("Multiplayer Session Started. You are the Host (Blue).", "info");
+          addLog(`Multiplayer Session Started. ${isSurgeMode ? '[SURGE MODE]' : ''}`, "info");
       } else {
-          addLog("Single Player Mode Started. Good luck!", "info");
+          addLog(`Single Player Mode Started. ${isSurgeMode ? '[SURGE MODE]' : ''}`, "info");
       }
       
       setAppMode('GAME');
@@ -608,6 +622,9 @@ export const App: React.FC = () => {
               }
           }
           else if (p2Gold > 200) {
+              // Now that SMALL is in CONFIGS, we must ensure AI doesn't try to recruit it manually 
+              // (though cost is 0, logic might pick it if we don't filter. 
+              // 'types' array below needs to stay specific)
               const types = [UnitType.TOXIC, UnitType.ARCHER, UnitType.PALADIN, UnitType.MAGE];
               const affordableTypes = types.filter(t => UNIT_CONFIGS[t].cost <= p2Gold);
               if (affordableTypes.length > 0) {
@@ -653,9 +670,53 @@ export const App: React.FC = () => {
 
       const p1Anchor = getFormationAnchor('player');
       const p2Anchor = getFormationAnchor('enemy');
+      
+      const newSummons: GameUnit[] = [];
 
       nextUnits.forEach(unit => {
         if (unit.state === 'DYING') return;
+        
+        // MAGE SUMMONING LOGIC
+        if (unit.type === UnitType.MAGE) {
+            if (!unit.lastSummonTime) unit.lastSummonTime = now;
+            
+            if (now - unit.lastSummonTime >= 10000) {
+                // Count current active minions owned by this specific Mage
+                const activeMinions = nextUnits.filter(u => 
+                    u.type === UnitType.SMALL && 
+                    u.side === unit.side && 
+                    u.ownerId === unit.id && 
+                    u.state !== 'DYING'
+                ).length;
+
+                // Only summon if we have fewer than 3 active minions
+                if (activeMinions < 3) {
+                    // Summon Mini Slime
+                    const summonType = UnitType.SMALL;
+                    const summonConfig = UNIT_CONFIGS[summonType];
+                    
+                    // Spawn slightly ahead of Mage
+                    const spawnOffset = unit.side === 'player' ? 2 : -2;
+                    
+                    newSummons.push({
+                        id: Math.random().toString(36).substr(2, 9),
+                        type: summonType,
+                        side: unit.side,
+                        x: Math.max(0, Math.min(100, unit.x + spawnOffset)),
+                        hp: summonConfig.stats.hp,
+                        maxHp: summonConfig.stats.hp,
+                        state: 'WALKING',
+                        lastAttackTime: 0,
+                        targetId: null,
+                        currentSpeed: 0,
+                        hasGold: false,
+                        ownerId: unit.id // Link minion to this mage
+                    });
+                    
+                    unit.lastSummonTime = now;
+                }
+            }
+        }
         
         const config = UNIT_CONFIGS[unit.type];
         const isPlayer = unit.side === 'player';
@@ -780,26 +841,48 @@ export const App: React.FC = () => {
                     strategicX = isPlayer ? 10 : 90;
                 }
 
-                const myOffset = FORMATION_OFFSETS[unit.type];
                 let formationTargetX = strategicX;
-                
-                if (cmd === GameCommand.ATTACK) {
-                    const idealFormationX = isPlayer 
-                        ? formationAnchor - myOffset 
-                        : formationAnchor + myOffset;
-                        
-                    const isAhead = isPlayer ? unit.x >= idealFormationX - 0.5 : unit.x <= idealFormationX + 0.5;
+                let useFormation = true;
+
+                // AGGRO LOGIC:
+                // If we have a target nearby, break formation to engage.
+                // This ensures "row" based units (like Paladins) don't stand idle while frontline fights.
+                if (target && cmd !== GameCommand.RETREAT) {
+                    const dist = distToTarget;
+                    // Attack Mode: Generous aggro range (35%) to ensure army collapses on enemies
+                    // Defend Mode: Short guard range (10%) to allow defending units to step out and fight
+                    const AGGRO_RANGE = cmd === GameCommand.ATTACK ? 35 : 10;
                     
-                    if (isAhead) {
-                         formationTargetX = strategicX;
-                    } else {
-                         formationTargetX = idealFormationX;
+                    if (dist < AGGRO_RANGE) {
+                        formationTargetX = target.x;
+                        useFormation = false;
                     }
-                } 
-                else {
-                    formationTargetX = isPlayer 
-                        ? strategicX - myOffset 
-                        : strategicX + myOffset;
+                }
+
+                if (useFormation) {
+                    const myOffset = FORMATION_OFFSETS[unit.type];
+                    
+                    if (cmd === GameCommand.ATTACK) {
+                        const idealFormationX = isPlayer 
+                            ? formationAnchor - myOffset 
+                            : formationAnchor + myOffset;
+                            
+                        // Only move to strategicX (Attack move) if we are AHEAD of our formation slot.
+                        // Otherwise, catch up to formation to prevent streaming.
+                        const isAhead = isPlayer ? unit.x >= idealFormationX - 0.5 : unit.x <= idealFormationX + 0.5;
+                        
+                        if (isAhead) {
+                             formationTargetX = strategicX;
+                        } else {
+                             formationTargetX = idealFormationX;
+                        }
+                    } 
+                    else {
+                        // Defend / Retreat: Strict formation
+                        formationTargetX = isPlayer 
+                            ? strategicX - myOffset 
+                            : strategicX + myOffset;
+                    }
                 }
 
                 const dir = formationTargetX > unit.x ? 1 : -1;
@@ -831,6 +914,11 @@ export const App: React.FC = () => {
              unit.x = Math.max(0, Math.min(100, unit.x));
         }
       });
+      
+      // Merge summons
+      if (newSummons.length > 0) {
+          nextUnits.push(...newSummons);
+      }
 
       nextUnits = nextUnits.map(u => {
          if (u.hp <= 0 && u.state !== 'DYING') {
@@ -877,7 +965,7 @@ export const App: React.FC = () => {
     }, TICK_RATE);
 
     return () => clearInterval(intervalId);
-  }, [role, appMode]);
+  }, [role, appMode, isSurgeMode]);
 
   if (appMode === 'INTRO') {
       return <IntroSequence onComplete={() => setAppMode('LANDING')} />;
@@ -898,7 +986,14 @@ export const App: React.FC = () => {
 
   const mySide = role === PlayerRole.HOST || role === PlayerRole.OFFLINE ? 'player' : 'enemy';
   const currentPop = gameState.units.filter(u => u.side === mySide && u.state !== 'DYING').length;
-  const allConfigs = Object.values(UNIT_CONFIGS);
+  // Filter out SMALL units from the recruit bar so users can't buy them
+  const allConfigs = Object.values(UNIT_CONFIGS).filter(u => u.type !== UnitType.SMALL);
+  
+  // Calculate Victory State for Display
+  const amIHost = role === PlayerRole.HOST || role === PlayerRole.OFFLINE;
+  const isVictory = amIHost 
+      ? gameState.gameStatus === 'VICTORY'
+      : gameState.gameStatus === 'DEFEAT';
 
   return (
     <div className="h-[100dvh] w-screen bg-black overflow-hidden relative">
@@ -959,6 +1054,12 @@ export const App: React.FC = () => {
                  >
                     {isMusicEnabled ? <Music size={14} /> : <VolumeX size={14} />}
                  </button>
+
+                 {isSurgeMode && (
+                     <div className="px-2 py-1 rounded text-[10px] font-bold h-8 flex items-center shadow-md bg-purple-600 text-purple-100 border border-purple-400 gap-1 animate-pulse">
+                        <Zap size={12} fill="currentColor" /> SURGE
+                     </div>
+                 )}
              </div>
 
              {/* Right: Resources & Surrender */}
@@ -1076,26 +1177,23 @@ export const App: React.FC = () => {
       
       {/* Game Over Overlay */}
       {gameState.gameStatus !== 'PLAYING' && (
-         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-intro-fade">
-             <div className="bg-stone-900 p-8 rounded-xl border-4 border-stone-600 text-center shadow-2xl max-w-md w-full relative overflow-hidden">
+         <div className={`absolute inset-0 z-50 flex items-center justify-center backdrop-blur-sm animate-intro-fade ${isVictory ? 'bg-yellow-900/20' : 'bg-red-900/20'}`}>
+             <div className={`bg-stone-900 p-8 rounded-xl border-4 text-center shadow-2xl max-w-md w-full relative overflow-hidden ${isVictory ? 'animate-victory-modal' : 'animate-defeat-modal'}`}>
                  <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-20 pointer-events-none"></div>
                  
                  <div className="relative z-10">
-                     <h1 className={`text-5xl sm:text-7xl font-epic mb-2 drop-shadow-lg ${gameState.gameStatus === 'VICTORY' ? 'text-yellow-400' : 'text-red-600'}`}>
-                         {role === PlayerRole.HOST || role === PlayerRole.OFFLINE
-                            ? (gameState.gameStatus === 'VICTORY' ? 'VICTORY!' : 'DEFEAT')
-                            : (gameState.gameStatus === 'VICTORY' ? 'DEFEAT' : 'VICTORY!')
-                         }
+                     <h1 className={`text-5xl sm:text-7xl font-epic mb-2 drop-shadow-lg animate-flourish ${isVictory ? 'text-yellow-400' : 'text-red-600'}`}>
+                         {isVictory ? 'VICTORY!' : 'DEFEAT'}
                      </h1>
                      
-                     <p className="text-stone-400 font-mono mb-8 text-sm">
-                        {gameState.gameStatus === 'VICTORY' 
-                            ? (role === PlayerRole.HOST || role === PlayerRole.OFFLINE ? "The Slime Legion has conquered!" : "The Rebellion is crushed.")
-                            : (role === PlayerRole.HOST || role === PlayerRole.OFFLINE ? "Your statue has crumbled..." : "Your rebellion has succeeded!")
+                     <p className="text-stone-400 font-mono mb-8 text-sm animate-subtext">
+                        {isVictory 
+                            ? (amIHost ? "The Slime Legion has conquered!" : "The Rebellion has succeeded!")
+                            : (amIHost ? "Your statue has crumbled..." : "The Rebellion is crushed.")
                         }
                      </p>
                      
-                     <div className="mt-8 animate-pulse text-stone-500 font-mono text-sm">
+                     <div className="mt-8 animate-pulse text-stone-500 font-mono text-sm animate-subtext" style={{animationDelay: '1s'}}>
                         Returning to base...
                      </div>
                  </div>

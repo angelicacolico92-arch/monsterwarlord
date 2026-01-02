@@ -1,10 +1,12 @@
+
 export enum UnitType {
   WORKER = 'WORKER',    // Slime Miner
   TOXIC = 'TOXIC',      // Toxic Slime (Ranged/Poison)
   ARCHER = 'ARCHER',    // Archer Slime
   PALADIN = 'PALADIN',  // Paladin Slime (Tank)
   MAGE = 'MAGE',        // Mage Slime
-  BOSS = 'BOSS'         // Big Slime
+  BOSS = 'BOSS',        // Big Slime
+  SMALL = 'SMALL'       // Summoned Minion
 }
 
 export interface UnitStats {
@@ -40,6 +42,8 @@ export interface GameUnit {
   hasGold?: boolean; // For workers
   lastDamageTime?: number; // For floating damage text
   lastDamageAmount?: number; // For floating damage text
+  lastSummonTime?: number; // For Mage summoning
+  ownerId?: string; // ID of the unit that summoned this one (for Mages)
 }
 
 export interface PlayerState {

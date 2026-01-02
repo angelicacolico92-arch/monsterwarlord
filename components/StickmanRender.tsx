@@ -84,6 +84,10 @@ export const StickmanRender: React.FC<StickmanProps> = ({
           baseColor = isPlayer ? "#f43f5e" : "#881337"; // Pink/Red / Dark Red
           secondaryColor = isPlayer ? "#9f1239" : "#4c0519";
           break;
+      case UnitType.SMALL:
+          baseColor = isPlayer ? "#60a5fa" : "#f87171"; // Lighter Blue / Red
+          secondaryColor = isPlayer ? "#2563eb" : "#dc2626";
+          break;
   }
 
   // --- COMPONENT PARTS ---
@@ -226,9 +230,24 @@ export const StickmanRender: React.FC<StickmanProps> = ({
 
           return (
               <g>
-                  {/* Helm Visor */}
-                  <path d="M30 45 L 70 45 L 60 70 L 40 70 Z" fill="none" stroke="#94a3b8" strokeWidth="2" />
-                  <line x1="50" y1="45" x2="50" y2="70" stroke="#94a3b8" strokeWidth="1" />
+                  {/* HELMET */}
+                  <g>
+                      {/* Plume/Crest */}
+                      <path d="M50 25 Q 55 15 65 20" stroke="#ef4444" strokeWidth="3" fill="none" strokeLinecap="round" />
+                      
+                      {/* Main Dome */}
+                      <path d="M30 48 Q 50 20 70 48" fill="#e2e8f0" stroke="#475569" strokeWidth="2" />
+                      
+                      {/* Visor Band */}
+                      <rect x="30" y="48" width="40" height="8" rx="2" fill="#94a3b8" stroke="#475569" strokeWidth="1.5" />
+                      
+                      {/* Nose Guard */}
+                      <path d="M50 48 L 50 68" stroke="#475569" strokeWidth="2.5" />
+                      
+                      {/* Side Wings (Decorative) */}
+                      <path d="M30 42 L 20 32 L 32 38" fill="#f1f5f9" stroke="#64748b" strokeWidth="1" />
+                      <path d="M70 42 L 80 32 L 68 38" fill="#f1f5f9" stroke="#64748b" strokeWidth="1" />
+                  </g>
                   
                   {/* Shield */}
                   <g className={shieldAnim} style={{ transformOrigin: '70px 80px' }}>
@@ -290,6 +309,45 @@ export const StickmanRender: React.FC<StickmanProps> = ({
      );
   };
   
+  // Magical Summon Effect for newly created SMALL units
+  const SummonEffect = () => {
+    if (type !== UnitType.SMALL) return null;
+
+    return (
+        <g pointerEvents="none">
+             <defs>
+                 <radialGradient id="summonGlow" cx="0.5" cy="0.5" r="0.5">
+                     <stop offset="0%" stopColor="#e9d5ff" stopOpacity="0.9" />
+                     <stop offset="60%" stopColor="#a855f7" stopOpacity="0.4" />
+                     <stop offset="100%" stopColor="#a855f7" stopOpacity="0" />
+                 </radialGradient>
+             </defs>
+             
+             {/* Portal Ring expanding on ground */}
+             <ellipse cx="50" cy="90" rx="0" ry="0" fill="none" stroke="#d8b4fe" strokeWidth="3" opacity="1">
+                 <animate attributeName="rx" from="0" to="35" dur="0.6s" begin="0s" fill="freeze" calcMode="spline" keySplines="0.1 0.8 0.2 1" />
+                 <animate attributeName="ry" from="0" to="12" dur="0.6s" begin="0s" fill="freeze" calcMode="spline" keySplines="0.1 0.8 0.2 1" />
+                 <animate attributeName="opacity" values="1;0" dur="0.8s" begin="0s" fill="freeze" />
+                 <animate attributeName="stroke-width" values="3;0" dur="0.8s" begin="0s" fill="freeze" />
+             </ellipse>
+             
+             {/* Vertical Beam of Light */}
+             <path d="M45 90 L 55 90 L 50 90 Z" fill="url(#summonGlow)" opacity="0">
+                 <animate attributeName="d" values="M45 90 L 55 90 L 50 90 Z; M30 90 L 70 90 L 50 5 Z" dur="0.4s" begin="0s" fill="freeze" />
+                 <animate attributeName="opacity" values="0;1;0" dur="0.7s" begin="0s" fill="freeze" />
+             </path>
+             
+             {/* Burst Stars/Sparkles */}
+             <g transform="translate(50, 50)">
+                 <circle cx="0" cy="0" r="0" fill="white" opacity="0.8">
+                      <animate attributeName="r" values="0;25" dur="0.5s" begin="0.1s" fill="freeze" />
+                      <animate attributeName="opacity" values="0.8;0" dur="0.5s" begin="0.1s" fill="freeze" />
+                 </circle>
+             </g>
+        </g>
+    );
+  };
+
   return (
     <svg 
       width={100 * scale} 
@@ -312,6 +370,9 @@ export const StickmanRender: React.FC<StickmanProps> = ({
         <Accessories />
       </g>
       
+      {/* Render Summon Effect after body so the flash overlays the appearing unit */}
+      <SummonEffect />
+
       {/* Boss Shockwave Effect */}
       {isAttacking && !isDying && type === UnitType.BOSS && (
          <circle cx="50" cy="50" r="25" fill="none" stroke="white" strokeWidth="2" className="animate-shockwave" />

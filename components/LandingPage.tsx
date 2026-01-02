@@ -1,12 +1,13 @@
+
 import React, { useState } from 'react';
 import { mpService } from '../services/multiplayerService';
-import { Users, Copy, Play, Sword } from 'lucide-react';
+import { Users, Copy, Play, Sword, Zap } from 'lucide-react';
 import { AudioService } from '../services/audioService';
 
 interface LandingPageProps {
-  onStartHost: () => void;
+  onStartHost: (surge: boolean) => void;
   onStartClient: (hostId: string) => void;
-  onStartOffline: () => void;
+  onStartOffline: (surge: boolean) => void;
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onStartHost, onStartClient, onStartOffline }) => {
@@ -15,6 +16,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartHost, onStartCl
   const [hostIdInput, setHostIdInput] = useState('');
   const [isCopied, setIsCopied] = useState(false);
   const [status, setStatus] = useState('');
+  const [surgeMode, setSurgeMode] = useState(false);
 
   const handleCreateLobby = () => {
     AudioService.playSelect();
@@ -29,7 +31,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartHost, onStartCl
     mpService.onConnect(() => {
         setStatus('Opponent Connected! Starting...');
         setTimeout(() => {
-            onStartHost();
+            onStartHost(surgeMode);
         }, 1000);
     });
   };
@@ -57,7 +59,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartHost, onStartCl
   
   const handleOffline = () => {
       AudioService.playSelect();
-      onStartOffline();
+      onStartOffline(surgeMode);
   };
 
   const copyToClipboard = () => {
@@ -84,6 +86,25 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartHost, onStartCl
                     </div>
 
                     <div className="space-y-3 sm:space-y-4">
+                        {/* Slime Surge Toggle */}
+                        <div 
+                           onClick={() => { AudioService.playSelect(); setSurgeMode(!surgeMode); }}
+                           className={`cursor-pointer p-3 rounded-lg border flex items-center justify-between transition-all ${surgeMode ? 'bg-purple-900/50 border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.3)]' : 'bg-stone-800 border-stone-700'}`}
+                        >
+                             <div className="flex items-center gap-3 text-left">
+                                 <div className={`p-2 rounded-full ${surgeMode ? 'bg-purple-600 text-white' : 'bg-stone-700 text-stone-500'}`}>
+                                     <Zap size={16} fill={surgeMode ? "currentColor" : "none"} />
+                                 </div>
+                                 <div>
+                                     <div className={`text-sm font-bold ${surgeMode ? 'text-purple-300' : 'text-stone-400'}`}>SLIME SURGE MODE</div>
+                                     <div className="text-[10px] text-stone-500">Start with 2,000 Gold</div>
+                                 </div>
+                             </div>
+                             <div className={`w-10 h-5 rounded-full relative transition-colors ${surgeMode ? 'bg-purple-500' : 'bg-stone-600'}`}>
+                                 <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${surgeMode ? 'left-6' : 'left-1'}`}></div>
+                             </div>
+                        </div>
+
                         <button 
                             onClick={handleOffline}
                             className="w-full bg-yellow-700 hover:bg-yellow-600 border-b-4 border-yellow-900 text-white font-bold py-3 sm:py-4 rounded-lg flex items-center justify-center gap-3 transition-all active:border-b-0 active:translate-y-1 text-sm sm:text-base"
@@ -112,6 +133,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartHost, onStartCl
             {view === 'LOBBY_HOST' && (
                 <div className="text-center space-y-4 sm:space-y-6">
                     <h2 className="text-xl sm:text-2xl font-epic text-blue-400">Host Lobby</h2>
+                    
+                    {surgeMode && (
+                        <div className="bg-purple-900/30 border border-purple-500/50 p-2 rounded text-purple-300 text-xs font-bold animate-pulse">
+                            ⚡ SLIME SURGE MODE ACTIVE
+                        </div>
+                    )}
                     
                     <div className="bg-black/50 p-3 sm:p-4 rounded border border-white/10">
                         <p className="text-xs sm:text-sm text-stone-500 mb-2">Share this Server ID with your friend:</p>

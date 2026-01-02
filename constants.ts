@@ -1,3 +1,4 @@
+
 import { UnitType, UnitConfig, MapId } from './types';
 
 // Field settings
@@ -19,10 +20,14 @@ export const ATTACK_RANGE_MELEE = 1.5;
 export const ATTACK_RANGE_RANGED = 15; 
 export const ATTACK_RANGE_MAGIC = 12;
 
+export const INITIAL_GOLD = 50;
+export const INITIAL_GOLD_SURGE = 2000; // Slime Surge Mode
+
 // Formation Offsets: Relative distance (%) from the frontline unit
 // Lower number = closer to front
 export const FORMATION_OFFSETS: Record<UnitType, number> = {
   [UnitType.TOXIC]: 0,    // Frontline
+  [UnitType.SMALL]: -1,   // Skirmishers (Ahead of frontline)
   [UnitType.PALADIN]: 4,  // 2nd Row
   [UnitType.ARCHER]: 9,   // 3rd Row
   [UnitType.MAGE]: 14,    // 4th Row
@@ -64,7 +69,7 @@ export const UNIT_CONFIGS: Record<UnitType, UnitConfig> = {
     name: 'Mage Slime',
     cost: 140,
     stats: { hp: 170, maxHp: 170, damage: 40, range: ATTACK_RANGE_MAGIC, speed: 2, attackSpeed: 2000 },
-    description: 'Backline magic damage / crowd control'
+    description: 'Summons minions & deals magic damage'
   },
   [UnitType.BOSS]: {
     type: UnitType.BOSS,
@@ -72,6 +77,13 @@ export const UNIT_CONFIGS: Record<UnitType, UnitConfig> = {
     cost: 250,
     stats: { hp: 900, maxHp: 900, damage: 45, range: ATTACK_RANGE_MELEE, speed: 1.5, attackSpeed: 1800 },
     description: 'Late-game heavy hitter, slow but powerful'
+  },
+  [UnitType.SMALL]: {
+    type: UnitType.SMALL,
+    name: 'Mini Slime',
+    cost: 0,
+    stats: { hp: 60, maxHp: 60, damage: 8, range: ATTACK_RANGE_MELEE, speed: 5, attackSpeed: 900 },
+    description: 'Summoned unit.'
   }
 };
 
@@ -108,6 +120,6 @@ export const MAP_CONFIGS: Record<MapId, MapConfig> = {
 };
 
 export const INITIAL_PLAYER_STATE = {
-  gold: 200,
+  gold: INITIAL_GOLD,
   population: 0,
 };
