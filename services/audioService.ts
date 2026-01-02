@@ -3,6 +3,7 @@ import { UnitType } from '../types';
 let audioCtx: AudioContext | null = null;
 let bgmNodes: AudioNode[] = [];
 let isMusicPlaying = false;
+let isUnlocked = false;
 
 const getCtx = () => {
   if (!audioCtx && typeof window !== 'undefined') {
@@ -17,12 +18,29 @@ const getCtx = () => {
 const resumeCtx = () => {
     const ctx = getCtx();
     if (ctx && ctx.state === 'suspended') {
-        ctx.resume().catch(e => console.error(e));
+        ctx.resume().catch(e => console.error("Audio resume failed:", e));
     }
     return ctx;
 };
 
 export const AudioService = {
+  // Call this on the first user interaction
+  unlockAudio: () => {
+      if (isUnlocked) return;
+      const ctx = getCtx();
+      if (!ctx) return;
+
+      // Play a silent buffer to fully unlock the audio engine on iOS
+      const buffer = ctx.createBuffer(1, 1, 22050);
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(ctx.destination);
+      source.start(0);
+
+      resumeCtx();
+      isUnlocked = true;
+  },
+
   startMusic: () => {
     if (isMusicPlaying) return;
     const ctx = resumeCtx();

@@ -2,11 +2,11 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, minimal-ui" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="theme-color" content="#3b82f6" />
+    <meta name="theme-color" content="#000000" />
     <link rel="manifest" href="/manifest.json" />
     <title>Slime Wars: Saga</title>
     <!-- Keeping Tailwind CDN for styling to minimize configuration overhead -->
@@ -17,12 +17,13 @@
       
       body {
         font-family: 'Inter', sans-serif;
-        background-color: #1a1a1a;
+        background-color: #000000;
         color: #e5e5e5;
         overflow: hidden; /* Prevent body scroll, handle in app */
-        touch-action: none; /* Prevent default touch actions like pull-to-refresh */
+        touch-action: manipulation; /* Allow scrolling/clicking but disable double-tap zoom */
         user-select: none;
         -webkit-user-select: none;
+        -webkit-touch-callout: none;
       }
       
       .font-sketch {

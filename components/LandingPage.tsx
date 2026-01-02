@@ -67,7 +67,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartHost, onStartCl
   };
 
   return (
-    <div className="h-screen w-screen bg-black flex items-center justify-center relative overflow-hidden p-4">
+    <div className="min-h-[100dvh] w-screen bg-black flex items-center justify-center relative overflow-hidden p-4">
         {/* Background Atmosphere */}
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-50"></div>
         <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-900/40 to-red-900/40 pointer-events-none"></div>

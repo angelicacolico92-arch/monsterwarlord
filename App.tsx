@@ -375,6 +375,7 @@ export const App: React.FC = () => {
   const handleBackgroundClick = (e: React.MouseEvent) => {
     if (dragStatusRef.current.hasMoved) return;
     setSelectedUnitId(null);
+    if (isArmyMenuOpen) setIsArmyMenuOpen(false);
   };
 
   const handleSurrender = () => {
@@ -824,12 +825,12 @@ export const App: React.FC = () => {
   const currentPop = gameState.units.filter(u => u.side === mySide && u.state !== 'DYING').length;
 
   return (
-    <div className="h-[100dvh] w-screen bg-black overflow-hidden relative touch-none">
+    <div className="h-[100dvh] w-screen bg-black overflow-hidden relative">
       
       {/* GAME AREA */}
       <div 
         ref={scrollContainerRef}
-        className={`absolute inset-0 flex flex-col bg-inamorta select-none overflow-x-hidden ${isShaking ? 'animate-shake' : ''}`}
+        className={`absolute inset-0 flex flex-col bg-inamorta select-none overflow-x-hidden touch-none ${isShaking ? 'animate-shake' : ''}`}
         onMouseDown={handleMouseDown}
         onMouseLeave={handleMouseLeave}
         onMouseUp={handleMouseUp}
@@ -859,8 +860,16 @@ export const App: React.FC = () => {
             isMirrored={isMirrored}
           />
           
+          {/* Mobile Backdrop for Menu */}
+          {isArmyMenuOpen && (
+              <div 
+                  className="fixed inset-0 bg-black/20 backdrop-blur-[1px] z-30"
+                  onClick={() => setIsArmyMenuOpen(false)}
+              ></div>
+          )}
+
           <div className="absolute top-0 left-0 right-0 p-2 sm:p-4 flex justify-between items-start z-30 pointer-events-none">
-             <div className="bg-black/80 backdrop-blur p-2 rounded-lg border border-yellow-500/30 text-white shadow-xl pointer-events-auto flex items-center gap-2 sm:gap-6 max-w-full overflow-x-auto no-scrollbar">
+             <div className="bg-black/80 backdrop-blur p-2 rounded-lg border border-yellow-500/30 text-white shadow-xl pointer-events-auto flex items-center gap-2 sm:gap-6 max-w-full overflow-x-auto no-scrollbar touch-manipulation">
                 
                 <div className={`px-2 py-1 rounded text-[10px] font-bold whitespace-nowrap ${role === PlayerRole.CLIENT ? 'bg-red-600' : 'bg-blue-600'}`}>
                     {roleLabel}
@@ -942,7 +951,7 @@ export const App: React.FC = () => {
                     <X />
                  </button>
               </div>
-              <div className="flex-1 overflow-y-auto p-2 space-y-2 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')]">
+              <div className="flex-1 overflow-y-auto p-2 space-y-2 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] touch-pan-y">
                 {Object.values(UNIT_CONFIGS).map(unit => {
                     const mySide = role === PlayerRole.HOST || role === PlayerRole.OFFLINE ? 'player' : 'enemy';
                     const count = gameState.units.filter(u => u.side === mySide && u.type === unit.type).length;
@@ -961,7 +970,7 @@ export const App: React.FC = () => {
                 })}
               </div>
               
-              <div className="h-24 sm:h-32 bg-black border-t border-stone-700 p-2 overflow-y-auto text-xs font-mono text-stone-400">
+              <div className="h-24 sm:h-32 bg-black border-t border-stone-700 p-2 overflow-y-auto text-xs font-mono text-stone-400 touch-pan-y">
                  {logs.map(log => (
                      <div key={log.id} className="mb-1">
                         <span className="opacity-50">[{new Date(log.timestamp).toLocaleTimeString().split(' ')[0]}]</span> {log.message}

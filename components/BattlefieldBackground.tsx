@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { MapId } from '../types';
 
 interface BattlefieldBackgroundProps {
@@ -7,28 +7,62 @@ interface BattlefieldBackgroundProps {
 
 export const BattlefieldBackground: React.FC<BattlefieldBackgroundProps> = ({ mapId }) => {
   
+  // Memoize randomized elements to ensure they stay static during game ticks
+  const forestVisuals = useMemo(() => {
+      const trees = [...Array(12)].map((_, i) => ({
+          id: i,
+          left: (i * 8) + (Math.random() * 4), // Distributed across width
+          scale: 0.7 + Math.random() * 0.6,
+          color: Math.random() > 0.5 ? 'border-b-green-800' : 'border-b-green-900',
+          zIndex: Math.floor(Math.random() * 5) // Slight layering
+      }));
+      
+      const grass = [...Array(20)].map((_, i) => ({
+          id: i,
+          left: (i * 5) + Math.random() * 5,
+          height: 10 + Math.random() * 10
+      }));
+
+      return { trees, grass };
+  }, []);
+
   const renderForest = () => (
     <>
       <div className="absolute inset-0 bg-gradient-to-b from-sky-400 via-sky-300 to-green-200"></div>
-      {/* Distant Trees Layer */}
-      <div className="absolute bottom-24 w-full h-32 opacity-60">
-         {[...Array(10)].map((_, i) => (
-            <div key={`tree-bg-${i}`} 
-                 className="absolute bottom-0 w-0 h-0 border-l-[20px] border-r-[20px] border-b-[80px] border-l-transparent border-r-transparent border-b-green-800"
-                 style={{ left: `${i * 10 + Math.random() * 5}%` }} 
-            />
+      
+      {/* Static Trees Layer */}
+      <div className="absolute bottom-24 w-full h-48 pointer-events-none">
+         {forestVisuals.trees.map((tree) => (
+            <div key={`tree-${tree.id}`} 
+                 className="absolute bottom-0 flex flex-col items-center"
+                 style={{ 
+                     left: `${tree.left}%`, 
+                     transform: `scale(${tree.scale})`,
+                     transformOrigin: 'bottom center',
+                     zIndex: tree.zIndex
+                 }} 
+            >
+                {/* Tree Trunk */}
+                <div className="w-3 h-6 bg-stone-800/80 mb-[-5px]"></div>
+                {/* Tree Top */}
+                <div className={`w-0 h-0 border-l-[20px] border-r-[20px] border-b-[80px] border-l-transparent border-r-transparent ${tree.color}`}></div>
+            </div>
          ))}
       </div>
       
       {/* Poison Swamp Center */}
       <div className="absolute bottom-10 left-1/2 -translate-x-1/2 w-[20%] h-16 bg-purple-900/40 blur-xl rounded-full z-10 animate-pulse"></div>
-      <div className="absolute bottom-16 left-1/2 -translate-x-1/2 text-purple-800 font-bold opacity-30 text-xs tracking-widest z-0">POISON SWAMP</div>
+      <div className="absolute bottom-16 left-1/2 -translate-x-1/2 text-purple-800 font-bold opacity-50 text-xs tracking-widest z-0">POISON SWAMP</div>
 
       {/* Ground */}
       <div className="absolute bottom-0 w-full h-24 bg-gradient-to-b from-green-700 via-green-800 to-green-950 border-t-4 border-green-600 shadow-[inset_0_10px_20px_-5px_rgba(0,0,0,0.4)] z-0">
-          {/* Grass details */}
-          {[...Array(15)].map((_, i) => (
-              <div key={`grass-${i}`} className="absolute bottom-full w-1 h-3 bg-green-600" style={{ left: `${i * 7 + 2}%` }}></div>
+          {/* Static Grass details */}
+          {forestVisuals.grass.map((g) => (
+              <div 
+                key={`grass-${g.id}`} 
+                className="absolute bottom-full w-1 bg-green-600 rounded-t-full opacity-80" 
+                style={{ left: `${g.left}%`, height: `${g.height}px` }}
+              ></div>
           ))}
       </div>
     </>
@@ -68,7 +102,7 @@ export const BattlefieldBackground: React.FC<BattlefieldBackgroundProps> = ({ ma
       <div className="absolute inset-0 bg-gradient-to-t from-emerald-900/30 to-transparent pointer-events-none"></div>
       
       {/* Trees / Logs */}
-      <div className="absolute bottom-20 w-full opacity-60">
+      <div className="absolute bottom-20 w-full opacity-60 pointer-events-none">
            <div className="absolute left-[10%] bottom-0 w-4 h-40 bg-stone-900 -rotate-2"></div>
            <div className="absolute right-[15%] bottom-0 w-6 h-32 bg-stone-900 rotate-3"></div>
            {/* Fallen Log */}
