@@ -40,7 +40,7 @@ export const IntroSequence: React.FC<IntroSequenceProps> = ({ onComplete }) => {
   if (!started) {
     return (
       <div 
-        className="fixed inset-0 bg-black z-50 flex flex-col items-center justify-center text-white select-none cursor-pointer overflow-hidden touch-manipulation"
+        className="fixed inset-0 bg-black z-50 flex flex-col items-center justify-center text-white select-none cursor-pointer overflow-hidden touch-manipulation h-[100dvh]"
         onClick={handleStart}
       >
          {/* Background */}
@@ -61,7 +61,7 @@ export const IntroSequence: React.FC<IntroSequenceProps> = ({ onComplete }) => {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-stone-900 select-none">
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-stone-900 select-none h-[100dvh]">
       {/* Background: subtle forest or slime-themed gradient */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-green-900 via-stone-950 to-black"></div>
       

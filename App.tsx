@@ -19,7 +19,7 @@ import { MapSelection } from './components/MapSelection';
 import { BattlefieldBackground } from './components/BattlefieldBackground';
 import { AudioService } from './services/audioService';
 import { mpService } from './services/multiplayerService';
-import { Coins, Shield, Swords, RefreshCw, Users, X, Music, VolumeX, CornerDownLeft, Flag, AlertTriangle } from 'lucide-react';
+import { Coins, Shield, Swords, Users, X, Music, VolumeX, CornerDownLeft, Flag, AlertTriangle } from 'lucide-react';
 
 // --- SUB-COMPONENTS ---
 
@@ -868,45 +868,52 @@ export const App: React.FC = () => {
               ></div>
           )}
 
-          <div className="absolute top-0 left-0 right-0 p-2 sm:p-4 flex justify-between items-start z-30 pointer-events-none">
+          <div 
+            className="absolute top-0 left-0 right-0 p-2 sm:p-4 flex justify-between items-start z-30 pointer-events-none"
+            style={{
+                paddingTop: 'max(0.5rem, env(safe-area-inset-top))',
+                paddingLeft: 'max(0.5rem, env(safe-area-inset-left))',
+                paddingRight: 'max(0.5rem, env(safe-area-inset-right))'
+            }}
+          >
              <div className="bg-black/80 backdrop-blur p-2 rounded-lg border border-yellow-500/30 text-white shadow-xl pointer-events-auto flex items-center gap-2 sm:gap-6 max-w-full overflow-x-auto no-scrollbar touch-manipulation">
                 
                 <div className={`px-2 py-1 rounded text-[10px] font-bold whitespace-nowrap ${role === PlayerRole.CLIENT ? 'bg-red-600' : 'bg-blue-600'}`}>
                     {roleLabel}
                 </div>
 
-                <div className="flex items-center gap-2 min-w-[80px]">
+                <div className="flex items-center gap-2 min-w-[60px] sm:min-w-[80px]">
                     <Coins className="text-yellow-400 w-4 h-4 sm:w-6 sm:h-6" />
-                    <span className="text-lg sm:text-xl font-bold font-mono text-yellow-100">{Math.floor(currentGold)}</span>
+                    <span className="text-sm sm:text-xl font-bold font-mono text-yellow-100">{Math.floor(currentGold)}</span>
                 </div>
                 
-                <div className="flex items-center gap-2 ml-4">
-                    <span className="text-xs text-stone-400 font-bold">POP</span>
-                    <span className={`text-lg sm:text-xl font-bold font-mono ${currentPop >= MAX_UNITS ? 'text-red-500' : 'text-stone-200'}`}>
+                <div className="flex items-center gap-2 ml-2 sm:ml-4">
+                    <span className="text-[10px] sm:text-xs text-stone-400 font-bold hidden sm:inline">POP</span>
+                    <span className={`text-sm sm:text-xl font-bold font-mono ${currentPop >= MAX_UNITS ? 'text-red-500' : 'text-stone-200'}`}>
                         {currentPop}/{MAX_UNITS}
                     </span>
                 </div>
                 
-                <div className="h-8 w-px bg-white/20 ml-2"></div>
+                <div className="h-6 sm:h-8 w-px bg-white/20 ml-1 sm:ml-2"></div>
                 
                 <div className="flex gap-1 sm:gap-2">
                     <button 
                         onClick={() => handleCommandChange(GameCommand.ATTACK)}
                         className={`p-1.5 sm:p-2 rounded flex items-center gap-1 sm:gap-2 font-bold transition-all border-b-4 active:border-b-0 active:translate-y-1 ${currentCommand === GameCommand.ATTACK ? 'bg-red-600 border-red-800' : 'bg-gray-700 border-gray-900 text-gray-400'}`}
                     >
-                        <Swords size={16} /> <span className="hidden md:inline">ATTACK</span>
+                        <Swords size={14} className="sm:w-4 sm:h-4" /> <span className="hidden md:inline">ATTACK</span>
                     </button>
                     <button 
                         onClick={() => handleCommandChange(GameCommand.DEFEND)}
                         className={`p-1.5 sm:p-2 rounded flex items-center gap-1 sm:gap-2 font-bold transition-all border-b-4 active:border-b-0 active:translate-y-1 ${currentCommand === GameCommand.DEFEND ? 'bg-blue-600 border-blue-800' : 'bg-gray-700 border-gray-900 text-gray-400'}`}
                     >
-                        <Shield size={16} /> <span className="hidden md:inline">DEFEND</span>
+                        <Shield size={14} className="sm:w-4 sm:h-4" /> <span className="hidden md:inline">DEFEND</span>
                     </button>
                     <button 
                         onClick={() => handleCommandChange(GameCommand.RETREAT)}
                         className={`p-1.5 sm:p-2 rounded flex items-center gap-1 sm:gap-2 font-bold transition-all border-b-4 active:border-b-0 active:translate-y-1 ${currentCommand === GameCommand.RETREAT ? 'bg-orange-600 border-orange-800' : 'bg-gray-700 border-gray-900 text-gray-400'}`}
                     >
-                        <CornerDownLeft size={16} /> <span className="hidden md:inline">RETREAT</span>
+                        <CornerDownLeft size={14} className="sm:w-4 sm:h-4" /> <span className="hidden md:inline">RETREAT</span>
                     </button>
                 </div>
                 
@@ -944,6 +951,10 @@ export const App: React.FC = () => {
 
           <div 
             className={`fixed inset-y-0 right-0 w-64 sm:w-80 bg-stone-900 border-l-4 border-black flex flex-col z-40 shadow-2xl transition-transform duration-300 ease-in-out transform ${isArmyMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}
+            style={{
+                paddingRight: 'env(safe-area-inset-right)',
+                paddingBottom: 'env(safe-area-inset-bottom)'
+            }}
           >
               <div className="p-2 sm:p-4 bg-stone-950 border-b border-stone-800 flex justify-between items-center">
                  <h2 className="text-stone-300 font-epic text-lg sm:text-xl">Barracks</h2>

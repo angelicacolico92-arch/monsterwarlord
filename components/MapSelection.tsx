@@ -36,7 +36,13 @@ export const MapSelection: React.FC<MapSelectionProps> = ({ onSelectMap, onBack 
   };
 
   return (
-    <div className="fixed inset-0 bg-black z-50 flex flex-col items-center justify-center p-4">
+    <div 
+        className="fixed inset-0 bg-black z-50 flex flex-col items-center justify-center p-4 h-[100dvh]"
+        style={{
+            paddingLeft: 'max(1rem, env(safe-area-inset-left))',
+            paddingRight: 'max(1rem, env(safe-area-inset-right))'
+        }}
+    >
        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-40"></div>
        
        <div className="relative z-10 w-full max-w-5xl h-full flex flex-col">
@@ -44,7 +50,7 @@ export const MapSelection: React.FC<MapSelectionProps> = ({ onSelectMap, onBack 
                SELECT BATTLEFIELD
            </h2>
 
-           <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar pb-4">
+           <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar pb-4 touch-pan-y">
                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                    {maps.map((map) => (
                        <div 
@@ -89,7 +95,7 @@ export const MapSelection: React.FC<MapSelectionProps> = ({ onSelectMap, onBack 
                </div>
            </div>
 
-           <div className="mt-4 flex gap-4 w-full max-w-md mx-auto shrink-0">
+           <div className="mt-4 flex gap-4 w-full max-w-md mx-auto shrink-0 pb-[env(safe-area-inset-bottom)]">
                <button 
                   onClick={onBack}
                   className="flex-1 bg-stone-800 hover:bg-stone-700 text-white font-bold py-3 rounded-lg border-b-4 border-stone-950 active:border-b-0 active:translate-y-1 transition-all text-sm sm:text-base"
