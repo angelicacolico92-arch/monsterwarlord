@@ -10,7 +10,8 @@ import {
   STATUE_PLAYER_POS, 
   STATUE_ENEMY_POS,
   MAX_UNITS,
-  INITIAL_GOLD
+  INITIAL_GOLD,
+  FORMATION_OFFSETS
 } from './constants';
 import { StickmanRender } from './components/StickmanRender';
 import { ArmyVisuals } from './components/ArmyVisuals';
@@ -20,7 +21,7 @@ import { MapSelection } from './components/MapSelection';
 import { BattlefieldBackground } from './components/BattlefieldBackground';
 import { AudioService } from './services/audioService';
 import { mpService } from './services/multiplayerService';
-import { Coins, Shield, Swords, Music, VolumeX, CornerDownLeft, Users } from 'lucide-react';
+import { Coins, Shield, Swords, Music, VolumeX, CornerDownLeft, Users, Flag } from 'lucide-react';
 
 const GoldMine: React.FC<{ x: number; isFlipped?: boolean }> = ({ x, isFlipped }) => (
   <div 
@@ -131,6 +132,7 @@ export const App: React.FC = () => {
   });
 
   const stateRef = useRef(gameState);
+  const aiStateRef = useRef({ lastDecisionTime: 0 });
   const actionQueueRef = useRef<any[]>([]);
   
   useEffect(() => { stateRef.current = gameState; }, [gameState]);
@@ -204,6 +206,47 @@ export const App: React.FC = () => {
         }
       }
 
+      // --- FORMATION LOGIC ---
+      // 1. Identify valid combat units (ignore workers/dying)
+      const combatUnits = processedUnits.filter(u => u.type !== UnitType.WORKER && u.state !== 'DYING' && u.state !== 'MINING' && u.state !== 'DEPOSITING');
+      const pUnits = combatUnits.filter(u => u.side === 'player');
+      const eUnits = combatUnits.filter(u => u.side === 'enemy');
+
+      // 2. Determine "Anchor" Offset for each side (Smallest offset present = Leading unit type)
+      let pMinOffset = Infinity;
+      pUnits.forEach(u => {
+          const off = FORMATION_OFFSETS[u.type] || 0;
+          if (off < pMinOffset) pMinOffset = off;
+      });
+      let eMinOffset = Infinity;
+      eUnits.forEach(u => {
+          const off = FORMATION_OFFSETS[u.type] || 0;
+          if (off < eMinOffset) eMinOffset = off;
+      });
+
+      // 3. Calculate Frontline Position based ONLY on the leading unit types
+      // Player (moves right +): Front is MAX X of leading units + their offset
+      let pFront = -Infinity;
+      pUnits.forEach(u => {
+          const off = FORMATION_OFFSETS[u.type] || 0;
+          if (off === pMinOffset) {
+             const val = u.x + off;
+             if (val > pFront) pFront = val;
+          }
+      });
+      if (pFront === -Infinity) pFront = 0; // Default if no units
+
+      // Enemy (moves left -): Front is MIN X of leading units - their offset
+      let eFront = Infinity;
+      eUnits.forEach(u => {
+          const off = FORMATION_OFFSETS[u.type] || 0;
+          if (off === eMinOffset) {
+             const val = u.x - off;
+             if (val < eFront) eFront = val;
+          }
+      });
+      if (eFront === Infinity) eFront = 100;
+
       // Physics and Logic
       processedUnits.forEach(unit => {
         if (unit.state === 'DYING') return;
@@ -225,7 +268,7 @@ export const App: React.FC = () => {
         // Mage Summoning Logic
         if (unit.type === UnitType.MAGE) {
           if (!unit.lastSummonTime) unit.lastSummonTime = now;
-          if (now - unit.lastSummonTime > 8000) {
+          if (now - unit.lastSummonTime > 10000) { // 10s cooldown
              const activeMinions = processedUnits.filter(u => u.side === unit.side && u.ownerId === unit.id && u.state !== 'DYING').length;
              if (activeMinions < 3) {
                 AudioService.playSummon();
@@ -272,7 +315,12 @@ export const App: React.FC = () => {
         } else {
           // Combat & Movement for non-workers
           const targetStatueX = isPlayer ? STATUE_ENEMY_POS : STATUE_PLAYER_POS;
-          let enemyTarget = processedUnits.find(u => u.side !== unit.side && u.state !== 'DYING' && Math.abs(u.x - unit.x) < config.stats.range + 2);
+          
+          // TARGETING LOGIC: Find CLOSEST enemy
+          const potentialTargets = processedUnits.filter(u => u.side !== unit.side && u.state !== 'DYING' && Math.abs(u.x - unit.x) < config.stats.range + 2);
+          // Sort by distance to prioritize frontline
+          potentialTargets.sort((a, b) => Math.abs(a.x - unit.x) - Math.abs(b.x - unit.x));
+          const enemyTarget = potentialTargets.length > 0 ? potentialTargets[0] : null;
           
           if (enemyTarget || Math.abs(unit.x - targetStatueX) < config.stats.range + 1) {
             unit.state = 'ATTACKING';
@@ -280,9 +328,17 @@ export const App: React.FC = () => {
             if (now - unit.lastAttackTime > config.stats.attackSpeed) {
               AudioService.playAttack(unit.type);
               if (enemyTarget) {
-                enemyTarget.hp -= config.stats.damage;
+                // Calculate Damage with Reductions
+                let damageDealt = config.stats.damage;
+                
+                // PALADIN DAMAGE REDUCTION
+                if (enemyTarget.type === UnitType.PALADIN) {
+                    damageDealt *= 0.7; // 30% reduction
+                }
+
+                enemyTarget.hp -= damageDealt;
                 enemyTarget.lastDamageTime = now;
-                enemyTarget.lastDamageAmount = config.stats.damage;
+                enemyTarget.lastDamageAmount = Math.floor(damageDealt);
                 
                 // IMPACT EFFECTS: Knockback & Poison & Shake
                 const knockbackForce = (unit.type === UnitType.BOSS ? 2.5 : (unit.type === UnitType.PALADIN ? 1.5 : 0.5));
@@ -307,9 +363,37 @@ export const App: React.FC = () => {
             unit.state = 'WALKING';
             const cmd = isPlayer ? p1Command : p2Command;
             const dir = isPlayer ? 1 : -1;
-            if (cmd === GameCommand.ATTACK) targetVelocity = dir * config.stats.speed;
-            else if (cmd === GameCommand.RETREAT) targetVelocity = -dir * config.stats.speed;
-            else targetVelocity = 0;
+            
+            // Movement Command Logic
+            if (cmd === GameCommand.ATTACK) {
+                targetVelocity = dir * config.stats.speed;
+                
+                // -- APPLY FORMATION LIMITS --
+                // Prevent units from overtaking their formation slot
+                const offset = FORMATION_OFFSETS[unit.type] || 0;
+                
+                if (isPlayer) {
+                    // Limit: The calculated PFront minus my offset.
+                    // Buffer of 1.0 unit to prevent stutter
+                    const limitX = pFront - offset;
+                    // Only apply limit if this unit is NOT the one defining the front (offset > minOffset)
+                    // and if we are trying to move past the limit.
+                    if (offset > pMinOffset && unit.x >= limitX - 0.5) {
+                        targetVelocity = 0; // Wait for front to advance
+                    }
+                } else {
+                    // Enemy (moving left)
+                    const limitX = eFront + offset;
+                    if (offset > eMinOffset && unit.x <= limitX + 0.5) {
+                        targetVelocity = 0; // Wait
+                    }
+                }
+
+            } else if (cmd === GameCommand.RETREAT) {
+                targetVelocity = -dir * config.stats.speed;
+            } else {
+                targetVelocity = 0;
+            }
           }
         }
 
@@ -325,11 +409,69 @@ export const App: React.FC = () => {
         if (u.hp <= 0 && u.state !== 'DYING') { u.state = 'DYING'; u.deathTime = now; }
         return !(u.state === 'DYING' && now - (u.deathTime || 0) > DEATH_DURATION);
       });
+      
+      // --- IMPROVED AI LOGIC ---
+      if ((role === PlayerRole.HOST || role === PlayerRole.OFFLINE) && now - aiStateRef.current.lastDecisionTime > 2000) {
+          const aiGold = p2Gold;
+          const aiUnits = processedUnits.filter(u => u.side === 'enemy' && u.state !== 'DYING');
+          const playerUnits = processedUnits.filter(u => u.side === 'player' && u.state !== 'DYING');
+          
+          // Economy: Ensure workers
+          const workers = aiUnits.filter(u => u.type === UnitType.WORKER).length;
+          const desiredWorkers = Math.min(6, Math.max(2, Math.floor(aiUnits.length / 3))); // Scale economy
+          
+          if (workers < desiredWorkers && aiGold >= UNIT_CONFIGS[UnitType.WORKER].cost) {
+             actionQueueRef.current.push({ type: 'RECRUIT', unitType: UnitType.WORKER, side: 'enemy' });
+          } else {
+             // Combat Unit Strategy
+             const playerTanks = playerUnits.filter(u => u.type === UnitType.PALADIN || u.type === UnitType.BOSS).length;
+             const playerRanged = playerUnits.filter(u => u.type === UnitType.ARCHER || u.type === UnitType.MAGE).length;
+             const playerSwarm = playerUnits.filter(u => u.type === UnitType.TOXIC || u.type === UnitType.SMALL).length;
+             
+             let desiredUnit = UnitType.PALADIN; // Default tank
 
-      const nextStatus = pStatueHP <= 0 ? 'DEFEAT' : (eStatueHP <= 0 ? 'VICTORY' : 'PLAYING');
+             // Counter-play
+             if (playerTanks > 1) desiredUnit = UnitType.MAGE; // Magic vs Armor
+             else if (playerSwarm > 3) desiredUnit = UnitType.TOXIC; // Splash vs Swarm
+             else if (playerRanged > 2) desiredUnit = UnitType.BOSS; // High HP vs Ranged
+             else if (Math.random() > 0.6) desiredUnit = UnitType.ARCHER; // Mix in ranged
+
+             // Smart Saving: Sometimes save for a BOSS if we have a decent army
+             const saveForBoss = Math.random() > 0.7 && aiUnits.length > 5;
+             
+             if (saveForBoss) {
+                if (aiGold >= UNIT_CONFIGS[UnitType.BOSS].cost) {
+                    actionQueueRef.current.push({ type: 'RECRUIT', unitType: UnitType.BOSS, side: 'enemy' });
+                }
+             } else {
+                // Buy if affordable
+                if (aiGold >= UNIT_CONFIGS[desiredUnit].cost) {
+                    actionQueueRef.current.push({ type: 'RECRUIT', unitType: desiredUnit, side: 'enemy' });
+                } else if (aiGold >= UNIT_CONFIGS[UnitType.TOXIC].cost && Math.random() > 0.6) {
+                    // Fallback to cheaper unit if main choice is too expensive
+                    actionQueueRef.current.push({ type: 'RECRUIT', unitType: UnitType.TOXIC, side: 'enemy' });
+                }
+             }
+          }
+          
+          // Aggression Management
+          const hasBoss = aiUnits.some(u => u.type === UnitType.BOSS);
+          const armyAdvantage = aiUnits.length > playerUnits.length * 1.4;
+          const underAttack = aiUnits.length < playerUnits.length * 0.5;
+          
+          if ((hasBoss || armyAdvantage) && p2Command !== GameCommand.ATTACK) {
+               actionQueueRef.current.push({ type: 'CHANGE_COMMAND', side: 'enemy', command: GameCommand.ATTACK });
+          } else if (underAttack && p2Command === GameCommand.ATTACK) {
+               actionQueueRef.current.push({ type: 'CHANGE_COMMAND', side: 'enemy', command: GameCommand.RETREAT });
+          }
+
+          aiStateRef.current.lastDecisionTime = now;
+      }
+
+      const nextStatus: GameState['gameStatus'] = pStatueHP <= 0 ? 'DEFEAT' : (eStatueHP <= 0 ? 'VICTORY' : 'PLAYING');
       if (nextStatus !== gameStatus) AudioService.playFanfare(nextStatus === 'VICTORY');
 
-      const nextState = { ...stateRef.current, units: processedUnits, playerStatueHP: pStatueHP, enemyStatueHP: eStatueHP, p1Gold, p2Gold, p1Command, p2Command, gameStatus: nextStatus, lastTick: now };
+      const nextState: GameState = { ...stateRef.current, units: processedUnits, playerStatueHP: pStatueHP, enemyStatueHP: eStatueHP, p1Gold, p2Gold, p1Command, p2Command, gameStatus: nextStatus, lastTick: now };
       setGameState(nextState);
       if (role === PlayerRole.HOST) mpService.send({ type: 'GAME_STATE_UPDATE', payload: nextState });
 
@@ -343,6 +485,7 @@ export const App: React.FC = () => {
 
   const amIHost = role !== PlayerRole.CLIENT;
   const isVictory = amIHost ? gameState.gameStatus === 'VICTORY' : gameState.gameStatus === 'DEFEAT';
+  const currentCommand = amIHost ? gameState.p1Command : gameState.p2Command;
 
   return (
     <div className="h-[100dvh] w-screen bg-black overflow-hidden relative">
@@ -364,18 +507,51 @@ export const App: React.FC = () => {
           </div>
       </div>
 
-      <div className="fixed top-4 left-4 z-40 flex gap-2">
-          <button onClick={toggleMusic} className="p-2 bg-black/60 rounded border border-white/20 text-yellow-400">
-              {isMusicEnabled ? <Music size={20} /> : <VolumeX size={20} />}
-          </button>
+      {/* TOP LEFT: Player Profile */}
+      <div className="fixed top-4 left-4 z-40 flex items-center gap-3 bg-black/40 backdrop-blur-md p-1.5 pr-4 rounded-full border border-white/10 shadow-lg select-none">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 border border-blue-300 flex items-center justify-center shadow-inner">
+              <span className="font-epic text-xs text-white font-bold">P1</span>
+          </div>
+          <div className="flex flex-col leading-none">
+              <span className="font-epic text-stone-200 text-xs tracking-wider">COMMANDER</span>
+              <span className="text-[10px] text-blue-400 font-mono">ONLINE</span>
+          </div>
       </div>
 
+      {/* TOP RIGHT: Resources & Population */}
       <div className="fixed top-4 right-4 z-40 bg-black/70 px-4 py-2 rounded-full border border-white/10 flex gap-4 items-center">
          <div className="flex items-center gap-2"><Coins className="text-yellow-400" size={18} /><span className="text-yellow-100 font-bold">{Math.floor(currentGold)}</span></div>
          <div className="flex items-center gap-2"><Users className="text-stone-400" size={18} /><span className="text-stone-100 font-bold">{gameState.units.filter(u => u.side === (amIHost ? 'player' : 'enemy') && u.state !== 'DYING').length}/{MAX_UNITS}</span></div>
       </div>
 
-      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-black/80 p-2 rounded-xl flex gap-2 border border-white/10 max-w-[90vw] overflow-x-auto no-scrollbar">
+      {/* TOP RIGHT BELOW RESOURCES: Controls (Surrender + Volume) */}
+      <div className="fixed top-16 right-4 z-40 flex gap-2">
+          {/* Surrender Button */}
+          <button 
+              onClick={() => {
+                  if (window.confirm("Surrender battle?")) {
+                      if (role === PlayerRole.HOST || role === PlayerRole.OFFLINE) {
+                          setGameState(prev => ({ ...prev, playerStatueHP: 0 }));
+                      } else {
+                          mpService.send({ type: 'SURRENDER', payload: {} });
+                          setGameState(prev => ({ ...prev, playerStatueHP: 0 }));
+                      }
+                  }
+              }}
+              className="bg-black/60 p-2 rounded-full border border-red-500/30 text-red-500 hover:bg-red-900/50 transition-colors shadow-lg active:scale-95"
+              title="Surrender"
+          >
+              <Flag size={20} />
+          </button>
+          
+          {/* Volume Button (Moved here) */}
+          <button onClick={toggleMusic} className="p-2 bg-black/60 rounded-full border border-white/20 text-yellow-400 shadow-lg active:scale-95">
+              {isMusicEnabled ? <Music size={20} /> : <VolumeX size={20} />}
+          </button>
+      </div>
+
+      {/* TOP CENTER: Army Recruitment Bar */}
+      <div className="fixed top-2 left-1/2 -translate-x-1/2 z-40 bg-black/80 p-2 rounded-xl flex gap-2 border border-white/10 max-w-[90vw] overflow-x-auto no-scrollbar">
           {Object.values(UNIT_CONFIGS).filter(u => u.cost > 0).map(u => (
               <button 
                   key={u.type} 
@@ -391,10 +567,31 @@ export const App: React.FC = () => {
           ))}
       </div>
 
+      {/* BOTTOM RIGHT: Commands */}
       <div className="fixed bottom-4 right-4 z-40 flex flex-col gap-2">
-          <button onClick={() => actionQueueRef.current.push({type: 'CHANGE_COMMAND', side: amIHost ? 'player' : 'enemy', command: GameCommand.ATTACK})} className="p-3 bg-red-600 rounded-full border-2 border-white/20 shadow-lg active:scale-95"><Swords size={24} /></button>
-          <button onClick={() => actionQueueRef.current.push({type: 'CHANGE_COMMAND', side: amIHost ? 'player' : 'enemy', command: GameCommand.DEFEND})} className="p-3 bg-blue-600 rounded-full border-2 border-white/20 shadow-lg active:scale-95"><Shield size={24} /></button>
-          <button onClick={() => actionQueueRef.current.push({type: 'CHANGE_COMMAND', side: amIHost ? 'player' : 'enemy', command: GameCommand.RETREAT})} className="p-3 bg-orange-600 rounded-full border-2 border-white/20 shadow-lg active:scale-95"><CornerDownLeft size={24} /></button>
+          <button 
+            onClick={() => actionQueueRef.current.push({type: 'CHANGE_COMMAND', side: amIHost ? 'player' : 'enemy', command: GameCommand.ATTACK})} 
+            className={`p-3 rounded-full border-2 shadow-lg active:scale-95 transition-all duration-200 ${currentCommand === GameCommand.ATTACK ? 'bg-red-600 border-white scale-110 ring-2 ring-red-400 shadow-red-900/50' : 'bg-red-900/40 border-white/10 opacity-70 grayscale hover:grayscale-0 hover:opacity-100 hover:scale-105'}`}
+            title="Attack"
+          >
+            <Swords size={24} />
+          </button>
+          
+          <button 
+            onClick={() => actionQueueRef.current.push({type: 'CHANGE_COMMAND', side: amIHost ? 'player' : 'enemy', command: GameCommand.DEFEND})} 
+            className={`p-3 rounded-full border-2 shadow-lg active:scale-95 transition-all duration-200 ${currentCommand === GameCommand.DEFEND ? 'bg-blue-600 border-white scale-110 ring-2 ring-blue-400 shadow-blue-900/50' : 'bg-blue-900/40 border-white/10 opacity-70 grayscale hover:grayscale-0 hover:opacity-100 hover:scale-105'}`}
+            title="Defend"
+          >
+            <Shield size={24} />
+          </button>
+          
+          <button 
+            onClick={() => actionQueueRef.current.push({type: 'CHANGE_COMMAND', side: amIHost ? 'player' : 'enemy', command: GameCommand.RETREAT})} 
+            className={`p-3 rounded-full border-2 shadow-lg active:scale-95 transition-all duration-200 ${currentCommand === GameCommand.RETREAT ? 'bg-orange-600 border-white scale-110 ring-2 ring-orange-400 shadow-orange-900/50' : 'bg-orange-900/40 border-white/10 opacity-70 grayscale hover:grayscale-0 hover:opacity-100 hover:scale-105'}`}
+            title="Retreat"
+          >
+            <CornerDownLeft size={24} />
+          </button>
       </div>
 
       {gameState.gameStatus !== 'PLAYING' && (

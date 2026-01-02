@@ -125,6 +125,34 @@
       }
       .animate-subtext { animation: subtext-reveal 1s ease-out 0.6s forwards; opacity: 0; }
 
+      /* ARCHER ANIMATIONS */
+      @keyframes archer-draw {
+          0% { transform: translateX(0) scale(1, 1); }
+          50% { transform: translateX(-4px) scale(0.9, 1.1); } /* Wind up: Draw back (slow) */
+          55% { transform: translateX(2px) scale(1.1, 0.9); } /* Fire: Recoil (fast) */
+          65% { transform: translateX(0) scale(1, 1); } /* Return */
+          100% { transform: translateX(0) scale(1, 1); } /* Wait */
+      }
+      .animate-archer-bow { animation: archer-draw 2s ease-in-out infinite; }
+
+      @keyframes arrow-shoot {
+          0% { transform: translateX(0); opacity: 1; }
+          50% { transform: translateX(-8px); opacity: 1; } /* Wind up: Follow string back */
+          55% { transform: translateX(100px); opacity: 0; } /* Fire: Fly out */
+          56% { transform: translateX(0); opacity: 0; } /* Reset invisible */
+          85% { transform: translateX(0); opacity: 0; } /* Wait for reload */
+          100% { transform: translateX(0); opacity: 1; } /* Reappear for next shot */
+      }
+      .animate-archer-arrow { animation: arrow-shoot 2s ease-in-out infinite; }
+
+      @keyframes archer-body-sway {
+          0% { transform: rotate(0deg); }
+          50% { transform: rotate(-10deg); } /* Lean back */
+          55% { transform: rotate(5deg); } /* Recoil forward */
+          100% { transform: rotate(0deg); }
+      }
+      .animate-archer-body { transform-origin: bottom center; animation: archer-body-sway 2s ease-in-out infinite; }
+
       /* Orientation warning */
       #rotate-warning { display: none; }
       @media screen and (orientation: portrait) {

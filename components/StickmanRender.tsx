@@ -39,7 +39,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       animClass = "animate-death-puddle";
   } else if (isAttacking || isMining) {
       if (type === UnitType.TOXIC) animClass = "animate-toxic-spit"; 
-      else if (type === UnitType.ARCHER) animClass = "animate-idle-breathe"; 
+      else if (type === UnitType.ARCHER) animClass = "animate-archer-body"; // Use new body sway for Archer
       else if (type === UnitType.BOSS) animClass = "animate-boss-stomp"; // New stomp
       else if (type === UnitType.WORKER && isMining) animClass = "animate-mining"; // New mining bounce
       else animClass = "animate-slime-attack"; // Generic lunge
@@ -200,25 +200,19 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       if (type === UnitType.ARCHER) {
           return (
               <g transform="translate(55, 60)">
-                  {/* Bow Body - Animates recoil when attacking */}
-                  <g className={isAttacking ? "animate-bow-recoil" : ""}>
+                  {/* Bow Body - Uses new wind-up animation */}
+                  <g className={isAttacking ? "animate-archer-bow" : ""}>
                       <path d="M15 -20 Q -5 0 15 20" stroke="#fcd34d" strokeWidth="3" fill="none" />
+                      {/* String */}
                       <line x1="15" y1="-20" x2="15" y2="20" stroke="white" strokeWidth="1" opacity="0.6" />
                   </g>
                   
-                  {/* Arrow - Animates flight when attacking */}
-                  {isAttacking ? (
-                      <g className="animate-arrow-fly">
-                          <line x1="-5" y1="0" x2="15" y2="0" stroke="white" strokeWidth="2" />
-                          <path d="M15 0 L 10 -3 L 10 3 Z" fill="white" />
-                          <path d="M-5 0 L -8 -2 M-5 0 L -8 2" stroke="white" strokeWidth="1" />
-                      </g>
-                  ) : (
-                      <g>
-                          <line x1="0" y1="0" x2="15" y2="0" stroke="white" strokeWidth="2" />
-                          <path d="M15 0 L 10 -3 L 10 3 Z" fill="white" />
-                      </g>
-                  )}
+                  {/* Arrow - Uses new wind-up and shoot animation */}
+                  <g className={isAttacking ? "animate-archer-arrow" : ""}>
+                      <line x1="-5" y1="0" x2="15" y2="0" stroke="white" strokeWidth="2" />
+                      <path d="M15 0 L 10 -3 L 10 3 Z" fill="white" />
+                      <path d="M-5 0 L -8 -2 M-5 0 L -8 2" stroke="white" strokeWidth="1" />
+                  </g>
               </g>
           );
       }
