@@ -22,6 +22,7 @@ export const generateEnemyArmy = async (playerPower: number): Promise<EnemyArmy>
     Slime Miner (WORKER): 1
     Toxic Slime (TOXIC): 8
     Archer Slime (ARCHER): 12
+    Gargoyle Slime (GARGOYLE): 15
     Paladin Slime (PALADIN): 20
     Mage Slime (MAGE): 30
     Big Slime (BOSS): 100
@@ -51,6 +52,7 @@ export const generateEnemyArmy = async (playerPower: number): Promise<EnemyArmy>
                 [UnitType.WORKER]: { type: Type.INTEGER },
                 [UnitType.TOXIC]: { type: Type.INTEGER },
                 [UnitType.ARCHER]: { type: Type.INTEGER },
+                [UnitType.GARGOYLE]: { type: Type.INTEGER },
                 [UnitType.PALADIN]: { type: Type.INTEGER },
                 [UnitType.MAGE]: { type: Type.INTEGER },
                 [UnitType.BOSS]: { type: Type.INTEGER },
@@ -101,6 +103,7 @@ function getFallbackEnemy(playerPower: number): EnemyArmy {
         [UnitType.WORKER]: 0,
         [UnitType.TOXIC]: Math.floor(playerPower / 12) + 2,
         [UnitType.ARCHER]: Math.floor(playerPower / 20),
+        [UnitType.GARGOYLE]: Math.floor(playerPower / 25),
         [UnitType.PALADIN]: Math.floor(playerPower / 30),
         [UnitType.MAGE]: 0,
         [UnitType.BOSS]: 0

@@ -18,24 +18,45 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({ units, selectedUnitId,
         const isMining = unit.state === 'MINING' || unit.state === 'ATTACKING'; 
         const isDepositing = unit.state === 'DEPOSITING';
         
-        // Use char codes for robust random visual jitter
-        const depthJitter = (unit.id.charCodeAt(unit.id.length - 1) + (unit.id.charCodeAt(unit.id.length - 2) || 0)) % 15;
-
-        // Row Logic: Define base depth offset (pixels from bottom)
-        // Front Row (Closer to camera, bottom of container): Toxic
-        // Second Row (Middle): Paladin
-        // Third Row (Further from camera, top of container): Archer, Mage, Boss, Worker
-        let baseDepth = 50; // Default Back Row
+        // Single Line Formation: Fixed rows, no random jitter to ensure clean lines.
         
-        if (unit.type === UnitType.TOXIC) {
-            baseDepth = 0; // Front Row
-        } else if (unit.type === UnitType.PALADIN) {
-            baseDepth = 25; // Second Row
-        } else {
-            baseDepth = 50; // Third Row
+        // Row Logic: Depth offset (pixels from bottom)
+        // 1st row (Front): Toxic
+        // 2nd row: Paladin
+        // 3rd row: Archer & Gargoyle
+        // 4th row: Mage
+        // 5th row (Back): Boss
+        // Miner: Back near mines
+        
+        let baseDepth = 40; 
+        
+        switch (unit.type) {
+            case UnitType.TOXIC:
+                baseDepth = 10; // 1st Row (Front/Bottom)
+                break;
+            case UnitType.PALADIN:
+                baseDepth = 25; // 2nd Row
+                break;
+            case UnitType.ARCHER:
+                baseDepth = 40; // 3rd Row
+                break;
+            case UnitType.GARGOYLE:
+                baseDepth = 45; // 3rd Row (Flying slightly above Archers)
+                break;
+            case UnitType.MAGE:
+                baseDepth = 55; // 4th Row
+                break;
+            case UnitType.BOSS:
+                baseDepth = 70; // Last Row
+                break;
+            case UnitType.WORKER:
+                baseDepth = 85; // Furthest back to align with mines
+                break;
+            default:
+                baseDepth = 40;
         }
 
-        const depthOffset = baseDepth + depthJitter;
+        const depthOffset = baseDepth; // Removed jitter for strict single line
 
         // Calculate visual position
         // If mirrored (Client view), the world is flipped horizontally: x -> 100 - x
@@ -60,7 +81,7 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({ units, selectedUnitId,
             style={{
                left: `${visualX}%`,
                transform: transformString,
-               zIndex: isDying ? 0 : 100 - depthOffset, // Closer units (lower offset) have higher Z
+               zIndex: isDying ? 0 : 200 - depthOffset, // Closer units (lower offset) have higher Z to appear in front
                width: '80px',
                height: '80px'
             }}
@@ -84,7 +105,7 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({ units, selectedUnitId,
                 isAttacking={unit.state === 'ATTACKING'} 
                 isMining={isMining}
                 isDepositing={isDepositing}
-                isMoving={unit.state === 'WALKING'}
+                isMoving={unit.state === 'WALKING'} 
                 isDying={isDying}
                 isSelected={selectedUnitId === unit.id}
                 hasGold={unit.hasGold}

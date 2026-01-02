@@ -35,14 +35,17 @@ export const StickmanRender: React.FC<StickmanProps> = ({
   if (isDying) {
       animClass = "animate-death-puddle";
   } else if (isAttacking || isMining) {
-      if (type === UnitType.TOXIC) animClass = "animate-slime-attack"; // Lunge/Spit
+      if (type === UnitType.TOXIC) animClass = "animate-toxic-spit"; // New Spit Animation
       else if (type === UnitType.ARCHER) animClass = "animate-idle-breathe"; // Archer uses internal bow animation, body stays mostly steady
       else if (type === UnitType.BOSS) animClass = "animate-boss-roar"; // Boss Roar
+      else if (type === UnitType.GARGOYLE) animClass = "animate-gargoyle-swoop"; // Swoop Attack
       else animClass = "animate-slime-attack"; // Generic lunge
   } else if (isMoving || isDepositing) {
-      animClass = "animate-slime-bounce";
+      if (type === UnitType.GARGOYLE) animClass = "animate-gargoyle-hover";
+      else animClass = "animate-slime-bounce";
   } else {
-      animClass = "animate-idle-breathe";
+      if (type === UnitType.GARGOYLE) animClass = "animate-gargoyle-hover";
+      else animClass = "animate-idle-breathe";
   }
 
   const style = { animationDelay: isDying ? '0s' : `${animationDelay}s` };
@@ -65,6 +68,10 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       case UnitType.ARCHER:
           baseColor = isPlayer ? "#22d3ee" : "#0891b2"; // Cyan / Dark Cyan
           secondaryColor = isPlayer ? "#0e7490" : "#164e63";
+          break;
+      case UnitType.GARGOYLE:
+          baseColor = isPlayer ? "#64748b" : "#4b5563"; // Slate / Dark Grey
+          secondaryColor = isPlayer ? "#334155" : "#1f2937";
           break;
       case UnitType.PALADIN:
           baseColor = isPlayer ? "#e2e8f0" : "#9ca3af"; // White/Silver / Grey
@@ -104,12 +111,18 @@ export const StickmanRender: React.FC<StickmanProps> = ({
              </g>
          );
      }
-     if (type === UnitType.PALADIN) {
-         // Serious lines
+     if (type === UnitType.PALADIN || type === UnitType.GARGOYLE) {
+         // Serious lines / Narrow eyes
          return (
              <g>
                  <rect x="35" y="60" width="10" height="4" fill="black" opacity="0.6"/>
                  <rect x="55" y="60" width="10" height="4" fill="black" opacity="0.6"/>
+                 {type === UnitType.GARGOYLE && (
+                     <g>
+                         <circle cx="40" cy="62" r="1.5" fill="red" />
+                         <circle cx="60" cy="62" r="1.5" fill="red" />
+                     </g>
+                 )}
              </g>
          );
      }
@@ -155,7 +168,12 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                   <circle cx="20" cy="90" r="3" fill="#bef264" className="animate-pulse" />
                   <circle cx="80" cy="85" r="2" fill="#bef264" className="animate-pulse" style={{animationDelay: '0.5s'}} />
                   {isAttacking && (
-                      <circle cx="80" cy="60" r="5" fill="#a3e635" />
+                      <g className="animate-toxic-projectile">
+                          {/* Viscous Blob shape */}
+                          <path d="M0 0 C 5 -5, 10 -2, 12 5 C 10 10, 5 12, 0 10 C -5 8, -2 3, 0 0 Z" fill="#a3e635" stroke="#365314" strokeWidth="1" />
+                          <circle cx="3" cy="3" r="1.5" fill="#f7fee7" opacity="0.6" />
+                          <circle cx="8" cy="7" r="1" fill="#f7fee7" opacity="0.4" />
+                      </g>
                   )}
               </g>
           );
@@ -182,6 +200,29 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                       <g>
                           <line x1="0" y1="0" x2="15" y2="0" stroke="white" strokeWidth="2" />
                           <path d="M15 0 L 10 -3 L 10 3 Z" fill="white" />
+                      </g>
+                  )}
+              </g>
+          );
+      }
+
+      // Gargoyle Wings & Horns
+      if (type === UnitType.GARGOYLE) {
+          return (
+              <g>
+                  {/* Wings */}
+                  <path d="M20 50 Q -10 20 0 10 Q 10 30 30 50" fill={secondaryColor} stroke="black" strokeWidth="1" />
+                  <path d="M80 50 Q 110 20 100 10 Q 90 30 70 50" fill={secondaryColor} stroke="black" strokeWidth="1" />
+                  
+                  {/* Horns */}
+                  <path d="M35 40 L 30 25" stroke="white" strokeWidth="2" />
+                  <path d="M65 40 L 70 25" stroke="white" strokeWidth="2" />
+
+                  {/* Fangs if attacking */}
+                  {isAttacking && (
+                      <g>
+                         <path d="M40 70 L 42 75 L 44 70" fill="white" />
+                         <path d="M56 70 L 58 75 L 60 70" fill="white" />
                       </g>
                   )}
               </g>

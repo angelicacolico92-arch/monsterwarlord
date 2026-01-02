@@ -4,6 +4,7 @@ export enum UnitType {
   ARCHER = 'ARCHER',    // Archer Slime
   PALADIN = 'PALADIN',  // Paladin Slime (Tank)
   MAGE = 'MAGE',        // Mage Slime
+  GARGOYLE = 'GARGOYLE', // Flying Gargoyle
   BOSS = 'BOSS'         // Big Slime
 }
 

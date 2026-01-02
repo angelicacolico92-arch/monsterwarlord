@@ -39,6 +39,13 @@ export const UNIT_CONFIGS: Record<UnitType, UnitConfig> = {
     stats: { hp: 90, maxHp: 90, damage: 18, range: ATTACK_RANGE_RANGED, speed: 3, attackSpeed: 1100 },
     description: 'Equipped with a gelatinous bow.'
   },
+  [UnitType.GARGOYLE]: {
+    type: UnitType.GARGOYLE,
+    name: 'Gargoyle Slime',
+    cost: 200,
+    stats: { hp: 160, maxHp: 160, damage: 28, range: ATTACK_RANGE_MELEE, speed: 4.5, attackSpeed: 1100 },
+    description: 'A flying menace that swoops down on foes.'
+  },
   [UnitType.PALADIN]: {
     type: UnitType.PALADIN,
     name: 'Paladin Slime',
