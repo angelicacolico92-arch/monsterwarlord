@@ -76,7 +76,7 @@ export const BattlefieldBackground: React.FC<BattlefieldBackgroundProps> = ({ ma
       <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/dark-stone.png')]"></div>
       
       {/* Stalagmites / Rocks */}
-      <div className="absolute bottom-24 w-full h-full pointer-events-none">
+      <div className="absolute top-0 bottom-24 w-full pointer-events-none">
           <div className="absolute bottom-0 left-[20%] w-0 h-0 border-l-[30px] border-r-[10px] border-b-[60px] border-l-transparent border-r-transparent border-b-stone-900 opacity-80"></div>
           <div className="absolute bottom-0 right-[25%] w-0 h-0 border-l-[15px] border-r-[35px] border-b-[50px] border-l-transparent border-r-transparent border-b-stone-800 opacity-80"></div>
           

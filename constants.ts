@@ -3,11 +3,11 @@ import { UnitType, UnitConfig, MapId } from './types';
 // Field settings
 export const FIELD_WIDTH = 100; // Percent (Logic scale)
 export const STATUE_HP = 2000;
-export const SPAWN_X_PLAYER = 2; // Closer to edge
-export const SPAWN_X_ENEMY = 98; // Closer to edge
+export const SPAWN_X_PLAYER = 8; // Moved inward from 2
+export const SPAWN_X_ENEMY = 92; // Moved inward from 98
 
-export const STATUE_PLAYER_POS = 2;
-export const STATUE_ENEMY_POS = 98;
+export const STATUE_PLAYER_POS = 6; // Moved inward from 2
+export const STATUE_ENEMY_POS = 94; // Moved inward from 98
 
 export const MAX_UNITS = 40;
 

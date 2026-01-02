@@ -43,7 +43,7 @@ const GoldMine: React.FC<{ x: number; isFlipped?: boolean }> = ({ x, isFlipped }
   </div>
 );
 
-const BaseStatue: React.FC<{ x: number; hp: number; variant: 'BLUE' | 'RED'; isFlipped?: boolean }> = ({ x, hp, variant, isFlipped }) => {
+const BaseStatue: React.FC<{ x: number; hp: number; variant: 'BLUE' | 'RED'; isFlipped?: boolean; isRetreating?: boolean }> = ({ x, hp, variant, isFlipped, isRetreating }) => {
     const hpPercent = Math.max(0, (hp / STATUE_HP) * 100);
     const isRed = variant === 'RED';
     const primaryColor = isRed ? '#ef4444' : '#3b82f6';
@@ -77,6 +77,18 @@ const BaseStatue: React.FC<{ x: number; hp: number; variant: 'BLUE' | 'RED'; isF
                             <stop offset="100%" stopColor={lightColor} stopOpacity="0.9" />
                         </linearGradient>
                     </defs>
+
+                    {/* PORTAL EFFECT - BEHIND */}
+                    {isRetreating && (
+                        <g className="animate-portal-spin" style={{ opacity: 0.6 }}>
+                            {/* Swirling Rings */}
+                             <path d="M100 100 A 100 100 0 0 1 100 300 A 100 100 0 0 1 100 100" 
+                                   fill="none" stroke={primaryColor} strokeWidth="4" strokeDasharray="20 40" />
+                             <path d="M100 130 A 70 70 0 0 0 100 270 A 70 70 0 0 0 100 130" 
+                                   fill="none" stroke={lightColor} strokeWidth="6" strokeDasharray="30 30" />
+                        </g>
+                    )}
+
                     <path d="M20 340 Q 0 340 10 320 Q 50 300 100 310 Q 150 300 190 320 Q 200 340 180 340 Q 140 355 100 350 Q 60 355 20 340" 
                           fill={darkColor} opacity="0.8" />
                     <path 
@@ -87,6 +99,14 @@ const BaseStatue: React.FC<{ x: number; hp: number; variant: 'BLUE' | 'RED'; isF
                         strokeOpacity="0.5"
                     />
                     <circle cx="100" cy="70" r="25" fill="white" opacity="0.2" className="animate-pulse" />
+
+                    {/* PORTAL EFFECT - FRONT/CENTER GLOW */}
+                    {isRetreating && (
+                         <circle cx="100" cy="200" r="0" fill={lightColor} opacity="0.4">
+                             <animate attributeName="r" values="10;80" dur="1.5s" repeatCount="indefinite" />
+                             <animate attributeName="opacity" values="0.8;0" dur="1.5s" repeatCount="indefinite" />
+                         </circle>
+                    )}
                 </svg>
             </div>
         </div>
@@ -205,47 +225,6 @@ export const App: React.FC = () => {
           if (action.side === 'player') p1Command = action.command; else p2Command = action.command;
         }
       }
-
-      // --- FORMATION LOGIC ---
-      // 1. Identify valid combat units (ignore workers/dying)
-      const combatUnits = processedUnits.filter(u => u.type !== UnitType.WORKER && u.state !== 'DYING' && u.state !== 'MINING' && u.state !== 'DEPOSITING');
-      const pUnits = combatUnits.filter(u => u.side === 'player');
-      const eUnits = combatUnits.filter(u => u.side === 'enemy');
-
-      // 2. Determine "Anchor" Offset for each side (Smallest offset present = Leading unit type)
-      let pMinOffset = Infinity;
-      pUnits.forEach(u => {
-          const off = FORMATION_OFFSETS[u.type] || 0;
-          if (off < pMinOffset) pMinOffset = off;
-      });
-      let eMinOffset = Infinity;
-      eUnits.forEach(u => {
-          const off = FORMATION_OFFSETS[u.type] || 0;
-          if (off < eMinOffset) eMinOffset = off;
-      });
-
-      // 3. Calculate Frontline Position based ONLY on the leading unit types
-      // Player (moves right +): Front is MAX X of leading units + their offset
-      let pFront = -Infinity;
-      pUnits.forEach(u => {
-          const off = FORMATION_OFFSETS[u.type] || 0;
-          if (off === pMinOffset) {
-             const val = u.x + off;
-             if (val > pFront) pFront = val;
-          }
-      });
-      if (pFront === -Infinity) pFront = 0; // Default if no units
-
-      // Enemy (moves left -): Front is MIN X of leading units - their offset
-      let eFront = Infinity;
-      eUnits.forEach(u => {
-          const off = FORMATION_OFFSETS[u.type] || 0;
-          if (off === eMinOffset) {
-             const val = u.x - off;
-             if (val < eFront) eFront = val;
-          }
-      });
-      if (eFront === Infinity) eFront = 100;
 
       // Physics and Logic
       processedUnits.forEach(unit => {
@@ -407,21 +386,8 @@ export const App: React.FC = () => {
                     }
                 } else {
                     // ATTACK Command
+                    // No formation limits - simple movement
                     targetVelocity = dir * config.stats.speed;
-                    
-                    // -- APPLY FORMATION LIMITS --
-                    const offset = FORMATION_OFFSETS[unit.type] || 0;
-                    if (isPlayer) {
-                        const limitX = pFront - offset;
-                        if (offset > pMinOffset && unit.x >= limitX - 0.5) {
-                            targetVelocity = 0; // Wait for front to advance
-                        }
-                    } else {
-                        const limitX = eFront + offset;
-                        if (offset > eMinOffset && unit.x <= limitX + 0.5) {
-                            targetVelocity = 0; // Wait
-                        }
-                    }
                 }
              }
           }
@@ -527,12 +493,24 @@ export const App: React.FC = () => {
         onMouseUp={() => setIsDragging(false)}
         onMouseLeave={() => setIsDragging(false)}
       >
-          <div className="relative h-full min-w-[200vw]">
+          <div className="relative h-full w-[200vw] overflow-hidden">
             <BattlefieldBackground mapId={gameState.mapId} />
-            <BaseStatue x={getVisualX(STATUE_PLAYER_POS)} hp={gameState.playerStatueHP} variant="BLUE" isFlipped={isMirrored} />
+            <BaseStatue 
+                x={getVisualX(STATUE_PLAYER_POS)} 
+                hp={gameState.playerStatueHP} 
+                variant="BLUE" 
+                isFlipped={isMirrored} 
+                isRetreating={gameState.p1Command === GameCommand.RETREAT} 
+            />
             <GoldMine x={getVisualX(GOLD_MINE_PLAYER_X)} isFlipped={isMirrored} />
             <GoldMine x={getVisualX(GOLD_MINE_ENEMY_X)} isFlipped={!isMirrored} />
-            <BaseStatue x={getVisualX(STATUE_ENEMY_POS)} hp={gameState.enemyStatueHP} variant="RED" isFlipped={!isMirrored} />
+            <BaseStatue 
+                x={getVisualX(STATUE_ENEMY_POS)} 
+                hp={gameState.enemyStatueHP} 
+                variant="RED" 
+                isFlipped={!isMirrored} 
+                isRetreating={gameState.p2Command === GameCommand.RETREAT} 
+            />
             <ArmyVisuals units={gameState.units} selectedUnitId={selectedUnitId} onSelectUnit={setSelectedUnitId} isMirrored={isMirrored} />
           </div>
       </div>

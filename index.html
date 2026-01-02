@@ -153,6 +153,12 @@
       }
       .animate-archer-body { transform-origin: bottom center; animation: archer-body-sway 2s ease-in-out infinite; }
 
+      @keyframes portal-spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+      .animate-portal-spin { transform-origin: 100px 200px; animation: portal-spin 10s linear infinite; }
+
       /* Orientation warning */
       #rotate-warning { display: none; }
       @media screen and (orientation: portrait) {
