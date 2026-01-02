@@ -773,10 +773,43 @@ export const App: React.FC = () => {
   return (
     <div className="h-screen w-screen bg-black overflow-hidden relative touch-none">
       
-      {/* GAME AREA - Removed onClick here */}
+      {/* GAME AREA */}
       <div 
-        className="absolute inset-0 flex flex-col bg-inamorta select-none"
+        ref={scrollContainerRef}
+        className="absolute inset-0 flex flex-col bg-inamorta select-none overflow-x-hidden"
+        onMouseDown={handleMouseDown}
+        onMouseLeave={handleMouseLeave}
+        onMouseUp={handleMouseUp}
+        onMouseMove={handleMouseMove}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onClick={handleBackgroundClick}
       >
+          {/* Ground Layer */}
+          <div className="absolute bottom-0 w-full h-24 ground-layer z-0"></div>
+
+          {/* BACKGROUND DECORATION */}
+          <div className="absolute top-10 left-20 opacity-20 pointer-events-none">
+              <div className="w-32 h-32 bg-white rounded-full blur-3xl"></div>
+          </div>
+          
+          {/* STATUES & MINES */}
+          {/* Host/Blue (Left) */}
+          <BaseStatue x={getVisualX(STATUE_PLAYER_POS)} hp={gameState.playerStatueHP} variant="BLUE" isFlipped={isMirrored} />
+          <GoldMine x={getVisualX(GOLD_MINE_PLAYER_X)} isFlipped={isMirrored} />
+
+          {/* Client/Red (Right) */}
+          <BaseStatue x={getVisualX(STATUE_ENEMY_POS)} hp={gameState.enemyStatueHP} variant="RED" isFlipped={!isMirrored} />
+          <GoldMine x={getVisualX(GOLD_MINE_ENEMY_X)} isFlipped={!isMirrored} />
+
+          {/* ARMY RENDERER */}
+          <ArmyVisuals 
+            units={gameState.units} 
+            selectedUnitId={selectedUnitId}
+            onSelectUnit={handleSelectUnit}
+            isMirrored={isMirrored}
+          />
           
           {/* HUD Overlay */}
           <div className="absolute top-0 left-0 right-0 p-2 sm:p-4 flex justify-between items-start z-30 pointer-events-none">

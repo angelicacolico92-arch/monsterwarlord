@@ -36,7 +36,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       animClass = "animate-death-puddle";
   } else if (isAttacking || isMining) {
       if (type === UnitType.TOXIC) animClass = "animate-slime-attack"; // Lunge/Spit
-      else if (type === UnitType.ARCHER) animClass = "animate-bow-action"; // Bow wobble
+      else if (type === UnitType.ARCHER) animClass = "animate-idle-breathe"; // Archer uses internal bow animation, body stays mostly steady
       else animClass = "animate-slime-attack"; // Generic lunge
   } else if (isMoving || isDepositing) {
       animClass = "animate-slime-bounce";
@@ -160,13 +160,29 @@ export const StickmanRender: React.FC<StickmanProps> = ({
           );
       }
 
-      // Archer Bow
+      // Archer Bow (Enhanced Animation)
       if (type === UnitType.ARCHER) {
           return (
-              <g transform="translate(50, 60)">
-                  <path d="M15 -15 Q 5 0 15 15" stroke="#fcd34d" strokeWidth="3" fill="none" />
-                  <line x1="15" y1="-15" x2="15" y2="15" stroke="white" strokeWidth="1" opacity="0.6" />
-                  {isAttacking && <line x1="0" y1="0" x2="15" y2="0" stroke="white" strokeWidth="2" />}
+              <g transform="translate(55, 60)">
+                  {/* Bow Body - Animates recoil when attacking */}
+                  <g className={isAttacking ? "animate-bow-recoil" : ""}>
+                      <path d="M15 -20 Q -5 0 15 20" stroke="#fcd34d" strokeWidth="3" fill="none" />
+                      <line x1="15" y1="-20" x2="15" y2="20" stroke="white" strokeWidth="1" opacity="0.6" />
+                  </g>
+                  
+                  {/* Arrow - Animates flight when attacking */}
+                  {isAttacking ? (
+                      <g className="animate-arrow-fly">
+                          <line x1="-5" y1="0" x2="15" y2="0" stroke="white" strokeWidth="2" />
+                          <path d="M15 0 L 10 -3 L 10 3 Z" fill="white" />
+                          <path d="M-5 0 L -8 -2 M-5 0 L -8 2" stroke="white" strokeWidth="1" />
+                      </g>
+                  ) : (
+                      <g>
+                          <line x1="0" y1="0" x2="15" y2="0" stroke="white" strokeWidth="2" />
+                          <path d="M15 0 L 10 -3 L 10 3 Z" fill="white" />
+                      </g>
+                  )}
               </g>
           );
       }
