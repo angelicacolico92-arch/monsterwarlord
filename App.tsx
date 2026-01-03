@@ -11,6 +11,7 @@ import {
   STATUE_ENEMY_POS,
   MAX_UNITS,
   INITIAL_GOLD,
+  INITIAL_GOLD_SURGE,
   FORMATION_OFFSETS
 } from './constants';
 import { StickmanRender } from './components/StickmanRender';
@@ -476,8 +477,52 @@ export const App: React.FC = () => {
   }, [role, appMode]);
 
   if (appMode === 'INTRO') return <IntroSequence onComplete={() => setAppMode('LANDING')} />;
-  if (appMode === 'LANDING') return <LandingPage onStartHost={(s) => { setRole(PlayerRole.HOST); setIsSurgeMode(s); setAppMode('MAP_SELECT'); }} onStartClient={() => { setRole(PlayerRole.CLIENT); setAppMode('GAME'); }} onStartOffline={(s) => { setRole(PlayerRole.OFFLINE); setIsSurgeMode(s); setAppMode('MAP_SELECT'); }} />;
-  if (appMode === 'MAP_SELECT') return <MapSelection onSelectMap={(m) => { setGameState(prev => ({...prev, mapId: m, p1Gold: isSurgeMode?2000:50, p2Gold: isSurgeMode?2000:50})); setAppMode('GAME'); }} onBack={() => setAppMode('LANDING')} />;
+  if (appMode === 'LANDING') return <LandingPage 
+      onStartHost={(s) => { setRole(PlayerRole.HOST); setIsSurgeMode(s); setAppMode('MAP_SELECT'); }} 
+      onStartClient={() => { 
+          setRole(PlayerRole.CLIENT); 
+          // Reset Game State for new match (Client side initial)
+          setGameState({
+            units: [],
+            playerStatueHP: STATUE_HP,
+            enemyStatueHP: STATUE_HP,
+            p1Gold: INITIAL_GOLD,
+            p2Gold: INITIAL_GOLD,
+            p1Command: GameCommand.DEFEND,
+            p2Command: GameCommand.DEFEND,
+            lastTick: Date.now(),
+            gameStatus: 'PLAYING',
+            mapId: MapId.FOREST
+          });
+          setSelectedUnitId(null);
+          actionQueueRef.current = [];
+          setAppMode('GAME'); 
+      }} 
+      onStartOffline={(s) => { setRole(PlayerRole.OFFLINE); setIsSurgeMode(s); setAppMode('MAP_SELECT'); }} 
+  />;
+
+  if (appMode === 'MAP_SELECT') return <MapSelection 
+      onSelectMap={(m) => { 
+          // Reset Game State for new match (Host/Offline)
+          setGameState({
+            units: [],
+            playerStatueHP: STATUE_HP,
+            enemyStatueHP: STATUE_HP,
+            p1Gold: isSurgeMode ? INITIAL_GOLD_SURGE : INITIAL_GOLD,
+            p2Gold: isSurgeMode ? INITIAL_GOLD_SURGE : INITIAL_GOLD,
+            p1Command: GameCommand.DEFEND,
+            p2Command: GameCommand.DEFEND,
+            lastTick: Date.now(),
+            gameStatus: 'PLAYING',
+            mapId: m
+          });
+          setSelectedUnitId(null);
+          actionQueueRef.current = [];
+          aiStateRef.current = { lastDecisionTime: 0 };
+          setAppMode('GAME'); 
+      }} 
+      onBack={() => setAppMode('LANDING')} 
+  />;
 
   const amIHost = role !== PlayerRole.CLIENT;
   const isVictory = amIHost ? gameState.gameStatus === 'VICTORY' : gameState.gameStatus === 'DEFEAT';
