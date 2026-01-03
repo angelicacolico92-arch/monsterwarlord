@@ -73,8 +73,8 @@ export const UNIT_CONFIGS: Record<UnitType, UnitConfig> = {
     type: UnitType.BOSS,
     name: 'Big Slime',
     cost: 250,
-    stats: { hp: 1100, maxHp: 1100, damage: 180, range: ATTACK_RANGE_MELEE, speed: 1.5, attackSpeed: 3500 },
-    description: 'Slow but powerful finisher'
+    stats: { hp: 1100, maxHp: 1100, damage: 50, range: 2.5, speed: 1.5, attackSpeed: 2750 },
+    description: 'Tanky boss with AoE slams and CC abilities'
   },
   [UnitType.SMALL]: {
     type: UnitType.SMALL,

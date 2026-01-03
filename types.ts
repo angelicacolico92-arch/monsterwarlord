@@ -47,6 +47,14 @@ export interface GameUnit {
   // Tactical Effects
   poisonTicks?: number;
   lastPoisonTickTime?: number;
+  
+  // Boss Abilities & Status
+  lastAbility1Time?: number; // Slime Wave
+  lastAbility2Time?: number; // Mega Crash
+  attackCount?: number;
+  isEnraged?: boolean; // Last Goo Stand active
+  stunnedUntil?: number;
+  slowedUntil?: number;
 }
 
 export interface PlayerState {

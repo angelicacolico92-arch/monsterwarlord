@@ -24,7 +24,7 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({ units, selectedUnitId,
         // Hide if retreating and at base (effectively "entered" the portal)
         const isRetreating = isPlayer ? p1Retreating : p2Retreating;
         const homeX = isPlayer ? STATUE_PLAYER_POS : STATUE_ENEMY_POS;
-        if (isRetreating && Math.abs(unit.x - homeX) < 2.5 && !isDying) {
+        if (isRetreating && Math.abs(unit.x - homeX) < 3 && !isDying) {
             return null;
         }
         

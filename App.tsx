@@ -220,7 +220,10 @@ export const App: React.FC = () => {
               state: 'WALKING',
               lastAttackTime: 0,
               currentSpeed: 0,
-              hasGold: false
+              hasGold: false,
+              lastAbility1Time: 0,
+              lastAbility2Time: 0,
+              attackCount: 0
             });
             AudioService.playRecruit();
           }
@@ -235,6 +238,13 @@ export const App: React.FC = () => {
         const config = UNIT_CONFIGS[unit.type];
         const isPlayer = unit.side === 'player';
         let targetVelocity = 0;
+
+        // Check Stun Status
+        if (unit.stunnedUntil && unit.stunnedUntil > now) {
+            unit.state = 'IDLE';
+            unit.currentSpeed = 0;
+            return; // Skip rest of logic
+        }
 
         // Poison Logic
         if (unit.poisonTicks && unit.poisonTicks > 0) {
@@ -320,52 +330,144 @@ export const App: React.FC = () => {
           const dir = isPlayer ? 1 : -1;
           const targetStatueX = isPlayer ? STATUE_ENEMY_POS : STATUE_PLAYER_POS;
              
-          // TARGETING LOGIC: Find CLOSEST enemy
-          const potentialTargets = processedUnits.filter(u => u.side !== unit.side && u.state !== 'DYING' && Math.abs(u.x - unit.x) < config.stats.range + 2);
-          potentialTargets.sort((a, b) => Math.abs(a.x - unit.x) - Math.abs(b.x - unit.x));
-          const enemyTarget = potentialTargets.length > 0 ? potentialTargets[0] : null;
+          // TARGETING LOGIC
+          const potentialTargets = processedUnits.filter(u => u.side !== unit.side && u.state !== 'DYING');
+          const nearbyTargets = potentialTargets.filter(u => Math.abs(u.x - unit.x) < config.stats.range + 2);
+          
+          // Sort by distance for simple targeting
+          nearbyTargets.sort((a, b) => Math.abs(a.x - unit.x) - Math.abs(b.x - unit.x));
+          const primaryTarget = nearbyTargets.length > 0 ? nearbyTargets[0] : null;
 
           // Attack Logic (Aggro or Base Siege)
           // In DEFEND mode, units only attack if an enemy is within range (hold ground).
           // In ATTACK mode, units also attack statue if close.
           const canSiege = cmd === GameCommand.ATTACK && Math.abs(unit.x - targetStatueX) < config.stats.range + 1;
-             
-          if (enemyTarget || canSiege) {
-            unit.state = 'ATTACKING';
-            targetVelocity = 0;
-            if (now - unit.lastAttackTime > config.stats.attackSpeed) {
-                AudioService.playAttack(unit.type);
-                if (enemyTarget) {
-                // Calculate Damage with Reductions
-                let damageDealt = config.stats.damage;
-                
-                // PALADIN DAMAGE REDUCTION
-                if (enemyTarget.type === UnitType.PALADIN) {
-                    damageDealt *= 0.7; // 30% reduction
+          const hasTarget = primaryTarget || canSiege;
+          
+          // BOSS LOGIC: Last Goo Stand (Passive) - Enrage at low HP
+          if (unit.type === UnitType.BOSS && unit.hp < unit.maxHp * 0.25 && !unit.isEnraged) {
+              unit.isEnraged = true;
+          }
+
+          if (hasTarget) {
+            // BOSS ACTIVE ABILITIES
+            let abilityTriggered = false;
+            
+            if (unit.type === UnitType.BOSS) {
+                // Ability 2: Mega Slime Crash (25s Cooldown)
+                // Jump range: 15% map width. Triggers if enemies exist in that range.
+                if (!unit.lastAbility2Time) unit.lastAbility2Time = 0;
+                if (now - unit.lastAbility2Time > 25000) {
+                    // Check for valid jump target area (further ahead)
+                    const jumpTargetX = unit.x + (dir * 15);
+                    const enemiesInJumpZone = potentialTargets.filter(u => Math.abs(u.x - jumpTargetX) < 6);
+                    
+                    if (enemiesInJumpZone.length > 0) {
+                        unit.lastAbility2Time = now;
+                        unit.x = Math.max(0, Math.min(100, jumpTargetX)); // Teleport Jump
+                        setShakeTrigger(now + 600);
+                        AudioService.playAttack(UnitType.BOSS);
+                        
+                        // AoE Damage & Stun
+                        enemiesInJumpZone.forEach(target => {
+                            target.hp -= 90;
+                            target.lastDamageTime = now;
+                            target.lastDamageAmount = 90;
+                            target.stunnedUntil = now + 1500; // 1.5s Stun
+                        });
+                        abilityTriggered = true;
+                    }
                 }
 
-                enemyTarget.hp -= damageDealt;
-                enemyTarget.lastDamageTime = now;
-                enemyTarget.lastDamageAmount = Math.floor(damageDealt);
-                
-                // IMPACT EFFECTS
-                const knockbackForce = (unit.type === UnitType.BOSS ? 2.5 : (unit.type === UnitType.PALADIN ? 1.5 : 0.5));
-                enemyTarget.x += isPlayer ? knockbackForce : -knockbackForce;
-                
-                if (unit.type === UnitType.TOXIC) {
-                    enemyTarget.poisonTicks = 3;
-                    enemyTarget.lastPoisonTickTime = now;
+                // Ability 1: Slime Wave (10s Cooldown)
+                if (!abilityTriggered) {
+                    if (!unit.lastAbility1Time) unit.lastAbility1Time = 0;
+                    if (now - unit.lastAbility1Time > 10000) {
+                         // Line AoE: 12% Range
+                         const waveRange = 12;
+                         const enemiesInLine = potentialTargets.filter(u => {
+                             const dist = (u.x - unit.x) * dir; // Positive if in front
+                             return dist > 0 && dist < waveRange;
+                         });
+                         
+                         if (enemiesInLine.length > 0) {
+                             unit.lastAbility1Time = now;
+                             AudioService.playSummon(); // Use summon sound for wave
+                             enemiesInLine.forEach(target => {
+                                 target.hp -= 30;
+                                 target.lastDamageTime = now;
+                                 target.lastDamageAmount = 30;
+                                 target.slowedUntil = now + 2000; // 2s Slow
+                             });
+                             abilityTriggered = true;
+                         }
+                    }
                 }
+            }
+
+            if (!abilityTriggered) {
+                unit.state = 'ATTACKING';
+                targetVelocity = 0;
                 
-                if (unit.type === UnitType.BOSS || unit.type === UnitType.PALADIN) {
-                    setShakeTrigger(now + 400);
+                // Effective stats (Enrage modifiers)
+                let currentAttackSpeed = config.stats.attackSpeed;
+                let currentDamage = config.stats.damage;
+                if (unit.isEnraged) {
+                    currentAttackSpeed *= 0.8; // 20% faster
+                    currentDamage *= 1.1; // 10% more damage
                 }
-                } else if (canSiege) {
-                if (isPlayer) eStatueHP -= config.stats.damage; else pStatueHP -= config.stats.damage;
-                AudioService.playDamage();
-                if (unit.type === UnitType.BOSS) setShakeTrigger(now + 400);
+
+                if (now - unit.lastAttackTime > currentAttackSpeed) {
+                    AudioService.playAttack(unit.type);
+                    
+                    if (primaryTarget) {
+                        // Combat resolution
+                        // If Boss, use AoE Basic Attack (Colossal Slam)
+                        if (unit.type === UnitType.BOSS) {
+                            const meleeTargets = nearbyTargets.filter(u => Math.abs(u.x - unit.x) < config.stats.range);
+                            
+                            // Splatter Impact (Passive): Every 3rd attack
+                            const attackCount = (unit.attackCount || 0) + 1;
+                            unit.attackCount = attackCount;
+                            const isSplatter = attackCount % 3 === 0;
+                            
+                            const splashBonus = isSplatter ? 15 : 0;
+                            const finalDamage = currentDamage + splashBonus;
+
+                            meleeTargets.forEach(target => {
+                                applyDamage(target, finalDamage, now, unit.type === UnitType.BOSS);
+                                // Knockback
+                                target.x += dir * 2;
+                            });
+                            
+                            setShakeTrigger(now + 300);
+                        } else {
+                            // Standard Unit Attack
+                            applyDamage(primaryTarget, currentDamage, now, false);
+                            
+                            // Specific Unit Effects
+                            const knockbackForce = (unit.type === UnitType.PALADIN ? 1.5 : 0.5);
+                            primaryTarget.x += isPlayer ? knockbackForce : -knockbackForce;
+                            
+                            if (unit.type === UnitType.TOXIC) {
+                                primaryTarget.poisonTicks = 3;
+                                primaryTarget.lastPoisonTickTime = now;
+                            }
+                            if (unit.type === UnitType.PALADIN) {
+                                setShakeTrigger(now + 200);
+                            }
+                        }
+                    } else if (canSiege) {
+                        if (isPlayer) eStatueHP -= currentDamage; else pStatueHP -= currentDamage;
+                        AudioService.playDamage();
+                        if (unit.type === UnitType.BOSS) setShakeTrigger(now + 400);
+                    }
+                    unit.lastAttackTime = now;
                 }
-                unit.lastAttackTime = now;
+            } else {
+                // Ability was used, effectively consumed the 'turn' but keeps flow
+                unit.state = 'ATTACKING'; 
+                targetVelocity = 0;
             }
           } else {
             // Movement Logic
@@ -399,6 +501,11 @@ export const App: React.FC = () => {
           }
         }
 
+        // Apply Speed & Slows
+        if (unit.slowedUntil && unit.slowedUntil > now) {
+            targetVelocity *= 0.7; // 30% Slow
+        }
+
         // Apply Smoothing
         const agility = UNIT_AGILITY[unit.type] || 5;
         unit.currentSpeed += (targetVelocity - unit.currentSpeed) * (1 - Math.exp(-agility * deltaTime));
@@ -409,7 +516,6 @@ export const App: React.FC = () => {
       // Cleanup & Merge Summons
       // Check limits on summons too to prevent over-cap during merge if multiple mages summon same tick
       // Simple cap enforcement: if we exceed cap, just drop excess summons
-      const currentTotalUnits = processedUnits.length; // Approximate check, detailed check below
       
       // Separate lists for final check
       const playerUnits = processedUnits.filter(u => u.side === 'player' && u.state !== 'DYING');
@@ -500,6 +606,28 @@ export const App: React.FC = () => {
     }, TICK_RATE);
     return () => clearInterval(intervalId);
   }, [role, appMode]);
+
+  // Helper function for damage calculation
+  const applyDamage = (target: GameUnit, rawDamage: number, now: number, isBossAttack: boolean) => {
+      let damageDealt = rawDamage;
+
+      // PALADIN DAMAGE REDUCTION (Existing)
+      if (target.type === UnitType.PALADIN) {
+          damageDealt *= 0.7; 
+      }
+      
+      // BOSS GELATIN ARMOR (New Passive)
+      if (target.type === UnitType.BOSS) {
+          // Reduces damage by 15-20%. Increases when HP < 40%.
+          const lowHp = target.hp < target.maxHp * 0.4;
+          const reduction = lowHp ? 0.20 : 0.15;
+          damageDealt *= (1 - reduction);
+      }
+
+      target.hp -= damageDealt;
+      target.lastDamageTime = now;
+      target.lastDamageAmount = Math.floor(damageDealt);
+  };
 
   if (appMode === 'INTRO') return <IntroSequence onComplete={() => setAppMode('LANDING')} />;
   if (appMode === 'LANDING') return <LandingPage 
