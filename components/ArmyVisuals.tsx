@@ -138,7 +138,7 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({
         return (
           <div 
             key={unit.id} 
-            className={`absolute bottom-0 transition-transform duration-100 will-change-transform flex items-end justify-center ${isDying ? 'pointer-events-none' : 'pointer-events-auto cursor-pointer'}`}
+            className={`absolute bottom-0 transition-transform duration-300 will-change-transform flex items-end justify-center ${isDying ? 'pointer-events-none' : 'pointer-events-auto cursor-pointer'}`}
             onClick={(e) => {
                 e.stopPropagation();
                 if (!isDying) onSelectUnit?.(unit.id);

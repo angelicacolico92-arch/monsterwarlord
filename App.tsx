@@ -397,29 +397,33 @@ export const App: React.FC = () => {
           const dir = isPlayer ? 1 : -1;
           const targetStatueX = isPlayer ? STATUE_ENEMY_POS : STATUE_PLAYER_POS;
              
-          // TARGETING LOGIC
+          // TARGETING & AGGRO
+          const AGGRO_RANGE = 30; // Vision range to start charging
           const potentialTargets = processedUnits.filter(u => u.side !== unit.side && u.state !== 'DYING');
-          const nearbyTargets = potentialTargets.filter(u => Math.abs(u.x - unit.x) < config.stats.range + 2);
           
-          // Sort by distance for simple targeting
-          nearbyTargets.sort((a, b) => Math.abs(a.x - unit.x) - Math.abs(b.x - unit.x));
-          const primaryTarget = nearbyTargets.length > 0 ? nearbyTargets[0] : null;
+          // 1. Identify Aggro Target (Visible enemy for charging)
+          const visibleTargets = potentialTargets.filter(u => Math.abs(u.x - unit.x) < AGGRO_RANGE);
+          visibleTargets.sort((a, b) => Math.abs(a.x - unit.x) - Math.abs(b.x - unit.x));
+          const aggroTarget = visibleTargets.length > 0 ? visibleTargets[0] : null;
 
-          // Assign target ID for visual tracking (e.g. alignment in z-depth)
-          unit.targetId = primaryTarget ? primaryTarget.id : null;
+          // 2. Identify Attack Target (In range to hit)
+          // We prioritize the aggro target if it's in range, otherwise closest in range
+          const targetsInRange = visibleTargets.filter(u => Math.abs(u.x - unit.x) <= config.stats.range);
+          const primaryTarget = targetsInRange.length > 0 ? targetsInRange[0] : null;
+
+          // Set Visual Target ID (This triggers the depth/row change in visuals)
+          unit.targetId = aggroTarget ? aggroTarget.id : null;
 
           // Attack Logic (Aggro or Base Siege)
-          // In DEFEND mode, units only attack if an enemy is within range (hold ground).
-          // In ATTACK mode, units also attack statue if close.
           const canSiege = cmd === GameCommand.ATTACK && Math.abs(unit.x - targetStatueX) < config.stats.range + 1;
-          const hasTarget = primaryTarget || canSiege;
+          const shouldAttack = !!primaryTarget || canSiege;
           
           // BOSS LOGIC: Last Goo Stand (Passive) - Enrage at low HP
           if (unit.type === UnitType.BOSS && unit.hp < unit.maxHp * 0.25 && !unit.isEnraged) {
               unit.isEnraged = true;
           }
 
-          if (hasTarget) {
+          if (shouldAttack) {
             // BOSS ACTIVE ABILITIES
             let abilityTriggered = false;
             
@@ -494,7 +498,7 @@ export const App: React.FC = () => {
                         // Combat resolution
                         // If Boss, use AoE Basic Attack (Colossal Slam)
                         if (unit.type === UnitType.BOSS) {
-                            const meleeTargets = nearbyTargets.filter(u => Math.abs(u.x - unit.x) < config.stats.range);
+                            const meleeTargets = targetsInRange.filter(u => Math.abs(u.x - unit.x) < config.stats.range);
                             
                             // Splatter Impact (Passive): Every 3rd attack
                             const attackCount = (unit.attackCount || 0) + 1;
@@ -568,32 +572,46 @@ export const App: React.FC = () => {
             }
           } else {
             // Movement Logic
-            unit.state = 'WALKING';
             
-            if (cmd === GameCommand.DEFEND) {
-                // DEFENSE FORMATION LOGIC
-                // Align units relative to the defense line (ahead of gold mine)
-                // Player Front: Gold Mine (15) + Buffer (15) = 30
-                // Enemy Front: Gold Mine (85) - Buffer (15) = 70
-                const defenseFrontX = isPlayer ? GOLD_MINE_PLAYER_X + 15 : GOLD_MINE_ENEMY_X - 15;
-                const offset = FORMATION_OFFSETS[unit.type] || 0;
-                
-                const targetX = isPlayer 
-                    ? defenseFrontX - offset 
-                    : defenseFrontX + offset;
-                
-                const dist = Math.abs(unit.x - targetX);
-                
-                if (dist < 1.5) {
-                    targetVelocity = 0;
-                    unit.state = 'IDLE';
-                } else {
-                    targetVelocity = (unit.x < targetX ? 1 : -1) * config.stats.speed;
+            // Check if we should "Charge" (Walk towards aggro target even if out of range)
+            let isCharging = false;
+            if (aggroTarget && cmd !== GameCommand.RETREAT) {
+                if (cmd === GameCommand.ATTACK) {
+                    isCharging = true;
+                } else if (cmd === GameCommand.DEFEND) {
+                    // Only charge if very close (Defensive Aggro)
+                    if (Math.abs(aggroTarget.x - unit.x) < 8) isCharging = true;
                 }
+            }
+            
+            if (isCharging && aggroTarget) {
+                unit.state = 'WALKING';
+                targetVelocity = (unit.x < aggroTarget.x ? 1 : -1) * config.stats.speed;
             } else {
-                // ATTACK Command
-                // No formation limits - simple movement
-                targetVelocity = dir * config.stats.speed;
+                // STANDARD MOVEMENT (No immediate target)
+                unit.state = 'WALKING';
+                
+                if (cmd === GameCommand.DEFEND) {
+                    // DEFENSE FORMATION LOGIC
+                    const defenseFrontX = isPlayer ? GOLD_MINE_PLAYER_X + 15 : GOLD_MINE_ENEMY_X - 15;
+                    const offset = FORMATION_OFFSETS[unit.type] || 0;
+                    
+                    const targetX = isPlayer 
+                        ? defenseFrontX - offset 
+                        : defenseFrontX + offset;
+                    
+                    const dist = Math.abs(unit.x - targetX);
+                    
+                    if (dist < 1.5) {
+                        targetVelocity = 0;
+                        unit.state = 'IDLE';
+                    } else {
+                        targetVelocity = (unit.x < targetX ? 1 : -1) * config.stats.speed;
+                    }
+                } else {
+                    // ATTACK Command (March forward)
+                    targetVelocity = dir * config.stats.speed;
+                }
             }
           }
         }
