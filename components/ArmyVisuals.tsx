@@ -1,5 +1,5 @@
 import React from 'react';
-import { GameUnit, UnitType } from '../types';
+import { GameUnit, UnitType, GameCommand } from '../types';
 import { StickmanRender } from './StickmanRender';
 import { STATUE_PLAYER_POS, STATUE_ENEMY_POS } from '../constants';
 
@@ -8,56 +8,79 @@ interface ArmyVisualsProps {
   selectedUnitId?: string | null;
   onSelectUnit?: (id: string) => void;
   isMirrored?: boolean;
-  p1Retreating?: boolean;
-  p2Retreating?: boolean;
+  p1Command: GameCommand;
+  p2Command: GameCommand;
 }
 
-export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({ units, selectedUnitId, onSelectUnit, isMirrored = false, p1Retreating = false, p2Retreating = false }) => {
+export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({ 
+  units, 
+  selectedUnitId, 
+  onSelectUnit, 
+  isMirrored = false, 
+  p1Command,
+  p2Command
+}) => {
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden">
       {units.map((unit) => {
         const isPlayer = unit.side === 'player';
+        const command = isPlayer ? p1Command : p2Command;
+        const isRetreating = command === GameCommand.RETREAT;
+        const isAttackingCommand = command === GameCommand.ATTACK;
+        
         const isDying = unit.state === 'DYING';
         const isMining = unit.state === 'MINING' || unit.state === 'ATTACKING'; 
         const isDepositing = unit.state === 'DEPOSITING';
         
         // Hide if retreating and at base (effectively "entered" the portal)
-        const isRetreating = isPlayer ? p1Retreating : p2Retreating;
         const homeX = isPlayer ? STATUE_PLAYER_POS : STATUE_ENEMY_POS;
         if (isRetreating && Math.abs(unit.x - homeX) < 3 && !isDying) {
             return null;
         }
         
-        // VISUAL LAYERING SYSTEM (Slide 2)
+        // VISUAL LAYERING SYSTEM
         // Adjust "baseDepth" to control vertical stacking on the 2.5D plane.
         // Higher baseDepth = Higher up on screen = "Further Back" visually.
         
         let baseDepth = 40; 
         
-        switch (unit.type) {
-            case UnitType.SMALL:
-                baseDepth = 5; // Very front, below toxic? or interspersed.
-                break;
-            case UnitType.TOXIC:
-                baseDepth = 10; // Row 1 (Front)
-                break;
-            case UnitType.PALADIN:
-                baseDepth = 30; // Row 2
-                break;
-            case UnitType.ARCHER:
-                baseDepth = 50; // Row 3
-                break;
-            case UnitType.MAGE:
-                baseDepth = 70; // Row 4
-                break;
-            case UnitType.BOSS:
-                baseDepth = 90; // Row 5 (Back)
-                break;
-            case UnitType.WORKER:
-                baseDepth = 80; // Workers stay back/around mines
-                break;
-            default:
-                baseDepth = 40;
+        // If attacking, break rigid rows and randomize depth (except for workers)
+        if (isAttackingCommand && unit.type !== UnitType.WORKER) {
+             // Generate a stable pseudo-random number from the unit ID
+             let hash = 0;
+             for (let i = 0; i < unit.id.length; i++) {
+                 hash = ((hash << 5) - hash) + unit.id.charCodeAt(i);
+                 hash |= 0;
+             }
+             // Map hash to range 10 - 90
+             baseDepth = (Math.abs(hash) % 80) + 10; 
+        } else {
+             // Rigid Formation Rows for Defense/Idle
+             switch (unit.type) {
+                case UnitType.SMALL:
+                    baseDepth = 5; // Very front
+                    break;
+                case UnitType.TOXIC:
+                    baseDepth = 10; // Row 1 (Front)
+                    break;
+                case UnitType.PALADIN:
+                    baseDepth = 30; // Row 2
+                    break;
+                case UnitType.ARCHER:
+                    baseDepth = 50; // Row 3
+                    break;
+                case UnitType.MAGE:
+                    baseDepth = 70; // Row 4
+                    break;
+                case UnitType.BOSS:
+                    baseDepth = 90; // Row 5 (Back)
+                    break;
+                case UnitType.WORKER:
+                    baseDepth = 80; // Workers stay back/around mines
+                    break;
+                default:
+                    baseDepth = 40;
+            }
         }
 
         const depthOffset = baseDepth;

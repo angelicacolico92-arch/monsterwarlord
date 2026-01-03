@@ -133,6 +133,7 @@ export const App: React.FC = () => {
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const [isMusicEnabled, setIsMusicEnabled] = useState(false);
   const [shakeTrigger, setShakeTrigger] = useState<number>(0);
+  const [showSurrenderConfirm, setShowSurrenderConfirm] = useState(false);
   
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -178,13 +179,6 @@ export const App: React.FC = () => {
         setIsMusicEnabled(true);
     }
   };
-
-  useEffect(() => {
-    if (gameState.gameStatus !== 'PLAYING') {
-       const timer = setTimeout(handleReturnToMenu, 5000);
-       return () => clearTimeout(timer);
-    }
-  }, [gameState.gameStatus, handleReturnToMenu]);
 
   // Unified Game Loop
   useEffect(() => {
@@ -716,8 +710,8 @@ export const App: React.FC = () => {
                 selectedUnitId={selectedUnitId} 
                 onSelectUnit={setSelectedUnitId} 
                 isMirrored={isMirrored}
-                p1Retreating={gameState.p1Command === GameCommand.RETREAT}
-                p2Retreating={gameState.p2Command === GameCommand.RETREAT}
+                p1Command={gameState.p1Command}
+                p2Command={gameState.p2Command}
             />
           </div>
       </div>
@@ -743,16 +737,7 @@ export const App: React.FC = () => {
       <div className="fixed top-16 right-4 z-40 flex gap-2">
           {/* Surrender Button */}
           <button 
-              onClick={() => {
-                  if (window.confirm("Surrender battle?")) {
-                      if (role === PlayerRole.HOST || role === PlayerRole.OFFLINE) {
-                          setGameState(prev => ({ ...prev, playerStatueHP: 0 }));
-                      } else {
-                          mpService.send({ type: 'SURRENDER', payload: {} });
-                          setGameState(prev => ({ ...prev, playerStatueHP: 0 }));
-                      }
-                  }
-              }}
+              onClick={() => setShowSurrenderConfirm(true)}
               className="bg-black/60 p-2 rounded-full border border-red-500/30 text-red-500 hover:bg-red-900/50 transition-colors shadow-lg active:scale-95"
               title="Surrender"
           >
@@ -808,6 +793,38 @@ export const App: React.FC = () => {
             <CornerDownLeft size={24} />
           </button>
       </div>
+      
+      {/* Surrender Confirmation Modal */}
+      {showSurrenderConfirm && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
+            <div className="bg-stone-900 p-8 rounded-2xl border-2 border-red-500/30 shadow-2xl text-center max-w-sm mx-4 transform transition-all scale-100">
+                <h2 className="text-2xl font-epic text-red-500 mb-2">SURRENDER?</h2>
+                <p className="text-stone-400 mb-6 text-sm">Your army will fall, and the battle will be lost. Are you sure?</p>
+                <div className="flex gap-4 justify-center">
+                    <button 
+                        onClick={() => setShowSurrenderConfirm(false)}
+                        className="px-6 py-2 rounded bg-stone-700 hover:bg-stone-600 text-white font-bold transition-colors active:scale-95"
+                    >
+                        CANCEL
+                    </button>
+                    <button 
+                        onClick={() => {
+                            if (role === PlayerRole.HOST || role === PlayerRole.OFFLINE) {
+                                setGameState(prev => ({ ...prev, playerStatueHP: 0 }));
+                            } else {
+                                mpService.send({ type: 'SURRENDER', payload: {} });
+                                setGameState(prev => ({ ...prev, playerStatueHP: 0 }));
+                            }
+                            setShowSurrenderConfirm(false);
+                        }}
+                        className="px-6 py-2 rounded bg-red-900 hover:bg-red-700 text-red-100 border border-red-500 font-bold transition-colors shadow-[0_0_15px_rgba(220,38,38,0.4)] active:scale-95"
+                    >
+                        SURRENDER
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
 
       {gameState.gameStatus !== 'PLAYING' && (
          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-intro-fade">
@@ -815,7 +832,14 @@ export const App: React.FC = () => {
                  <h1 className={`text-6xl font-epic mb-4 animate-flourish ${isVictory ? 'text-yellow-400' : 'text-red-600'}`}>
                      {isVictory ? 'VICTORY!' : 'DEFEAT'}
                  </h1>
-                 <p className="text-stone-400 animate-subtext">The Saga continues in your glory...</p>
+                 <p className="text-stone-400 animate-subtext mb-8">The Saga continues in your glory...</p>
+                 <button 
+                    onClick={handleReturnToMenu}
+                    className={`px-8 py-3 rounded-lg font-bold text-lg transition-all active:scale-95 border-b-4 animate-subtext ${isVictory ? 'bg-yellow-600 hover:bg-yellow-500 text-white border-yellow-800' : 'bg-stone-700 hover:bg-stone-600 text-white border-stone-900'}`}
+                    style={{ animationDelay: '1s' }}
+                 >
+                    RETURN TO BASE
+                 </button>
              </div>
          </div>
       )}
