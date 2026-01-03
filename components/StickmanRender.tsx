@@ -101,10 +101,9 @@ export const StickmanRender: React.FC<StickmanProps> = ({
           break;
   }
 
-  // --- COMPONENT PARTS ---
+  // --- COMPONENT PARTS (Defined as simple functions to avoid React component remounting) ---
 
-  // Accessories rendered BEHIND the slime body
-  const BackAccessories = () => {
+  const renderBackAccessories = () => {
       if (type === UnitType.ARCHER) {
           // Hood/Cape backdrop - frames the slime from behind
           return (
@@ -129,7 +128,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       return null;
   };
 
-  const SlimeBody = () => {
+  const renderSlimeBody = () => {
     // Mage has specific semi-transparent body design
     if (type === UnitType.MAGE || type === UnitType.SMALL) {
         return (
@@ -181,8 +180,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
     );
   };
   
-  // New Component: Internal Bubbles
-  const SlimeBubbles = () => (
+  const renderSlimeBubbles = () => (
       <g opacity="0.4" className="pointer-events-none">
           {/* Bubbles positioned carefully within the body path safe zone */}
           <circle cx="40" cy="90" r="3" fill="white" className="animate-bubble-rise" style={{ animationDelay: `${bubbleDelays[0]}s` }} />
@@ -191,7 +189,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       </g>
   );
 
-  const Eyes = () => {
+  const renderEyes = () => {
      if (type === UnitType.BOSS) {
          // Angry Eyes
          return (
@@ -266,7 +264,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
      );
   };
 
-  const Accessories = () => {
+  const renderAccessories = () => {
       // Miner Hat
       if (type === UnitType.WORKER) {
           return (
@@ -479,7 +477,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       return null;
   };
 
-  const ImpactVisuals = () => {
+  const renderImpactVisuals = () => {
      if (isDying || !isAttacking) return null;
 
      // Archer Impact (Green Slime Splash)
@@ -548,8 +546,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
      );
   };
   
-  // Magical Summon Effect for newly created SMALL units
-  const SummonEffect = () => {
+  const renderSummonEffect = () => {
     if (type !== UnitType.SMALL) return null;
 
     return (
@@ -624,17 +621,17 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       {/* Main Slime Group - REMOVED FILTER FOR MOBILE PERFORMANCE */}
       <g>
         {/* Render Background Accessories (Cape/Hood Back) before Body */}
-        <BackAccessories />
+        {renderBackAccessories()}
         
-        <SlimeBody />
+        {renderSlimeBody()}
         {/* Bubbles Rendered Inside Body */}
-        <SlimeBubbles />
-        <Eyes />
-        <Accessories />
+        {renderSlimeBubbles()}
+        {renderEyes()}
+        {renderAccessories()}
       </g>
       
       {/* Render Summon Effect after body so the flash overlays the appearing unit */}
-      <SummonEffect />
+      {renderSummonEffect()}
 
       {/* Boss Shockwave Effect */}
       {isAttacking && !isDying && type === UnitType.BOSS && (
@@ -646,7 +643,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
          <circle cx="80" cy="50" r="8" fill="none" stroke={secondaryColor} strokeWidth="2" className="animate-magic-pulse" />
       )}
       
-      <ImpactVisuals />
+      {renderImpactVisuals()}
     </svg>
   );
 };

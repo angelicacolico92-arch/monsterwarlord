@@ -440,8 +440,7 @@ export const App: React.FC = () => {
                             applyDamage(primaryTarget, currentDamage, now, false);
                             
                             // Specific Unit Effects
-                            const knockbackForce = (unit.type === UnitType.PALADIN ? 1.5 : 0.5);
-                            primaryTarget.x += isPlayer ? knockbackForce : -knockbackForce;
+                            // No knockback for normal units
                             
                             if (unit.type === UnitType.TOXIC) {
                                 primaryTarget.poisonTicks = 3;
