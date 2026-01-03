@@ -31,6 +31,7 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({
         const isDying = unit.state === 'DYING';
         const isMining = unit.state === 'MINING' || unit.state === 'ATTACKING'; 
         const isDepositing = unit.state === 'DEPOSITING';
+        const isSummoning = unit.type === UnitType.MAGE && (Date.now() - (unit.lastSummonTime || 0) < 1000);
         
         // Hide if retreating and at base (effectively "entered" the portal)
         const homeX = isPlayer ? STATUE_PLAYER_POS : STATUE_ENEMY_POS;
@@ -157,6 +158,7 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({
                 isDying={isDying}
                 isSelected={selectedUnitId === unit.id}
                 hasGold={unit.hasGold}
+                isSummoning={isSummoning}
             />
           </div>
         );

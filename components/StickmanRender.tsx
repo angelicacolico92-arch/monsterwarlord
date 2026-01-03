@@ -13,6 +13,7 @@ interface StickmanProps {
   isMining?: boolean;
   isDepositing?: boolean;
   hasGold?: boolean;
+  isSummoning?: boolean;
 }
 
 export const StickmanRender: React.FC<StickmanProps> = ({ 
@@ -26,7 +27,8 @@ export const StickmanRender: React.FC<StickmanProps> = ({
   isSelected = false,
   isMining = false,
   isDepositing = false,
-  hasGold = false
+  hasGold = false,
+  isSummoning = false
 }) => {
   const animationDelay = useMemo(() => Math.random() * 1, []);
   
@@ -37,14 +39,17 @@ export const StickmanRender: React.FC<StickmanProps> = ({
   let animClass = "";
   if (isDying) {
       animClass = "animate-death-puddle";
+  } else if (isSummoning && type === UnitType.MAGE) {
+      // Mage summon pose (stationary but possibly levitating/channeling)
+      animClass = "animate-mage-float"; 
   } else if (isAttacking || isMining) {
       if (type === UnitType.TOXIC) animClass = "animate-toxic-spit"; 
-      else if (type === UnitType.ARCHER) animClass = "animate-archer-body"; // Use new body sway for Archer
-      else if (type === UnitType.BOSS) animClass = "animate-boss-stomp"; // New stomp
-      else if (type === UnitType.WORKER && isMining) animClass = "animate-mining"; // New mining bounce
-      else animClass = "animate-slime-attack"; // Generic lunge
+      else if (type === UnitType.ARCHER) animClass = "animate-archer-body"; 
+      else if (type === UnitType.BOSS) animClass = "animate-boss-stomp";
+      else if (type === UnitType.WORKER && isMining) animClass = "animate-mining";
+      else animClass = "animate-slime-attack";
   } else if (isMoving || isDepositing) {
-      if (type === UnitType.MAGE) animClass = "animate-mage-float"; // Mage floats
+      if (type === UnitType.MAGE) animClass = "animate-mage-float";
       else animClass = "animate-slime-bounce";
   } else {
       if (type === UnitType.MAGE) animClass = "animate-mage-float";
@@ -77,8 +82,10 @@ export const StickmanRender: React.FC<StickmanProps> = ({
           secondaryColor = isPlayer ? "#94a3b8" : "#4b5563";
           break;
       case UnitType.MAGE:
-          baseColor = isPlayer ? "#a855f7" : "#7e22ce"; // Purple / Dark Purple
-          secondaryColor = isPlayer ? "#6b21a8" : "#581c87";
+          // New Mage Colors: Purple-Blue Glow (as per design)
+          // Player: Stronger Blue-Purple, Enemy: Darker Red-Purple
+          baseColor = isPlayer ? "#8b5cf6" : "#7c3aed"; 
+          secondaryColor = isPlayer ? "#6d28d9" : "#5b21b6";
           break;
       case UnitType.BOSS:
           baseColor = isPlayer ? "#f43f5e" : "#881337"; // Pink/Red / Dark Red
@@ -92,7 +99,29 @@ export const StickmanRender: React.FC<StickmanProps> = ({
 
   // --- COMPONENT PARTS ---
 
-  const SlimeBody = () => (
+  const SlimeBody = () => {
+    // Mage has specific semi-transparent body design
+    if (type === UnitType.MAGE) {
+        return (
+            <g>
+                <defs>
+                    <radialGradient id={`mageGlow-${isPlayer ? 'p' : 'e'}`} cx="0.5" cy="0.5" r="0.5">
+                        <stop offset="0%" stopColor={isPlayer ? '#a78bfa' : '#9333ea'} stopOpacity="0.8" />
+                        <stop offset="80%" stopColor={baseColor} stopOpacity="0.4" />
+                        <stop offset="100%" stopColor={secondaryColor} stopOpacity="0.6" />
+                    </radialGradient>
+                </defs>
+                <path 
+                    d="M15 100 C 15 100 15 40 50 40 C 85 40 85 100 85 100 Z" 
+                    fill={`url(#mageGlow-${isPlayer ? 'p' : 'e'})`}
+                    stroke={secondaryColor} 
+                    strokeWidth="2"
+                    strokeOpacity="0.8"
+                />
+            </g>
+        );
+    }
+    return (
       <path 
         d="M15 100 C 15 100 15 40 50 40 C 85 40 85 100 85 100 Z" 
         fill={baseColor} 
@@ -100,7 +129,8 @@ export const StickmanRender: React.FC<StickmanProps> = ({
         strokeWidth="3"
         fillOpacity="0.95"
       />
-  );
+    );
+  };
   
   // New Component: Internal Bubbles
   const SlimeBubbles = () => (
@@ -130,6 +160,19 @@ export const StickmanRender: React.FC<StickmanProps> = ({
              <g>
                  <rect x="35" y="60" width="10" height="4" fill="black" opacity="0.6"/>
                  <rect x="55" y="60" width="10" height="4" fill="black" opacity="0.6"/>
+             </g>
+         );
+     }
+     if (type === UnitType.MAGE) {
+         // Glowing Arcane Eyes
+         return (
+             <g>
+                 {/* Arcane Symbol / Vertical pupil hint */}
+                 <path d="M35 58 L 35 62" stroke="white" strokeWidth="1.5" opacity="0.8" />
+                 <path d="M65 58 L 65 62" stroke="white" strokeWidth="1.5" opacity="0.8" />
+                 
+                 <circle cx="35" cy="60" r="3" fill="white" className="animate-pulse" />
+                 <circle cx="65" cy="60" r="3" fill="white" className="animate-pulse" />
              </g>
          );
      }
@@ -255,22 +298,53 @@ export const StickmanRender: React.FC<StickmanProps> = ({
           );
       }
 
-      // Mage Hat & Staff
+      // Mage Redesign (Final)
       if (type === UnitType.MAGE) {
           return (
               <g>
-                  {/* Hat */}
-                  <path d="M25 40 L 75 40 L 50 10 Z" fill={baseColor} stroke={secondaryColor} strokeWidth="2" />
-                  <ellipse cx="50" cy="40" rx="25" ry="5" fill={secondaryColor} />
-                  
-                  {/* Staff */}
-                  <line x1="80" y1="50" x2="80" y2="90" stroke="#78350f" strokeWidth="2" />
-                  <circle cx="80" cy="50" r="4" fill="#a855f7" className="animate-pulse" />
-                  
-                  {/* Floating particles orbit */}
-                  <g transform="translate(50, 50)" className="animate-magic-orbit">
-                      <circle cx="20" cy="0" r="2" fill={secondaryColor} />
+                  {/* Core: Floating Magic Crystal/Orb inside */}
+                  <g className="animate-pulse">
+                      <circle cx="50" cy="75" r="6" fill="#a78bfa" opacity="0.6" filter="blur(1px)" />
+                      <path d="M50 68 L 54 75 L 50 82 L 46 75 Z" fill="#fff" opacity="0.9" />
                   </g>
+
+                  {/* Aura: Floating Runes */}
+                  <g opacity="0.6" className="animate-spin-slow" style={{ transformBox: 'fill-box', transformOrigin: 'center' }}>
+                      <path d="M25 50 L 28 45" stroke="#e9d5ff" strokeWidth="1" />
+                      <path d="M75 50 L 72 55" stroke="#e9d5ff" strokeWidth="1" />
+                      <circle cx="50" cy="30" r="1" fill="#e9d5ff" />
+                  </g>
+
+                  {/* Accessory: Floating Crystal Staff (Rune Shard) */}
+                  <g transform={isAttacking ? "translate(0, -5) rotate(5, 85, 70)" : "translate(0, 0)"}>
+                      {/* Staff Shaft - Crystal-like */}
+                      <path d="M85 50 L 85 90" stroke="#a78bfa" strokeWidth="1.5" />
+                      {/* Top Crystal Shard */}
+                      <path d="M85 50 L 90 40 L 85 30 L 80 40 Z" fill="#d8b4fe" stroke="#7c3aed" strokeWidth="1" className="animate-pulse" />
+                      {/* Small Orbiting particles around staff */}
+                      <circle cx="85" cy="40" r="8" fill="none" stroke="#fff" strokeWidth="0.5" strokeDasharray="2 2" className="animate-spin" style={{ transformOrigin: '85px 40px' }} />
+                  </g>
+
+                  {/* Summon Animation: Magic Circle */}
+                  {isSummoning && (
+                      <g className="animate-summon-circle" style={{ transformOrigin: '50px 95px' }}>
+                          <ellipse cx="50" cy="95" rx="30" ry="8" fill="none" stroke="#d8b4fe" strokeWidth="1.5" />
+                          <path d="M50 87 L 50 103 M 35 95 L 65 95" stroke="#d8b4fe" strokeWidth="1" />
+                          <path d="M40 90 L 60 100 M 60 90 L 40 100" stroke="#d8b4fe" strokeWidth="1" opacity="0.5" />
+                          {/* Runes on circle */}
+                          <circle cx="20" cy="95" r="1" fill="#fff" />
+                          <circle cx="80" cy="95" r="1" fill="#fff" />
+                      </g>
+                  )}
+                  
+                  {/* Summon Energy Gathering */}
+                  {isSummoning && (
+                      <g>
+                          <circle cx="50" cy="95" r="2" fill="#fff" className="animate-energy-rise" />
+                          <circle cx="40" cy="95" r="1.5" fill="#fff" className="animate-energy-rise" style={{ animationDelay: '0.2s' }} />
+                          <circle cx="60" cy="95" r="1.5" fill="#fff" className="animate-energy-rise" style={{ animationDelay: '0.4s' }} />
+                      </g>
+                  )}
               </g>
           );
       }
@@ -370,6 +444,19 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       className={`overflow-visible ${animClass}`}
       style={style}
     >
+      <defs>
+          <style>{`
+            @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+            .animate-spin-slow { animation: spin-slow 8s linear infinite; }
+            
+            @keyframes summon-circle { 0% { opacity: 0; transform: scale(0.5) rotate(0deg); } 50% { opacity: 1; transform: scale(1.2) rotate(180deg); } 100% { opacity: 0; transform: scale(0.5) rotate(360deg); } }
+            .animate-summon-circle { animation: summon-circle 1s ease-in-out; }
+            
+            @keyframes energy-rise { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-40px); opacity: 0; } }
+            .animate-energy-rise { animation: energy-rise 0.8s ease-out; }
+          `}</style>
+      </defs>
+
       {/* Selected Indicator */}
       {isSelected && !isDying && (
           <ellipse cx="50" cy="95" rx="25" ry="8" fill="none" stroke="#fbbf24" strokeWidth="2" className="animate-pulse" />
