@@ -9,7 +9,7 @@ export const SPAWN_X_ENEMY = 92; // Moved inward from 98
 export const STATUE_PLAYER_POS = 6; // Moved inward from 2
 export const STATUE_ENEMY_POS = 94; // Moved inward from 98
 
-export const MAX_UNITS = 40;
+export const MAX_UNITS = 30;
 
 // Mine Positions (Absolute % on the map)
 export const GOLD_MINE_PLAYER_X = 15; 

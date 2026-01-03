@@ -206,7 +206,9 @@ export const App: React.FC = () => {
         if (action.type === 'RECRUIT') {
           const config = UNIT_CONFIGS[action.unitType as UnitType];
           const isP1 = action.side === 'player';
-          if ((isP1 ? p1Gold : p2Gold) >= config.cost) {
+          const currentSideUnits = processedUnits.filter(u => u.side === action.side && u.state !== 'DYING').length;
+
+          if (currentSideUnits < MAX_UNITS && (isP1 ? p1Gold : p2Gold) >= config.cost) {
             if (isP1) p1Gold -= config.cost; else p2Gold -= config.cost;
             processedUnits.push({
               id: Math.random().toString(36).substr(2, 9),
@@ -250,7 +252,10 @@ export const App: React.FC = () => {
           if (!unit.lastSummonTime) unit.lastSummonTime = now;
           if (now - unit.lastSummonTime > 10000) { // 10s cooldown
              const activeMinions = processedUnits.filter(u => u.side === unit.side && u.ownerId === unit.id && u.state !== 'DYING').length;
-             if (activeMinions < 3) {
+             // Only summon if total units for this side is less than MAX_UNITS
+             const totalSideUnits = processedUnits.filter(u => u.side === unit.side && u.state !== 'DYING').length;
+             
+             if (activeMinions < 3 && totalSideUnits < MAX_UNITS) {
                 AudioService.playSummon();
                 newSummons.push({
                    id: Math.random().toString(36).substr(2, 9),
@@ -402,7 +407,25 @@ export const App: React.FC = () => {
       });
 
       // Cleanup & Merge Summons
-      processedUnits = [...processedUnits, ...newSummons].filter(u => {
+      // Check limits on summons too to prevent over-cap during merge if multiple mages summon same tick
+      // Simple cap enforcement: if we exceed cap, just drop excess summons
+      const currentTotalUnits = processedUnits.length; // Approximate check, detailed check below
+      
+      // Separate lists for final check
+      const playerUnits = processedUnits.filter(u => u.side === 'player' && u.state !== 'DYING');
+      const enemyUnits = processedUnits.filter(u => u.side === 'enemy' && u.state !== 'DYING');
+      const playerSummons = newSummons.filter(u => u.side === 'player');
+      const enemySummons = newSummons.filter(u => u.side === 'enemy');
+      
+      // Add summons only if space permits
+      if (playerUnits.length < MAX_UNITS) {
+          processedUnits.push(...playerSummons.slice(0, MAX_UNITS - playerUnits.length));
+      }
+      if (enemyUnits.length < MAX_UNITS) {
+          processedUnits.push(...enemySummons.slice(0, MAX_UNITS - enemyUnits.length));
+      }
+
+      processedUnits = processedUnits.filter(u => {
         if (u.hp <= 0 && u.state !== 'DYING') { u.state = 'DYING'; u.deathTime = now; }
         return !(u.state === 'DYING' && now - (u.deathTime || 0) > DEATH_DURATION);
       });
@@ -413,42 +436,44 @@ export const App: React.FC = () => {
           const aiUnits = processedUnits.filter(u => u.side === 'enemy' && u.state !== 'DYING');
           const playerUnits = processedUnits.filter(u => u.side === 'player' && u.state !== 'DYING');
           
-          // Economy: Ensure workers
-          const workers = aiUnits.filter(u => u.type === UnitType.WORKER).length;
-          const desiredWorkers = Math.min(6, Math.max(2, Math.floor(aiUnits.length / 3))); // Scale economy
-          
-          if (workers < desiredWorkers && aiGold >= UNIT_CONFIGS[UnitType.WORKER].cost) {
-             actionQueueRef.current.push({ type: 'RECRUIT', unitType: UnitType.WORKER, side: 'enemy' });
-          } else {
-             // Combat Unit Strategy
-             const playerTanks = playerUnits.filter(u => u.type === UnitType.PALADIN || u.type === UnitType.BOSS).length;
-             const playerRanged = playerUnits.filter(u => u.type === UnitType.ARCHER || u.type === UnitType.MAGE).length;
-             const playerSwarm = playerUnits.filter(u => u.type === UnitType.TOXIC || u.type === UnitType.SMALL).length;
-             
-             let desiredUnit = UnitType.PALADIN; // Default tank
+          if (aiUnits.length < MAX_UNITS) {
+            // Economy: Ensure workers
+            const workers = aiUnits.filter(u => u.type === UnitType.WORKER).length;
+            const desiredWorkers = Math.min(6, Math.max(2, Math.floor(aiUnits.length / 3))); // Scale economy
+            
+            if (workers < desiredWorkers && aiGold >= UNIT_CONFIGS[UnitType.WORKER].cost) {
+              actionQueueRef.current.push({ type: 'RECRUIT', unitType: UnitType.WORKER, side: 'enemy' });
+            } else {
+              // Combat Unit Strategy
+              const playerTanks = playerUnits.filter(u => u.type === UnitType.PALADIN || u.type === UnitType.BOSS).length;
+              const playerRanged = playerUnits.filter(u => u.type === UnitType.ARCHER || u.type === UnitType.MAGE).length;
+              const playerSwarm = playerUnits.filter(u => u.type === UnitType.TOXIC || u.type === UnitType.SMALL).length;
+              
+              let desiredUnit = UnitType.PALADIN; // Default tank
 
-             // Counter-play
-             if (playerTanks > 1) desiredUnit = UnitType.MAGE; // Magic vs Armor
-             else if (playerSwarm > 3) desiredUnit = UnitType.TOXIC; // Splash vs Swarm
-             else if (playerRanged > 2) desiredUnit = UnitType.BOSS; // High HP vs Ranged
-             else if (Math.random() > 0.6) desiredUnit = UnitType.ARCHER; // Mix in ranged
+              // Counter-play
+              if (playerTanks > 1) desiredUnit = UnitType.MAGE; // Magic vs Armor
+              else if (playerSwarm > 3) desiredUnit = UnitType.TOXIC; // Splash vs Swarm
+              else if (playerRanged > 2) desiredUnit = UnitType.BOSS; // High HP vs Ranged
+              else if (Math.random() > 0.6) desiredUnit = UnitType.ARCHER; // Mix in ranged
 
-             // Smart Saving: Sometimes save for a BOSS if we have a decent army
-             const saveForBoss = Math.random() > 0.7 && aiUnits.length > 5;
-             
-             if (saveForBoss) {
-                if (aiGold >= UNIT_CONFIGS[UnitType.BOSS].cost) {
-                    actionQueueRef.current.push({ type: 'RECRUIT', unitType: UnitType.BOSS, side: 'enemy' });
-                }
-             } else {
-                // Buy if affordable
-                if (aiGold >= UNIT_CONFIGS[desiredUnit].cost) {
-                    actionQueueRef.current.push({ type: 'RECRUIT', unitType: desiredUnit, side: 'enemy' });
-                } else if (aiGold >= UNIT_CONFIGS[UnitType.TOXIC].cost && Math.random() > 0.6) {
-                    // Fallback to cheaper unit if main choice is too expensive
-                    actionQueueRef.current.push({ type: 'RECRUIT', unitType: UnitType.TOXIC, side: 'enemy' });
-                }
-             }
+              // Smart Saving: Sometimes save for a BOSS if we have a decent army
+              const saveForBoss = Math.random() > 0.7 && aiUnits.length > 5;
+              
+              if (saveForBoss) {
+                  if (aiGold >= UNIT_CONFIGS[UnitType.BOSS].cost) {
+                      actionQueueRef.current.push({ type: 'RECRUIT', unitType: UnitType.BOSS, side: 'enemy' });
+                  }
+              } else {
+                  // Buy if affordable
+                  if (aiGold >= UNIT_CONFIGS[desiredUnit].cost) {
+                      actionQueueRef.current.push({ type: 'RECRUIT', unitType: desiredUnit, side: 'enemy' });
+                  } else if (aiGold >= UNIT_CONFIGS[UnitType.TOXIC].cost && Math.random() > 0.6) {
+                      // Fallback to cheaper unit if main choice is too expensive
+                      actionQueueRef.current.push({ type: 'RECRUIT', unitType: UnitType.TOXIC, side: 'enemy' });
+                  }
+              }
+            }
           }
           
           // Aggression Management
@@ -527,6 +552,8 @@ export const App: React.FC = () => {
   const amIHost = role !== PlayerRole.CLIENT;
   const isVictory = amIHost ? gameState.gameStatus === 'VICTORY' : gameState.gameStatus === 'DEFEAT';
   const currentCommand = amIHost ? gameState.p1Command : gameState.p2Command;
+  const mySide = amIHost ? 'player' : 'enemy';
+  const myUnitsCount = gameState.units.filter(u => u.side === mySide && u.state !== 'DYING').length;
 
   return (
     <div className="h-[100dvh] w-screen bg-black overflow-hidden relative">
@@ -574,7 +601,7 @@ export const App: React.FC = () => {
       {/* TOP RIGHT: Resources & Population */}
       <div className="fixed top-4 right-4 z-40 bg-black/70 px-4 py-2 rounded-full border border-white/10 flex gap-4 items-center">
          <div className="flex items-center gap-2"><Coins className="text-yellow-400" size={18} /><span className="text-yellow-100 font-bold">{Math.floor(currentGold)}</span></div>
-         <div className="flex items-center gap-2"><Users className="text-stone-400" size={18} /><span className="text-stone-100 font-bold">{gameState.units.filter(u => u.side === (amIHost ? 'player' : 'enemy') && u.state !== 'DYING').length}/{MAX_UNITS}</span></div>
+         <div className="flex items-center gap-2"><Users className={myUnitsCount >= MAX_UNITS ? "text-red-500" : "text-stone-400"} size={18} /><span className={myUnitsCount >= MAX_UNITS ? "text-red-400 font-bold" : "text-stone-100 font-bold"}>{myUnitsCount}/{MAX_UNITS}</span></div>
       </div>
 
       {/* TOP RIGHT BELOW RESOURCES: Controls (Surrender + Volume) */}
@@ -608,9 +635,9 @@ export const App: React.FC = () => {
           {Object.values(UNIT_CONFIGS).filter(u => u.cost > 0).map(u => (
               <button 
                   key={u.type} 
-                  disabled={currentGold < u.cost}
+                  disabled={currentGold < u.cost || myUnitsCount >= MAX_UNITS}
                   onClick={() => actionQueueRef.current.push({type: 'RECRUIT', unitType: u.type, side: amIHost ? 'player' : 'enemy'})}
-                  className={`p-2 rounded border flex flex-col items-center min-w-[64px] transition-all ${currentGold >= u.cost ? 'bg-stone-800 border-white/5 active:scale-95' : 'bg-stone-900 opacity-40 border-transparent grayscale'}`}
+                  className={`p-2 rounded border flex flex-col items-center min-w-[64px] transition-all ${currentGold >= u.cost && myUnitsCount < MAX_UNITS ? 'bg-stone-800 border-white/5 active:scale-95' : 'bg-stone-900 opacity-40 border-transparent grayscale'}`}
               >
                   <div className="scale-50 h-8 w-8 flex items-center justify-center">
                     <StickmanRender type={u.type} isPlayer={amIHost} />
