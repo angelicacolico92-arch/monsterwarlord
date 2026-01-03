@@ -43,7 +43,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       // Mage summon pose (stationary but possibly levitating/channeling)
       animClass = "animate-mage-float"; 
   } else if (isAttacking || isMining) {
-      if (type === UnitType.TOXIC) animClass = "animate-toxic-spit"; 
+      if (type === UnitType.TOXIC) animClass = "animate-slime-attack"; // Lunge
       else if (type === UnitType.ARCHER) animClass = "animate-archer-body"; 
       else if (type === UnitType.BOSS) animClass = "animate-boss-stomp";
       else if (type === UnitType.WORKER && isMining) animClass = "animate-mining";
@@ -73,8 +73,10 @@ export const StickmanRender: React.FC<StickmanProps> = ({
           secondaryColor = isPlayer ? "#d97706" : "#78350f";
           break;
       case UnitType.TOXIC:
-          baseColor = isPlayer ? "#84cc16" : "#65a30d"; // Lime Green / Swamp Green
-          secondaryColor = isPlayer ? "#3f6212" : "#365314";
+          // SOLDIER DESIGN
+          // Player: Steel Blue/Slate | Enemy: Dark Crimson/Rust
+          baseColor = isPlayer ? "#334155" : "#7f1d1d"; 
+          secondaryColor = isPlayer ? "#0f172a" : "#450a0a";
           break;
       case UnitType.ARCHER:
           // Redesign: Bright Green Body with Leaf-like texture
@@ -116,7 +118,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                   />
                   {/* Hood Top visible behind head */}
                   <path 
-                      d="M30 40 Q 50 10 70 40" 
+                      d="M25 45 Q 50 5 75 45" 
                       fill={hoodColor}
                       stroke={secondaryColor}
                       strokeWidth="2"
@@ -154,16 +156,16 @@ export const StickmanRender: React.FC<StickmanProps> = ({
     if (type === UnitType.ARCHER) {
         return (
             <g>
-                {/* Slimmer, taller body */}
+                {/* Slimmer, taller body - smoothed out for cuteness */}
                 <path 
-                    d="M25 100 Q 20 60 30 40 Q 50 15 70 40 Q 80 60 75 100 Z" 
-                    fill="#84cc16" // Bright Green
+                    d="M25 100 Q 15 60 35 40 Q 50 25 65 40 Q 85 60 75 100 Z" 
+                    fill="#a3e635" // Lighter, cuter green (Lime-400)
                     stroke={secondaryColor} 
                     strokeWidth="2"
                 />
-                {/* Armor Bands / Leaf Texture */}
-                <path d="M22 80 Q 50 85 78 80" stroke={secondaryColor} strokeWidth="2" fill="none" opacity="0.6" />
-                <path d="M28 60 Q 50 65 72 60" stroke={secondaryColor} strokeWidth="2" fill="none" opacity="0.6" />
+                {/* Armor Bands / Leaf Texture - Softened */}
+                <path d="M22 80 Q 50 88 78 80" stroke={secondaryColor} strokeWidth="2" fill="none" opacity="0.4" />
+                <path d="M28 60 Q 50 68 72 60" stroke={secondaryColor} strokeWidth="2" fill="none" opacity="0.4" />
             </g>
         );
     }
@@ -210,19 +212,33 @@ export const StickmanRender: React.FC<StickmanProps> = ({
              </g>
          );
      }
-     if (type === UnitType.ARCHER) {
-         // Angry Eyes (Visible)
+     if (type === UnitType.TOXIC) { // Soldier Eyes
          return (
              <g>
-                 {/* Eyebrows angled down */}
-                 <path d="M28 50 L 42 58" stroke="black" strokeWidth="3" strokeLinecap="round" />
-                 <path d="M72 50 L 58 58" stroke="black" strokeWidth="3" strokeLinecap="round" />
+                {/* Determined Eyes under helmet */}
+                <path d="M32 60 L 42 63" stroke="black" strokeWidth="2" /> {/* Brow */}
+                <path d="M68 60 L 58 63" stroke="black" strokeWidth="2" /> {/* Brow */}
+                <circle cx="37" cy="65" r="2.5" fill="white" />
+                <circle cx="63" cy="65" r="2.5" fill="white" />
+             </g>
+         );
+     }
+     if (type === UnitType.ARCHER) {
+         // CUTE BLUSH EYES (Redesign)
+         return (
+             <g>
+                 {/* Large Cute Eyes */}
+                 <ellipse cx="35" cy="58" rx="5" ry="6" fill="black" />
+                 <circle cx="33" cy="55" r="2.5" fill="white" /> {/* Big Shine */}
+                 <circle cx="37" cy="60" r="1" fill="white" opacity="0.5" /> {/* Small Shine */}
                  
-                 {/* Intense Eyes */}
-                 <circle cx="35" cy="62" r="3" fill="white" />
-                 <circle cx="65" cy="62" r="3" fill="white" />
-                 <circle cx="35" cy="62" r="1.5" fill="black" />
-                 <circle cx="65" cy="62" r="1.5" fill="black" />
+                 <ellipse cx="65" cy="58" rx="5" ry="6" fill="black" />
+                 <circle cx="63" cy="55" r="2.5" fill="white" /> {/* Big Shine */}
+                 <circle cx="67" cy="60" r="1" fill="white" opacity="0.5" /> {/* Small Shine */}
+
+                 {/* Blush - Bright Pink */}
+                 <ellipse cx="35" cy="68" rx="5" ry="2.5" fill="#ec4899" opacity="0.5" />
+                 <ellipse cx="65" cy="68" rx="5" ry="2.5" fill="#ec4899" opacity="0.5" />
              </g>
          );
      }
@@ -281,23 +297,36 @@ export const StickmanRender: React.FC<StickmanProps> = ({
           );
       }
 
-      // Toxic Bubbles & Drip
+      // Soldier - Helmet and Sword
       if (type === UnitType.TOXIC) {
           return (
               <g>
-                  <circle cx="20" cy="90" r="3" fill="#bef264" className="animate-pulse" />
-                  <circle cx="80" cy="85" r="2" fill="#bef264" className="animate-pulse" style={{animationDelay: '0.5s'}} />
-                  {/* Slime Drip from Mouth */}
-                  <circle cx="45" cy="70" r="2" fill="#bef264" className="animate-toxic-drip" />
-                  
-                  {isAttacking && (
-                      <g className="animate-toxic-projectile">
-                          {/* Viscous Blob shape */}
-                          <path d="M0 0 C 5 -5, 10 -2, 12 5 C 10 10, 5 12, 0 10 C -5 8, -2 3, 0 0 Z" fill="#a3e635" stroke="#365314" strokeWidth="1" />
-                          <circle cx="3" cy="3" r="1.5" fill="#f7fee7" opacity="0.6" />
-                          <circle cx="8" cy="7" r="1" fill="#f7fee7" opacity="0.4" />
-                      </g>
-                  )}
+                  {/* Combat Helmet */}
+                  <g transform="translate(0, -5)">
+                      <path d="M25 45 Q 50 25 75 45" fill={isPlayer ? "#1e293b" : "#450a0a"} stroke="black" strokeWidth="2" />
+                      <path d="M22 45 L 78 45 L 78 50 L 22 50 Z" fill={isPlayer ? "#334155" : "#7f1d1d"} stroke="black" strokeWidth="1" />
+                      {/* Helmet Strap */}
+                      <path d="M28 50 Q 50 65 72 50" fill="none" stroke="#1f2937" strokeWidth="1" opacity="0.6" />
+                  </g>
+
+                  {/* Sword */}
+                  <g 
+                    transform={isAttacking ? "translate(75, 70) rotate(45)" : "translate(75, 65) rotate(-20)"}
+                    className={isAttacking ? "animate-sword-swing" : ""}
+                  >
+                      {/* Blade */}
+                      <path d="M0 0 L 0 -35 L 3 -40 L 6 -35 L 6 0 Z" fill="#e2e8f0" stroke="#475569" strokeWidth="1" />
+                      <line x1="3" y1="-35" x2="3" y2="0" stroke="#cbd5e1" strokeWidth="1" />
+                      
+                      {/* Crossguard */}
+                      <rect x="-6" y="0" width="18" height="3" fill="#334155" stroke="black" strokeWidth="0.5" />
+                      
+                      {/* Grip */}
+                      <rect x="1" y="3" width="4" height="10" fill="#475569" />
+                      
+                      {/* Pommel */}
+                      <circle cx="3" cy="14" r="2.5" fill="#334155" />
+                  </g>
               </g>
           );
       }
@@ -307,7 +336,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
           return (
               <g>
                   {/* Scarf / Neck Wrap (Front) - Low enough to reveal face */}
-                  <path d="M30 70 Q 50 85 70 70 L 70 80 Q 50 95 30 80 Z" fill={hoodColor} />
+                  <path d="M35 75 Q 50 85 65 75 L 65 80 Q 50 90 35 80 Z" fill={hoodColor} />
                   
                   {/* Quiver (Back - but rendered in front for visibility) */}
                   <g transform="translate(15, 55) rotate(-20)">
@@ -462,6 +491,26 @@ export const StickmanRender: React.FC<StickmanProps> = ({
          );
      }
 
+     // Soldier Impact (Sword Slash)
+     if (type === UnitType.TOXIC) {
+         return (
+             <g className="animate-impact-pop" style={{ animationDelay: `${animationDelay}s` }}>
+                 {/* Slash Effect - Arc */}
+                 <path d="M85 30 Q 110 50 85 70" stroke="white" strokeWidth="3" fill="none" opacity="0.8">
+                     <animate attributeName="opacity" values="1;0" dur="0.3s" fill="freeze" />
+                     <animate attributeName="stroke-width" values="4;0" dur="0.3s" fill="freeze" />
+                 </path>
+                 <path d="M90 35 Q 115 55 90 75" stroke="#cbd5e1" strokeWidth="2" fill="none" opacity="0.6">
+                     <animate attributeName="opacity" values="0.6;0" dur="0.3s" fill="freeze" />
+                 </path>
+                 
+                 {/* Impact Spark */}
+                 <circle cx="100" cy="50" r="4" fill="#ef4444" opacity="0.6" />
+                 <path d="M100 50 L 110 40" stroke="#ef4444" strokeWidth="2" />
+             </g>
+         );
+     }
+
      // Mage Special Impact
      if (type === UnitType.MAGE || type === UnitType.SMALL) {
         return (
@@ -551,6 +600,14 @@ export const StickmanRender: React.FC<StickmanProps> = ({
             
             @keyframes energy-rise { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-40px); opacity: 0; } }
             .animate-energy-rise { animation: energy-rise 0.8s ease-out; }
+
+            @keyframes sword-swing {
+                0% { transform: translate(75px, 65px) rotate(-20deg); }
+                30% { transform: translate(75px, 60px) rotate(-40deg); } /* Windup */
+                60% { transform: translate(75px, 75px) rotate(80deg); } /* Swing */
+                100% { transform: translate(75px, 65px) rotate(-20deg); } /* Return */
+            }
+            .animate-sword-swing { animation: sword-swing 0.4s ease-in-out; transform-origin: 0 0; }
           `}</style>
       </defs>
 

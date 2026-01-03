@@ -43,10 +43,10 @@ export const UNIT_CONFIGS: Record<UnitType, UnitConfig> = {
   },
   [UnitType.TOXIC]: {
     type: UnitType.TOXIC,
-    name: 'Toxic Slime',
+    name: 'Slime Soldier',
     cost: 120,
-    stats: { hp: 350, maxHp: 350, damage: 45, range: 8, speed: 3.5, attackSpeed: 2500 },
-    description: 'Frontline unit. Absorbs damage & poisons enemies'
+    stats: { hp: 400, maxHp: 400, damage: 50, range: 1.5, speed: 3.5, attackSpeed: 1500 },
+    description: 'Melee Infantry. Sharp sword attacks cause bleeding.'
   },
   [UnitType.PALADIN]: {
     type: UnitType.PALADIN,
