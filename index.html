@@ -137,11 +137,13 @@
 
       @keyframes arrow-shoot {
           0% { transform: translateX(0); opacity: 1; }
-          50% { transform: translateX(-8px); opacity: 1; } /* Wind up: Follow string back */
-          55% { transform: translateX(100px); opacity: 0; } /* Fire: Fly out */
-          56% { transform: translateX(0); opacity: 0; } /* Reset invisible */
-          85% { transform: translateX(0); opacity: 0; } /* Wait for reload */
-          100% { transform: translateX(0); opacity: 1; } /* Reappear for next shot */
+          45% { transform: translateX(-8px); opacity: 1; } /* Wind up */
+          50% { transform: translateX(-8px); opacity: 1; } /* Release start */
+          70% { transform: translateX(250px); opacity: 1; } /* Fly far visible */
+          75% { transform: translateX(280px); opacity: 0; } /* Fade out */
+          76% { transform: translateX(0); opacity: 0; } /* Reset */
+          90% { transform: translateX(0); opacity: 0; } /* Reloading */
+          100% { transform: translateX(0); opacity: 1; } /* Ready */
       }
       .animate-archer-arrow { animation: arrow-shoot 2s ease-in-out infinite; }
 

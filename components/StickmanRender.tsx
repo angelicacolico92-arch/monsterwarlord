@@ -360,12 +360,15 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                       
                       {/* Arrow - Forms from slime energy */}
                       <g className={isAttacking ? "animate-archer-arrow" : ""} style={{ opacity: isAttacking ? 1 : 0 }}>
+                          {/* Speed Line Trail */}
+                          <path d="M-40 0 L -10 0" stroke="white" strokeWidth="2" opacity="0.3" strokeDasharray="10 5" />
+                          
                           {/* Slime Arrow - Pointing Right */}
                           {/* Head at x=20, Shaft goes back to -5 */}
-                          <path d="M20 0 L 10 -4 L 10 4 Z" fill="#bef264" /> {/* Head */}
-                          <line x1="-5" y1="0" x2="10" y2="0" stroke="#bef264" strokeWidth="2" /> {/* Shaft */}
+                          <path d="M20 0 L 10 -4 L 10 4 Z" fill="#bef264" stroke="white" strokeWidth="1" /> {/* Head with glint */}
+                          <line x1="-5" y1="0" x2="10" y2="0" stroke="#bef264" strokeWidth="3" /> {/* Shaft */}
                           {/* Slime Trail/Feathers */}
-                          <circle cx="-5" cy="0" r="2" fill="#bef264" opacity="0.8" />
+                          <circle cx="-5" cy="0" r="3" fill="#bef264" opacity="0.8" />
                       </g>
                   </g>
               </g>
