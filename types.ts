@@ -1,3 +1,4 @@
+
 export enum UnitType {
   WORKER = 'WORKER',    // Slime Miner
   TOXIC = 'TOXIC',      // Toxic Slime (Ranged/Poison)
@@ -57,6 +58,18 @@ export interface GameUnit {
   slowedUntil?: number;
 }
 
+export interface GameProjectile {
+  id: string;
+  x: number;
+  targetX: number;
+  targetId?: string; // If the target unit moves, we might still want to hit them or hit position? For now, simple position checking.
+  damage: number;
+  speed: number;
+  side: 'player' | 'enemy';
+  visualType: 'ARROW' | 'MAGIC';
+  createdAt: number;
+}
+
 export interface PlayerState {
   gold: number;
   population: number;
@@ -76,6 +89,7 @@ export enum MapId {
 
 export interface GameState {
   units: GameUnit[];
+  projectiles: GameProjectile[];
   playerStatueHP: number;
   enemyStatueHP: number;
   p1Gold: number;

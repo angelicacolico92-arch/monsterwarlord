@@ -135,15 +135,15 @@
       }
       .animate-archer-bow { animation: archer-draw 2s ease-in-out infinite; }
 
-      @keyframes arrow-shoot {
-          0% { transform: translateX(0); opacity: 0; }
-          30% { transform: translateX(-8px); opacity: 1; } /* Nock arrow */
-          35% { transform: translateX(0); opacity: 1; } /* Release */
-          65% { transform: translateX(450px); opacity: 1; } /* Fly far */
-          75% { transform: translateX(500px); opacity: 0; } /* Fade out */
-          100% { transform: translateX(0); opacity: 0; } /* Reset */
+      @keyframes arrow-reload {
+          0% { opacity: 0; transform: translateX(0); }
+          10% { opacity: 1; transform: translateX(0); } /* Appear */
+          40% { opacity: 1; transform: translateX(-8px); } /* Draw */
+          90% { opacity: 1; transform: translateX(-8px); } /* Hold */
+          100% { opacity: 0; transform: translateX(0); } /* Release/Fire */
       }
-      .animate-archer-arrow { animation: arrow-shoot 2s linear infinite; }
+      /* Sync this duration with attackSpeed approx or CSS animation loop */
+      .animate-archer-reload { animation: arrow-reload 2s linear infinite; }
 
       @keyframes archer-body-sway {
           0% { transform: rotate(0deg); }

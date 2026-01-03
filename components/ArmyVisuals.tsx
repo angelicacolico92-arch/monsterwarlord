@@ -1,10 +1,11 @@
 import React from 'react';
-import { GameUnit, UnitType, GameCommand } from '../types';
+import { GameUnit, GameProjectile, UnitType, GameCommand } from '../types';
 import { StickmanRender } from './StickmanRender';
 import { STATUE_PLAYER_POS, STATUE_ENEMY_POS } from '../constants';
 
 interface ArmyVisualsProps {
   units: GameUnit[];
+  projectiles?: GameProjectile[];
   selectedUnitId?: string | null;
   onSelectUnit?: (id: string) => void;
   isMirrored?: boolean;
@@ -14,6 +15,7 @@ interface ArmyVisualsProps {
 
 export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({ 
   units, 
+  projectiles = [],
   selectedUnitId, 
   onSelectUnit, 
   isMirrored = false, 
@@ -22,6 +24,43 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({
 }) => {
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden">
+      {/* RENDER PROJECTILES */}
+      {projectiles.map(p => {
+          const isPlayer = p.side === 'player';
+          // Visual X Calculation: Mirror if client
+          const visualX = isMirrored ? 100 - p.x : p.x;
+          // Facing: Player moves Right (1), Enemy moves Left (-1). Mirror flips this.
+          // Projectile specific logic: If Target > Current, face right.
+          // Since p.x increases or decreases, check direction relative to source
+          // But simplified: projectiles travel FROM owner TO target.
+          // If isPlayer, usually moving Right (targetX > x).
+          // If isEnemy, usually moving Left (targetX < x).
+          // Direction: +1 Right, -1 Left
+          const moveDir = p.targetX > p.x ? 1 : -1;
+          const facingScale = moveDir * (isMirrored ? -1 : 1);
+          
+          return (
+             <div 
+               key={p.id}
+               className="absolute bottom-16 w-8 h-2 transition-transform duration-100 will-change-transform z-[150]"
+               style={{
+                   left: `${visualX}%`,
+                   transform: `translate3d(-50%, -20px, 0) scaleX(${facingScale})`,
+               }}
+             >
+                 {/* Arrow Graphic */}
+                 <svg viewBox="0 0 40 10" className="w-full h-full overflow-visible drop-shadow-md">
+                    <line x1="0" y1="5" x2="35" y2="5" stroke="#e5e7eb" strokeWidth="2" />
+                    <path d="M30 2 L 38 5 L 30 8" fill="none" stroke="#e5e7eb" strokeWidth="2" />
+                    {/* Feathers */}
+                    <path d="M0 5 L 5 0 M 3 5 L 8 0 M 0 5 L 5 10 M 3 5 L 8 10" stroke="#bef264" strokeWidth="1.5" />
+                    {/* Glow */}
+                    <circle cx="38" cy="5" r="3" fill="#bef264" opacity="0.4" className="animate-pulse" />
+                 </svg>
+             </div>
+          );
+      })}
+
       {units.map((unit) => {
         const isPlayer = unit.side === 'player';
         const command = isPlayer ? p1Command : p2Command;

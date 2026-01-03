@@ -356,12 +356,9 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                           <line x1="0" y1="-23" x2="0" y2="23" stroke="white" strokeWidth="1" opacity="0.7" />
                       </g>
                       
-                      {/* Arrow - Forms from slime energy */}
-                      <g className={isAttacking ? "animate-archer-arrow" : ""} style={{ display: isAttacking ? 'block' : 'none' }}>
-                          {/* Speed Line Trail */}
-                          <path d="M-60 0 L -15 0" stroke="white" strokeWidth="2" opacity="0.4" strokeDasharray="15 8" />
-                          
-                          {/* Slime Arrow - Pointing Right */}
+                      {/* Arrow RELOAD ANIMATION - Shows nocking a NEW arrow */}
+                      <g className={isAttacking ? "animate-archer-reload" : ""} style={{ display: isAttacking ? 'block' : 'none' }}>
+                          {/* Slime Arrow - Nocked */}
                           {/* Head at x=20, Shaft goes back to -5 */}
                           <path d="M25 0 L 10 -6 L 10 6 Z" fill="#bef264" stroke="white" strokeWidth="1" /> {/* Head with glint */}
                           <line x1="-10" y1="0" x2="10" y2="0" stroke="#bef264" strokeWidth="4" /> {/* Shaft */}

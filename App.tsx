@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { UnitType, GameUnit, GameState, GameCommand, PlayerRole, MapId } from './types';
+import { UnitType, GameUnit, GameState, GameCommand, PlayerRole, MapId, GameProjectile } from './types';
 import { 
   UNIT_CONFIGS, 
   SPAWN_X_PLAYER, 
@@ -142,6 +142,7 @@ export const App: React.FC = () => {
 
   const [gameState, setGameState] = useState<GameState>({
     units: [],
+    projectiles: [],
     playerStatueHP: STATUE_HP,
     enemyStatueHP: STATUE_HP,
     p1Gold: INITIAL_GOLD,
@@ -180,6 +181,28 @@ export const App: React.FC = () => {
     }
   };
 
+  // Helper function for damage calculation
+  const applyDamage = (target: GameUnit, rawDamage: number, now: number, isBossAttack: boolean) => {
+      let damageDealt = rawDamage;
+
+      // PALADIN DAMAGE REDUCTION (Existing)
+      if (target.type === UnitType.PALADIN) {
+          damageDealt *= 0.7; 
+      }
+      
+      // BOSS GELATIN ARMOR (New Passive)
+      if (target.type === UnitType.BOSS) {
+          // Reduces damage by 15-20%. Increases when HP < 40%.
+          const lowHp = target.hp < target.maxHp * 0.4;
+          const reduction = lowHp ? 0.20 : 0.15;
+          damageDealt *= (1 - reduction);
+      }
+
+      target.hp -= damageDealt;
+      target.lastDamageTime = now;
+      target.lastDamageAmount = Math.floor(damageDealt);
+  };
+
   // Unified Game Loop
   useEffect(() => {
     if ((role !== PlayerRole.HOST && role !== PlayerRole.OFFLINE) || appMode !== 'GAME') return;
@@ -188,10 +211,11 @@ export const App: React.FC = () => {
       const now = Date.now();
       const deltaTime = Math.min((now - stateRef.current.lastTick) / 1000, 0.05);
       
-      let { units: nextUnits, playerStatueHP: pStatueHP, enemyStatueHP: eStatueHP, p1Gold, p2Gold, p1Command, p2Command, gameStatus } = stateRef.current;
+      let { units: nextUnits, projectiles: nextProjectiles, playerStatueHP: pStatueHP, enemyStatueHP: eStatueHP, p1Gold, p2Gold, p1Command, p2Command, gameStatus } = stateRef.current;
       if (gameStatus !== 'PLAYING') return;
 
       let processedUnits = nextUnits.map(u => ({ ...u }));
+      let processedProjectiles = nextProjectiles ? nextProjectiles.map(p => ({ ...p })) : [];
       let newSummons: GameUnit[] = [];
 
       // Process Queue
@@ -225,6 +249,54 @@ export const App: React.FC = () => {
           if (action.side === 'player') p1Command = action.command; else p2Command = action.command;
         }
       }
+
+      // --- PROJECTILE LOGIC ---
+      processedProjectiles = processedProjectiles.filter(p => {
+          // Move projectile
+          const dir = p.targetX > p.x ? 1 : -1;
+          p.x += dir * p.speed * deltaTime;
+
+          // Check Bounds
+          if (p.x < 0 || p.x > 100) return false;
+
+          // Check Collision
+          let hit = false;
+          // Simple proximity check to target position (or any enemy unit in range?)
+          // For reliability, we check if it passed the target X or is very close
+          const dist = Math.abs(p.x - p.targetX);
+          
+          if (dist < 1) {
+              hit = true;
+              
+              // Apply damage
+              // Try to find the specific target first
+              let targetUnit = processedUnits.find(u => u.id === p.targetId && u.state !== 'DYING');
+              
+              // If specific target is dead/gone, hit ANY enemy unit near the impact zone
+              if (!targetUnit) {
+                  targetUnit = processedUnits.find(u => 
+                      u.side !== p.side && 
+                      u.state !== 'DYING' && 
+                      Math.abs(u.x - p.x) < 2
+                  );
+              }
+
+              if (targetUnit) {
+                  applyDamage(targetUnit, p.damage, now, false);
+              } else {
+                 // Hit Statue?
+                 const isPlayerProjectile = p.side === 'player';
+                 const statueX = isPlayerProjectile ? STATUE_ENEMY_POS : STATUE_PLAYER_POS;
+                 if (Math.abs(p.x - statueX) < 3) {
+                     if (isPlayerProjectile) eStatueHP -= p.damage; else pStatueHP -= p.damage;
+                     AudioService.playDamage();
+                 }
+              }
+          }
+          
+          return !hit; // Keep if not hit
+      });
+
 
       // Physics and Logic
       processedUnits.forEach(unit => {
@@ -435,12 +507,25 @@ export const App: React.FC = () => {
                             });
                             
                             setShakeTrigger(now + 300);
+                        } else if (unit.type === UnitType.ARCHER) {
+                            // ARCHER PROJECTILE LOGIC
+                            // Fire projectile instead of instant damage
+                            const proj: GameProjectile = {
+                                id: `proj-${unit.id}-${now}`,
+                                x: unit.x,
+                                targetX: primaryTarget.x,
+                                targetId: primaryTarget.id,
+                                damage: currentDamage,
+                                speed: 25, // Fast arrow speed
+                                side: unit.side,
+                                visualType: 'ARROW',
+                                createdAt: now
+                            };
+                            processedProjectiles.push(proj);
+
                         } else {
-                            // Standard Unit Attack
+                            // Standard Unit Attack (Melee & Mage)
                             applyDamage(primaryTarget, currentDamage, now, false);
-                            
-                            // Specific Unit Effects
-                            // No knockback for normal units
                             
                             if (unit.type === UnitType.TOXIC) {
                                 primaryTarget.poisonTicks = 3;
@@ -451,9 +536,24 @@ export const App: React.FC = () => {
                             }
                         }
                     } else if (canSiege) {
-                        if (isPlayer) eStatueHP -= currentDamage; else pStatueHP -= currentDamage;
-                        AudioService.playDamage();
-                        if (unit.type === UnitType.BOSS) setShakeTrigger(now + 400);
+                        // Statue Siege logic
+                        if (unit.type === UnitType.ARCHER) {
+                             const proj: GameProjectile = {
+                                id: `proj-${unit.id}-${now}`,
+                                x: unit.x,
+                                targetX: targetStatueX,
+                                damage: currentDamage,
+                                speed: 25,
+                                side: unit.side,
+                                visualType: 'ARROW',
+                                createdAt: now
+                             };
+                             processedProjectiles.push(proj);
+                        } else {
+                            if (isPlayer) eStatueHP -= currentDamage; else pStatueHP -= currentDamage;
+                            AudioService.playDamage();
+                            if (unit.type === UnitType.BOSS) setShakeTrigger(now + 400);
+                        }
                     }
                     unit.lastAttackTime = now;
                 }
@@ -592,35 +692,25 @@ export const App: React.FC = () => {
       const nextStatus: GameState['gameStatus'] = pStatueHP <= 0 ? 'DEFEAT' : (eStatueHP <= 0 ? 'VICTORY' : 'PLAYING');
       if (nextStatus !== gameStatus) AudioService.playFanfare(nextStatus === 'VICTORY');
 
-      const nextState: GameState = { ...stateRef.current, units: processedUnits, playerStatueHP: pStatueHP, enemyStatueHP: eStatueHP, p1Gold, p2Gold, p1Command, p2Command, gameStatus: nextStatus, lastTick: now };
+      const nextState: GameState = { 
+          ...stateRef.current, 
+          units: processedUnits, 
+          projectiles: processedProjectiles,
+          playerStatueHP: pStatueHP, 
+          enemyStatueHP: eStatueHP, 
+          p1Gold, 
+          p2Gold, 
+          p1Command, 
+          p2Command, 
+          gameStatus: nextStatus, 
+          lastTick: now 
+      };
       setGameState(nextState);
       if (role === PlayerRole.HOST) mpService.send({ type: 'GAME_STATE_UPDATE', payload: nextState });
 
     }, TICK_RATE);
     return () => clearInterval(intervalId);
   }, [role, appMode]);
-
-  // Helper function for damage calculation
-  const applyDamage = (target: GameUnit, rawDamage: number, now: number, isBossAttack: boolean) => {
-      let damageDealt = rawDamage;
-
-      // PALADIN DAMAGE REDUCTION (Existing)
-      if (target.type === UnitType.PALADIN) {
-          damageDealt *= 0.7; 
-      }
-      
-      // BOSS GELATIN ARMOR (New Passive)
-      if (target.type === UnitType.BOSS) {
-          // Reduces damage by 15-20%. Increases when HP < 40%.
-          const lowHp = target.hp < target.maxHp * 0.4;
-          const reduction = lowHp ? 0.20 : 0.15;
-          damageDealt *= (1 - reduction);
-      }
-
-      target.hp -= damageDealt;
-      target.lastDamageTime = now;
-      target.lastDamageAmount = Math.floor(damageDealt);
-  };
 
   if (appMode === 'INTRO') return <IntroSequence onComplete={() => setAppMode('LANDING')} />;
   if (appMode === 'LANDING') return <LandingPage 
@@ -630,6 +720,7 @@ export const App: React.FC = () => {
           // Reset Game State for new match (Client side initial)
           setGameState({
             units: [],
+            projectiles: [],
             playerStatueHP: STATUE_HP,
             enemyStatueHP: STATUE_HP,
             p1Gold: INITIAL_GOLD,
@@ -652,6 +743,7 @@ export const App: React.FC = () => {
           // Reset Game State for new match (Host/Offline)
           setGameState({
             units: [],
+            projectiles: [],
             playerStatueHP: STATUE_HP,
             enemyStatueHP: STATUE_HP,
             p1Gold: isSurgeMode ? INITIAL_GOLD_SURGE : INITIAL_GOLD,
@@ -706,6 +798,7 @@ export const App: React.FC = () => {
             />
             <ArmyVisuals 
                 units={gameState.units} 
+                projectiles={gameState.projectiles}
                 selectedUnitId={selectedUnitId} 
                 onSelectUnit={setSelectedUnitId} 
                 isMirrored={isMirrored}
