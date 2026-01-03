@@ -101,6 +101,32 @@ export const StickmanRender: React.FC<StickmanProps> = ({
 
   // --- COMPONENT PARTS ---
 
+  // Accessories rendered BEHIND the slime body
+  const BackAccessories = () => {
+      if (type === UnitType.ARCHER) {
+          // Hood/Cape backdrop - frames the slime from behind
+          return (
+              <g>
+                  {/* Cape Body */}
+                   <path 
+                      d="M20 50 Q 50 15 80 50 L 85 95 L 50 90 L 15 95 Z" 
+                      fill={hoodColor} 
+                      stroke={secondaryColor}
+                      strokeWidth="2"
+                  />
+                  {/* Hood Top visible behind head */}
+                  <path 
+                      d="M30 40 Q 50 10 70 40" 
+                      fill={hoodColor}
+                      stroke={secondaryColor}
+                      strokeWidth="2"
+                  />
+              </g>
+          );
+      }
+      return null;
+  };
+
   const SlimeBody = () => {
     // Mage has specific semi-transparent body design
     if (type === UnitType.MAGE || type === UnitType.SMALL) {
@@ -277,10 +303,10 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       if (type === UnitType.ARCHER) {
           return (
               <g>
-                  {/* Hood/Cape (Back Layer) - Team Colored for identity */}
-                  <path d="M30 45 Q 50 35 70 45 L 75 90 L 50 85 L 25 90 Z" fill={hoodColor} />
+                  {/* Scarf / Neck Wrap (Front) - Low enough to reveal face */}
+                  <path d="M30 70 Q 50 85 70 70 L 70 80 Q 50 95 30 80 Z" fill={hoodColor} />
                   
-                  {/* Quiver (Back) */}
+                  {/* Quiver (Back - but rendered in front for visibility) */}
                   <g transform="translate(15, 55) rotate(-20)">
                        <rect x="0" y="0" width="10" height="25" rx="3" fill="#3f6212" stroke="#1a2e05" />
                        {/* Arrow feathers sticking out */}
@@ -530,6 +556,9 @@ export const StickmanRender: React.FC<StickmanProps> = ({
 
       {/* Main Slime Group - REMOVED FILTER FOR MOBILE PERFORMANCE */}
       <g>
+        {/* Render Background Accessories (Cape/Hood Back) before Body */}
+        <BackAccessories />
+        
         <SlimeBody />
         {/* Bubbles Rendered Inside Body */}
         <SlimeBubbles />
