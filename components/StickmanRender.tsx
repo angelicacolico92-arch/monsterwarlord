@@ -211,15 +211,18 @@ export const StickmanRender: React.FC<StickmanProps> = ({
          );
      }
      if (type === UnitType.ARCHER) {
-         // Sharp, focused eyes (angled)
+         // Angry Eyes (Visible)
          return (
              <g>
-                 {/* Slight frown/focus angle */}
-                 <ellipse cx="38" cy="55" rx="4" ry="5" fill="black" transform="rotate(15 38 55)" />
-                 <ellipse cx="62" cy="55" rx="4" ry="5" fill="black" transform="rotate(-15 62 55)" />
-                 {/* Shine */}
-                 <circle cx="39" cy="53" r="1.5" fill="white" />
-                 <circle cx="61" cy="53" r="1.5" fill="white" />
+                 {/* Eyebrows angled down */}
+                 <path d="M28 50 L 42 58" stroke="black" strokeWidth="3" strokeLinecap="round" />
+                 <path d="M72 50 L 58 58" stroke="black" strokeWidth="3" strokeLinecap="round" />
+                 
+                 {/* Intense Eyes */}
+                 <circle cx="35" cy="62" r="3" fill="white" />
+                 <circle cx="65" cy="62" r="3" fill="white" />
+                 <circle cx="35" cy="62" r="1.5" fill="black" />
+                 <circle cx="65" cy="62" r="1.5" fill="black" />
              </g>
          );
      }
@@ -313,25 +316,27 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                        <path d="M2 0 L -2 -5 M5 0 L 5 -8 M8 0 L 12 -5" stroke="white" strokeWidth="2" />
                   </g>
 
-                  {/* Bow (Front) */}
+                  {/* Bow (Front) - Flipped to face Forward (Right) */}
                   <g transform="translate(55, 60)">
                       <g className={isAttacking ? "animate-archer-bow" : ""}>
-                          {/* Wooden Bow growing from slime */}
-                          <path d="M15 -25 Q -10 0 15 25" stroke="#78350f" strokeWidth="4" fill="none" strokeLinecap="round" />
+                          {/* Wooden Bow - Curved forward */}
+                          {/* Tips at x=0, Belly at x=20 (bulging right) */}
+                          <path d="M0 -25 Q 20 0 0 25" stroke="#78350f" strokeWidth="4" fill="none" strokeLinecap="round" />
                           {/* Leaf details on bow tips */}
-                          <path d="M15 -25 L 12 -20 L 18 -20 Z" fill="#84cc16" />
-                          <path d="M15 25 L 12 20 L 18 20 Z" fill="#84cc16" />
+                          <path d="M0 -25 L -3 -20 L 3 -20 Z" fill="#84cc16" />
+                          <path d="M0 25 L -3 20 L 3 20 Z" fill="#84cc16" />
                           {/* String */}
-                          <line x1="15" y1="-23" x2="15" y2="23" stroke="white" strokeWidth="1" opacity="0.7" />
+                          <line x1="0" y1="-23" x2="0" y2="23" stroke="white" strokeWidth="1" opacity="0.7" />
                       </g>
                       
                       {/* Arrow - Forms from slime energy */}
                       <g className={isAttacking ? "animate-archer-arrow" : ""} style={{ opacity: isAttacking ? 1 : 0 }}>
-                          {/* Slime Arrow */}
-                          <path d="M15 0 L 5 -4 L 5 4 Z" fill="#bef264" /> {/* Head */}
-                          <line x1="-10" y1="0" x2="5" y2="0" stroke="#bef264" strokeWidth="2" /> {/* Shaft */}
+                          {/* Slime Arrow - Pointing Right */}
+                          {/* Head at x=20, Shaft goes back to -5 */}
+                          <path d="M20 0 L 10 -4 L 10 4 Z" fill="#bef264" /> {/* Head */}
+                          <line x1="-5" y1="0" x2="10" y2="0" stroke="#bef264" strokeWidth="2" /> {/* Shaft */}
                           {/* Slime Trail/Feathers */}
-                          <circle cx="-10" cy="0" r="2" fill="#bef264" opacity="0.8" />
+                          <circle cx="-5" cy="0" r="2" fill="#bef264" opacity="0.8" />
                       </g>
                   </g>
               </g>
