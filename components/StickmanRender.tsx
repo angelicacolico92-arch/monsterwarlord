@@ -359,16 +359,18 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                       </g>
                       
                       {/* Arrow - Forms from slime energy */}
-                      <g className={isAttacking ? "animate-archer-arrow" : ""} style={{ opacity: isAttacking ? 1 : 0 }}>
+                      <g className={isAttacking ? "animate-archer-arrow" : ""} style={{ display: isAttacking ? 'block' : 'none' }}>
                           {/* Speed Line Trail */}
-                          <path d="M-40 0 L -10 0" stroke="white" strokeWidth="2" opacity="0.3" strokeDasharray="10 5" />
+                          <path d="M-60 0 L -15 0" stroke="white" strokeWidth="2" opacity="0.4" strokeDasharray="15 8" />
                           
                           {/* Slime Arrow - Pointing Right */}
                           {/* Head at x=20, Shaft goes back to -5 */}
-                          <path d="M20 0 L 10 -4 L 10 4 Z" fill="#bef264" stroke="white" strokeWidth="1" /> {/* Head with glint */}
-                          <line x1="-5" y1="0" x2="10" y2="0" stroke="#bef264" strokeWidth="3" /> {/* Shaft */}
+                          <path d="M25 0 L 10 -6 L 10 6 Z" fill="#bef264" stroke="white" strokeWidth="1" /> {/* Head with glint */}
+                          <line x1="-10" y1="0" x2="10" y2="0" stroke="#bef264" strokeWidth="4" /> {/* Shaft */}
                           {/* Slime Trail/Feathers */}
-                          <circle cx="-5" cy="0" r="3" fill="#bef264" opacity="0.8" />
+                          <circle cx="-10" cy="0" r="4" fill="#bef264" opacity="0.8" />
+                          {/* Glow */}
+                          <circle cx="20" cy="0" r="8" fill="#bef264" opacity="0.3" filter="blur(2px)" />
                       </g>
                   </g>
               </g>

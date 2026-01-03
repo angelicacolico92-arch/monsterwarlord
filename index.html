@@ -128,29 +128,27 @@
       /* ARCHER ANIMATIONS */
       @keyframes archer-draw {
           0% { transform: translateX(0) scale(1, 1); }
-          50% { transform: translateX(-4px) scale(0.9, 1.1); } /* Wind up: Draw back (slow) */
-          55% { transform: translateX(2px) scale(1.1, 0.9); } /* Fire: Recoil (fast) */
-          65% { transform: translateX(0) scale(1, 1); } /* Return */
-          100% { transform: translateX(0) scale(1, 1); } /* Wait */
+          30% { transform: translateX(-6px) scale(0.95, 1.05); } /* Wind up */
+          35% { transform: translateX(4px) scale(1.05, 0.95); } /* Release recoil */
+          60% { transform: translateX(0) scale(1, 1); }
+          100% { transform: translateX(0) scale(1, 1); }
       }
       .animate-archer-bow { animation: archer-draw 2s ease-in-out infinite; }
 
       @keyframes arrow-shoot {
-          0% { transform: translateX(0); opacity: 1; }
-          45% { transform: translateX(-8px); opacity: 1; } /* Wind up */
-          50% { transform: translateX(-8px); opacity: 1; } /* Release start */
-          70% { transform: translateX(250px); opacity: 1; } /* Fly far visible */
-          75% { transform: translateX(280px); opacity: 0; } /* Fade out */
-          76% { transform: translateX(0); opacity: 0; } /* Reset */
-          90% { transform: translateX(0); opacity: 0; } /* Reloading */
-          100% { transform: translateX(0); opacity: 1; } /* Ready */
+          0% { transform: translateX(0); opacity: 0; }
+          30% { transform: translateX(-8px); opacity: 1; } /* Nock arrow */
+          35% { transform: translateX(0); opacity: 1; } /* Release */
+          65% { transform: translateX(450px); opacity: 1; } /* Fly far */
+          75% { transform: translateX(500px); opacity: 0; } /* Fade out */
+          100% { transform: translateX(0); opacity: 0; } /* Reset */
       }
-      .animate-archer-arrow { animation: arrow-shoot 2s ease-in-out infinite; }
+      .animate-archer-arrow { animation: arrow-shoot 2s linear infinite; }
 
       @keyframes archer-body-sway {
           0% { transform: rotate(0deg); }
-          50% { transform: rotate(-10deg); } /* Lean back */
-          55% { transform: rotate(5deg); } /* Recoil forward */
+          30% { transform: rotate(-10deg); } /* Lean back */
+          35% { transform: rotate(5deg); } /* Recoil forward */
           100% { transform: rotate(0deg); }
       }
       .animate-archer-body { transform-origin: bottom center; animation: archer-body-sway 2s ease-in-out infinite; }
