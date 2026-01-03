@@ -274,8 +274,25 @@ export const App: React.FC = () => {
           }
         }
 
-        // Worker Mining Logic
-        if (unit.type === UnitType.WORKER) {
+        // Determine active command for this unit's side
+        const cmd = isPlayer ? p1Command : p2Command;
+
+        // --- RETREAT LOGIC (High Priority - Applies to ALL units) ---
+        if (cmd === GameCommand.RETREAT) {
+             const homeX = isPlayer ? STATUE_PLAYER_POS : STATUE_ENEMY_POS;
+             const distToHome = Math.abs(unit.x - homeX);
+             
+             // Move to tower
+             if (distToHome < 2) {
+                 unit.state = 'IDLE';
+                 targetVelocity = 0;
+             } else {
+                 unit.state = 'WALKING';
+                 targetVelocity = (unit.x < homeX ? 1 : -1) * config.stats.speed;
+             }
+        } 
+        // --- Worker Mining Logic (Only if not retreating) ---
+        else if (unit.type === UnitType.WORKER) {
           const minePos = isPlayer ? GOLD_MINE_PLAYER_X : GOLD_MINE_ENEMY_X;
           const statuePos = isPlayer ? STATUE_PLAYER_POS : STATUE_ENEMY_POS;
           const miningRange = 2;
@@ -297,105 +314,88 @@ export const App: React.FC = () => {
               targetVelocity = (unit.x < targetPos ? 1 : -1) * config.stats.speed;
             }
           }
-        } else {
-          // Combat & Movement for non-workers
-          const cmd = isPlayer ? p1Command : p2Command;
+        } 
+        // --- Combat Logic (Only if not retreating and not worker) ---
+        else {
           const dir = isPlayer ? 1 : -1;
-
-          // --- RETREAT LOGIC (High Priority) ---
-          if (cmd === GameCommand.RETREAT) {
-             const homeX = isPlayer ? STATUE_PLAYER_POS : STATUE_ENEMY_POS;
-             const distToHome = Math.abs(unit.x - homeX);
+          const targetStatueX = isPlayer ? STATUE_ENEMY_POS : STATUE_PLAYER_POS;
              
-             // Move to tower and stay there
-             if (distToHome < 2) {
-                 unit.state = 'IDLE';
-                 targetVelocity = 0;
-             } else {
-                 unit.state = 'WALKING';
-                 targetVelocity = (unit.x < homeX ? 1 : -1) * config.stats.speed;
-             }
-          } else {
-             // --- ATTACK OR DEFEND LOGIC ---
-             const targetStatueX = isPlayer ? STATUE_ENEMY_POS : STATUE_PLAYER_POS;
-             
-             // TARGETING LOGIC: Find CLOSEST enemy
-             const potentialTargets = processedUnits.filter(u => u.side !== unit.side && u.state !== 'DYING' && Math.abs(u.x - unit.x) < config.stats.range + 2);
-             potentialTargets.sort((a, b) => Math.abs(a.x - unit.x) - Math.abs(b.x - unit.x));
-             const enemyTarget = potentialTargets.length > 0 ? potentialTargets[0] : null;
+          // TARGETING LOGIC: Find CLOSEST enemy
+          const potentialTargets = processedUnits.filter(u => u.side !== unit.side && u.state !== 'DYING' && Math.abs(u.x - unit.x) < config.stats.range + 2);
+          potentialTargets.sort((a, b) => Math.abs(a.x - unit.x) - Math.abs(b.x - unit.x));
+          const enemyTarget = potentialTargets.length > 0 ? potentialTargets[0] : null;
 
-             // Attack Logic (Aggro or Base Siege)
-             // In DEFEND mode, units only attack if an enemy is within range (hold ground).
-             // In ATTACK mode, units also attack statue if close.
-             const canSiege = cmd === GameCommand.ATTACK && Math.abs(unit.x - targetStatueX) < config.stats.range + 1;
+          // Attack Logic (Aggro or Base Siege)
+          // In DEFEND mode, units only attack if an enemy is within range (hold ground).
+          // In ATTACK mode, units also attack statue if close.
+          const canSiege = cmd === GameCommand.ATTACK && Math.abs(unit.x - targetStatueX) < config.stats.range + 1;
              
-             if (enemyTarget || canSiege) {
-                unit.state = 'ATTACKING';
-                targetVelocity = 0;
-                if (now - unit.lastAttackTime > config.stats.attackSpeed) {
-                  AudioService.playAttack(unit.type);
-                  if (enemyTarget) {
-                    // Calculate Damage with Reductions
-                    let damageDealt = config.stats.damage;
-                    
-                    // PALADIN DAMAGE REDUCTION
-                    if (enemyTarget.type === UnitType.PALADIN) {
-                        damageDealt *= 0.7; // 30% reduction
-                    }
-
-                    enemyTarget.hp -= damageDealt;
-                    enemyTarget.lastDamageTime = now;
-                    enemyTarget.lastDamageAmount = Math.floor(damageDealt);
-                    
-                    // IMPACT EFFECTS
-                    const knockbackForce = (unit.type === UnitType.BOSS ? 2.5 : (unit.type === UnitType.PALADIN ? 1.5 : 0.5));
-                    enemyTarget.x += isPlayer ? knockbackForce : -knockbackForce;
-                    
-                    if (unit.type === UnitType.TOXIC) {
-                        enemyTarget.poisonTicks = 3;
-                        enemyTarget.lastPoisonTickTime = now;
-                    }
-                    
-                    if (unit.type === UnitType.BOSS || unit.type === UnitType.PALADIN) {
-                        setShakeTrigger(now + 400);
-                    }
-                  } else if (canSiege) {
-                    if (isPlayer) eStatueHP -= config.stats.damage; else pStatueHP -= config.stats.damage;
-                    AudioService.playDamage();
-                    if (unit.type === UnitType.BOSS) setShakeTrigger(now + 400);
-                  }
-                  unit.lastAttackTime = now;
-                }
-             } else {
-                // Movement Logic
-                unit.state = 'WALKING';
+          if (enemyTarget || canSiege) {
+            unit.state = 'ATTACKING';
+            targetVelocity = 0;
+            if (now - unit.lastAttackTime > config.stats.attackSpeed) {
+                AudioService.playAttack(unit.type);
+                if (enemyTarget) {
+                // Calculate Damage with Reductions
+                let damageDealt = config.stats.damage;
                 
-                if (cmd === GameCommand.DEFEND) {
-                    // DEFENSE FORMATION LOGIC
-                    // Align units relative to the defense line (ahead of gold mine)
-                    // Player Front: Gold Mine (15) + Buffer (15) = 30
-                    // Enemy Front: Gold Mine (85) - Buffer (15) = 70
-                    const defenseFrontX = isPlayer ? GOLD_MINE_PLAYER_X + 15 : GOLD_MINE_ENEMY_X - 15;
-                    const offset = FORMATION_OFFSETS[unit.type] || 0;
-                    
-                    const targetX = isPlayer 
-                        ? defenseFrontX - offset 
-                        : defenseFrontX + offset;
-                    
-                    const dist = Math.abs(unit.x - targetX);
-                    
-                    if (dist < 1.5) {
-                        targetVelocity = 0;
-                        unit.state = 'IDLE';
-                    } else {
-                        targetVelocity = (unit.x < targetX ? 1 : -1) * config.stats.speed;
-                    }
-                } else {
-                    // ATTACK Command
-                    // No formation limits - simple movement
-                    targetVelocity = dir * config.stats.speed;
+                // PALADIN DAMAGE REDUCTION
+                if (enemyTarget.type === UnitType.PALADIN) {
+                    damageDealt *= 0.7; // 30% reduction
                 }
-             }
+
+                enemyTarget.hp -= damageDealt;
+                enemyTarget.lastDamageTime = now;
+                enemyTarget.lastDamageAmount = Math.floor(damageDealt);
+                
+                // IMPACT EFFECTS
+                const knockbackForce = (unit.type === UnitType.BOSS ? 2.5 : (unit.type === UnitType.PALADIN ? 1.5 : 0.5));
+                enemyTarget.x += isPlayer ? knockbackForce : -knockbackForce;
+                
+                if (unit.type === UnitType.TOXIC) {
+                    enemyTarget.poisonTicks = 3;
+                    enemyTarget.lastPoisonTickTime = now;
+                }
+                
+                if (unit.type === UnitType.BOSS || unit.type === UnitType.PALADIN) {
+                    setShakeTrigger(now + 400);
+                }
+                } else if (canSiege) {
+                if (isPlayer) eStatueHP -= config.stats.damage; else pStatueHP -= config.stats.damage;
+                AudioService.playDamage();
+                if (unit.type === UnitType.BOSS) setShakeTrigger(now + 400);
+                }
+                unit.lastAttackTime = now;
+            }
+          } else {
+            // Movement Logic
+            unit.state = 'WALKING';
+            
+            if (cmd === GameCommand.DEFEND) {
+                // DEFENSE FORMATION LOGIC
+                // Align units relative to the defense line (ahead of gold mine)
+                // Player Front: Gold Mine (15) + Buffer (15) = 30
+                // Enemy Front: Gold Mine (85) - Buffer (15) = 70
+                const defenseFrontX = isPlayer ? GOLD_MINE_PLAYER_X + 15 : GOLD_MINE_ENEMY_X - 15;
+                const offset = FORMATION_OFFSETS[unit.type] || 0;
+                
+                const targetX = isPlayer 
+                    ? defenseFrontX - offset 
+                    : defenseFrontX + offset;
+                
+                const dist = Math.abs(unit.x - targetX);
+                
+                if (dist < 1.5) {
+                    targetVelocity = 0;
+                    unit.state = 'IDLE';
+                } else {
+                    targetVelocity = (unit.x < targetX ? 1 : -1) * config.stats.speed;
+                }
+            } else {
+                // ATTACK Command
+                // No formation limits - simple movement
+                targetVelocity = dir * config.stats.speed;
+            }
           }
         }
 
@@ -583,7 +583,14 @@ export const App: React.FC = () => {
                 isFlipped={!isMirrored} 
                 isRetreating={gameState.p2Command === GameCommand.RETREAT} 
             />
-            <ArmyVisuals units={gameState.units} selectedUnitId={selectedUnitId} onSelectUnit={setSelectedUnitId} isMirrored={isMirrored} />
+            <ArmyVisuals 
+                units={gameState.units} 
+                selectedUnitId={selectedUnitId} 
+                onSelectUnit={setSelectedUnitId} 
+                isMirrored={isMirrored}
+                p1Retreating={gameState.p1Command === GameCommand.RETREAT}
+                p2Retreating={gameState.p2Command === GameCommand.RETREAT}
+            />
           </div>
       </div>
 

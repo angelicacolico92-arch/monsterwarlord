@@ -1,16 +1,18 @@
-
 import React from 'react';
 import { GameUnit, UnitType } from '../types';
 import { StickmanRender } from './StickmanRender';
+import { STATUE_PLAYER_POS, STATUE_ENEMY_POS } from '../constants';
 
 interface ArmyVisualsProps {
   units: GameUnit[];
   selectedUnitId?: string | null;
   onSelectUnit?: (id: string) => void;
   isMirrored?: boolean;
+  p1Retreating?: boolean;
+  p2Retreating?: boolean;
 }
 
-export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({ units, selectedUnitId, onSelectUnit, isMirrored = false }) => {
+export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({ units, selectedUnitId, onSelectUnit, isMirrored = false, p1Retreating = false, p2Retreating = false }) => {
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden">
       {units.map((unit) => {
@@ -18,6 +20,13 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({ units, selectedUnitId,
         const isDying = unit.state === 'DYING';
         const isMining = unit.state === 'MINING' || unit.state === 'ATTACKING'; 
         const isDepositing = unit.state === 'DEPOSITING';
+        
+        // Hide if retreating and at base (effectively "entered" the portal)
+        const isRetreating = isPlayer ? p1Retreating : p2Retreating;
+        const homeX = isPlayer ? STATUE_PLAYER_POS : STATUE_ENEMY_POS;
+        if (isRetreating && Math.abs(unit.x - homeX) < 2.5 && !isDying) {
+            return null;
+        }
         
         // VISUAL LAYERING SYSTEM (Slide 2)
         // Adjust "baseDepth" to control vertical stacking on the 2.5D plane.
