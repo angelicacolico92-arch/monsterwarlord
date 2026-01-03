@@ -277,6 +277,7 @@ export const App: React.FC = () => {
                   targetUnit = processedUnits.find(u => 
                       u.side !== p.side && 
                       u.state !== 'DYING' && 
+                      u.hp > 0 &&
                       Math.abs(u.x - p.x) < 2
                   );
               }
@@ -403,6 +404,9 @@ export const App: React.FC = () => {
           // Sort by distance for simple targeting
           nearbyTargets.sort((a, b) => Math.abs(a.x - unit.x) - Math.abs(b.x - unit.x));
           const primaryTarget = nearbyTargets.length > 0 ? nearbyTargets[0] : null;
+
+          // Assign target ID for visual tracking (e.g. alignment in z-depth)
+          unit.targetId = primaryTarget ? primaryTarget.id : null;
 
           // Attack Logic (Aggro or Base Siege)
           // In DEFEND mode, units only attack if an enemy is within range (hold ground).

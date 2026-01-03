@@ -13,6 +13,33 @@ interface ArmyVisualsProps {
   p2Command: GameCommand;
 }
 
+// Determine the base visual depth (Y-position) of a unit based on its role and command.
+const getUnitBaseDepth = (unit: GameUnit, command: GameCommand) => {
+    // Workers always stay near the back/mines
+    if (unit.type === UnitType.WORKER) return 80;
+
+    // If attacking, they usually scramble in random lanes
+    if (command === GameCommand.ATTACK) {
+        let hash = 0;
+        for (let i = 0; i < unit.id.length; i++) {
+            hash = ((hash << 5) - hash) + unit.id.charCodeAt(i);
+            hash |= 0;
+        }
+        return (Math.abs(hash) % 80) + 10;
+    }
+
+    // Defensive/Idle formations use rigid rows
+    switch (unit.type) {
+        case UnitType.SMALL: return 5;
+        case UnitType.TOXIC: return 10;
+        case UnitType.PALADIN: return 30;
+        case UnitType.ARCHER: return 50;
+        case UnitType.MAGE: return 70;
+        case UnitType.BOSS: return 90;
+        default: return 40;
+    }
+};
+
 export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({ 
   units, 
   projectiles = [],
@@ -27,22 +54,16 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({
       {/* RENDER PROJECTILES */}
       {projectiles.map(p => {
           const isPlayer = p.side === 'player';
-          // Visual X Calculation: Mirror if client
           const visualX = isMirrored ? 100 - p.x : p.x;
-          // Facing: Player moves Right (1), Enemy moves Left (-1). Mirror flips this.
-          // Projectile specific logic: If Target > Current, face right.
-          // Since p.x increases or decreases, check direction relative to source
-          // But simplified: projectiles travel FROM owner TO target.
-          // If isPlayer, usually moving Right (targetX > x).
-          // If isEnemy, usually moving Left (targetX < x).
-          // Direction: +1 Right, -1 Left
+          // Facing logic: standard +1 is Right, -1 is Left.
+          // Projectile logic based on targetX vs currentX
           const moveDir = p.targetX > p.x ? 1 : -1;
           const facingScale = moveDir * (isMirrored ? -1 : 1);
           
           return (
              <div 
                key={p.id}
-               className="absolute bottom-16 w-8 h-2 transition-transform duration-100 will-change-transform z-[150]"
+               className="absolute bottom-16 w-10 h-3 transition-transform duration-100 will-change-transform z-[150]"
                style={{
                    left: `${visualX}%`,
                    transform: `translate3d(-50%, -20px, 0) scaleX(${facingScale})`,
@@ -50,12 +71,11 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({
              >
                  {/* Arrow Graphic */}
                  <svg viewBox="0 0 40 10" className="w-full h-full overflow-visible drop-shadow-md">
-                    <line x1="0" y1="5" x2="35" y2="5" stroke="#e5e7eb" strokeWidth="2" />
-                    <path d="M30 2 L 38 5 L 30 8" fill="none" stroke="#e5e7eb" strokeWidth="2" />
-                    {/* Feathers */}
-                    <path d="M0 5 L 5 0 M 3 5 L 8 0 M 0 5 L 5 10 M 3 5 L 8 10" stroke="#bef264" strokeWidth="1.5" />
-                    {/* Glow */}
-                    <circle cx="38" cy="5" r="3" fill="#bef264" opacity="0.4" className="animate-pulse" />
+                    <line x1="5" y1="5" x2="35" y2="5" stroke="#e5e7eb" strokeWidth="1.5" strokeLinecap="round" />
+                    <path d="M32 2 L 40 5 L 32 8 L 34 5 Z" fill="#bef264" stroke="none" />
+                    <path d="M10 5 L 2 1 L 4 5 Z" fill="#bef264" opacity="0.9" />
+                    <path d="M10 5 L 2 9 L 4 5 Z" fill="#bef264" opacity="0.9" />
+                    <circle cx="38" cy="5" r="3" fill="#bef264" opacity="0.3" className="animate-pulse" />
                  </svg>
              </div>
           );
@@ -65,85 +85,53 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({
         const isPlayer = unit.side === 'player';
         const command = isPlayer ? p1Command : p2Command;
         const isRetreating = command === GameCommand.RETREAT;
-        const isAttackingCommand = command === GameCommand.ATTACK;
         
         const isDying = unit.state === 'DYING';
         const isMining = unit.state === 'MINING' || unit.state === 'ATTACKING'; 
         const isDepositing = unit.state === 'DEPOSITING';
         const isSummoning = unit.type === UnitType.MAGE && (Date.now() - (unit.lastSummonTime || 0) < 1000);
         
-        // Hide if retreating and at base (effectively "entered" the portal)
+        // Hide if retreating and at base
         const homeX = isPlayer ? STATUE_PLAYER_POS : STATUE_ENEMY_POS;
         if (isRetreating && Math.abs(unit.x - homeX) < 3 && !isDying) {
             return null;
         }
         
         // VISUAL LAYERING SYSTEM
-        // Adjust "baseDepth" to control vertical stacking on the 2.5D plane.
-        // Higher baseDepth = Higher up on screen = "Further Back" visually.
+        // Calculate Base Depth
+        let depthOffset = getUnitBaseDepth(unit, command);
         
-        let baseDepth = 40; 
-        
-        // If attacking, break rigid rows and randomize depth (except for workers)
-        if (isAttackingCommand && unit.type !== UnitType.WORKER) {
-             // Generate a stable pseudo-random number from the unit ID
-             let hash = 0;
-             for (let i = 0; i < unit.id.length; i++) {
-                 hash = ((hash << 5) - hash) + unit.id.charCodeAt(i);
-                 hash |= 0;
-             }
-             // Map hash to range 10 - 90
-             baseDepth = (Math.abs(hash) % 80) + 10; 
-        } else {
-             // Rigid Formation Rows for Defense/Idle
-             switch (unit.type) {
-                case UnitType.SMALL:
-                    baseDepth = 5; // Very front
-                    break;
-                case UnitType.TOXIC:
-                    baseDepth = 10; // Row 1 (Front)
-                    break;
-                case UnitType.PALADIN:
-                    baseDepth = 30; // Row 2
-                    break;
-                case UnitType.ARCHER:
-                    baseDepth = 50; // Row 3
-                    break;
-                case UnitType.MAGE:
-                    baseDepth = 70; // Row 4
-                    break;
-                case UnitType.BOSS:
-                    baseDepth = 90; // Row 5 (Back)
-                    break;
-                case UnitType.WORKER:
-                    baseDepth = 80; // Workers stay back/around mines
-                    break;
-                default:
-                    baseDepth = 40;
+        // TARGET ALIGNMENT LOGIC:
+        // If unit has a specific target, override depth to align with that target's depth.
+        if (unit.targetId) {
+            const target = units.find(u => u.id === unit.targetId);
+            if (target) {
+                // Determine target's base depth based on their own command/type
+                const targetCommand = target.side === 'player' ? p1Command : p2Command;
+                const targetDepth = getUnitBaseDepth(target, targetCommand);
+                
+                // Add deterministic jitter based on unit ID so they don't perfectly overlap
+                let hash = 0;
+                for (let i = 0; i < unit.id.length; i++) {
+                    hash = ((hash << 5) - hash) + unit.id.charCodeAt(i);
+                    hash |= 0;
+                }
+                const jitter = (hash % 10) - 5; // +/- 5px spread
+                
+                depthOffset = Math.max(5, Math.min(95, targetDepth + jitter));
             }
         }
 
-        const depthOffset = baseDepth;
-
         // Calculate visual position
-        // If mirrored (Client view), the world is flipped horizontally: x -> 100 - x
         const visualX = isMirrored ? 100 - unit.x : unit.x;
-
-        // Calculate facing scale
-        // Standard (Host): Player(Blue)=1 (Right), Enemy(Red)=-1 (Left)
-        // Mirrored (Client): Player(Blue)=-1 (Left), Enemy(Red)=1 (Right)
         const facingScale = (isPlayer ? 1 : -1) * (isMirrored ? -1 : 1);
-
-        // We use transform for centering (-50%), depth offset (Y), and facing direction.
         const transformString = `translate3d(-50%, -${depthOffset}px, 0) scaleX(${facingScale})`;
         
         // Damage Number Logic
         const showDamage = unit.lastDamageTime && (Date.now() - unit.lastDamageTime < 600);
-        
-        // Clamp HP bar calculation
         const hpPercent = Math.max(0, Math.min(100, (unit.hp / unit.maxHp) * 100));
 
-        // Scale Adjustments for different unit types
+        // Scale Adjustments
         let unitScale = 0.8;
         if (unit.type === UnitType.SMALL) unitScale = 0.5;
 
@@ -158,12 +146,12 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({
             style={{
                left: `${visualX}%`,
                transform: transformString,
-               zIndex: isDying ? 0 : 200 - depthOffset, // Closer units (lower offset) have higher Z to appear in front
+               zIndex: isDying ? 0 : 200 - Math.floor(depthOffset), // Closer units (lower offset) have higher Z
                width: '80px',
                height: '80px'
             }}
           >
-            {/* Health Bar - Apply facingScale again to flip it back to "normal" if unit is flipped */}
+            {/* Health Bar */}
             <div 
                 className={`absolute -top-4 left-1/2 -translate-x-1/2 w-10 h-1 bg-gray-700 rounded overflow-hidden ${hpPercent < 100 && !isDying ? 'opacity-100' : 'opacity-0'} transition-opacity`}
                 style={{ transform: `scaleX(${facingScale})` }} 
