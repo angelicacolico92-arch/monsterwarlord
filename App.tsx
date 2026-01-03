@@ -495,8 +495,8 @@ export const App: React.FC = () => {
                 // Ability 1: Mystic Fireburst (AoE + Slow) - 15s Cooldown
                 if (!unit.lastAbility1Time) unit.lastAbility1Time = 0;
                 if (now - unit.lastAbility1Time > 15000) {
-                    // Small radius burst around self
-                    const burstRadius = 4; 
+                    // Radius Increased to 10 so it actually hits frontline enemies from the mage's position
+                    const burstRadius = 10; 
                     const burstTargets = potentialTargets.filter(u => Math.abs(u.x - unit.x) < burstRadius);
                     
                     if (burstTargets.length > 0) {

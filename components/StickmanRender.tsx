@@ -448,15 +448,15 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                       <g className="animate-fireburst" pointerEvents="none">
                           <defs>
                               <radialGradient id="fireburstGrad" cx="0.5" cy="0.5" r="0.5">
-                                  <stop offset="0%" stopColor="#d8b4fe" stopOpacity="0.8" />
-                                  <stop offset="70%" stopColor="#7c3aed" stopOpacity="0.4" />
-                                  <stop offset="100%" stopColor="#5b21b6" stopOpacity="0" />
+                                  <stop offset="0%" stopColor="#e9d5ff" stopOpacity="0.9" /> {/* Brighter center */}
+                                  <stop offset="70%" stopColor="#a855f7" stopOpacity="0.6" /> {/* Stronger purple */}
+                                  <stop offset="100%" stopColor="#7e22ce" stopOpacity="0" />
                               </radialGradient>
                           </defs>
                           <circle cx="50" cy="75" r="45" fill="url(#fireburstGrad)" className="animate-pulse" />
-                          <circle cx="50" cy="75" r="35" fill="none" stroke="#d8b4fe" strokeWidth="2" opacity="0.7">
+                          <circle cx="50" cy="75" r="35" fill="none" stroke="#d8b4fe" strokeWidth="3" opacity="0.8">
                               <animate attributeName="r" values="25;45" dur="0.8s" repeatCount="1" />
-                              <animate attributeName="opacity" values="0.7;0" dur="0.8s" repeatCount="1" />
+                              <animate attributeName="opacity" values="0.8;0" dur="0.8s" repeatCount="1" />
                           </circle>
                           {/* Runes / Sparks */}
                           <g transform="translate(50,75)">
@@ -615,19 +615,20 @@ export const StickmanRender: React.FC<StickmanProps> = ({
   
   const renderRootVisuals = () => {
       // Ability 2: Shadow Grasp Effect on the Victim
+      // RENDERING IN FRONT NOW - With brighter colors
       if (!isRooted) return null;
       return (
-          <g className="animate-pulse">
-              {/* Dark Tendrils wrapping base */}
-              <path d="M20 95 Q 35 70 50 85 Q 65 70 80 95" stroke="#4c1d95" strokeWidth="3" fill="none" opacity="0.8" />
-              <path d="M30 100 Q 40 60 50 75 Q 60 60 70 100" stroke="#581c87" strokeWidth="3" fill="none" opacity="0.8" />
+          <g className="animate-pulse" style={{ pointerEvents: 'none' }}>
+              {/* Dark Tendrils wrapping base - Brighter purple for visibility */}
+              <path d="M20 95 Q 35 70 50 85 Q 65 70 80 95" stroke="#a855f7" strokeWidth="4" fill="none" opacity="0.9" /> {/* neon purple */}
+              <path d="M30 100 Q 40 60 50 75 Q 60 60 70 100" stroke="#9333ea" strokeWidth="4" fill="none" opacity="0.9" /> {/* dark neon */}
               
               {/* Constricting rings */}
-              <ellipse cx="50" cy="85" rx="30" ry="10" stroke="#6b21a8" strokeWidth="2" fill="none" opacity="0.6" strokeDasharray="5 5" />
+              <ellipse cx="50" cy="85" rx="30" ry="10" stroke="#d8b4fe" strokeWidth="2" fill="none" opacity="0.8" strokeDasharray="5 5" />
               
-              {/* Dark Particles */}
-              <circle cx="30" cy="80" r="2" fill="#2e1065" className="animate-ping" style={{ animationDuration: '2s' }} />
-              <circle cx="70" cy="80" r="2" fill="#2e1065" className="animate-ping" style={{ animationDuration: '1.5s' }} />
+              {/* Glowing Particles */}
+              <circle cx="30" cy="80" r="3" fill="#e9d5ff" className="animate-ping" style={{ animationDuration: '2s' }} />
+              <circle cx="70" cy="80" r="3" fill="#e9d5ff" className="animate-ping" style={{ animationDuration: '1.5s' }} />
           </g>
       );
   };
@@ -669,9 +670,6 @@ export const StickmanRender: React.FC<StickmanProps> = ({
           <ellipse cx="50" cy="95" rx="25" ry="8" fill="none" stroke="#fbbf24" strokeWidth="2" className="animate-pulse" />
       )}
       
-      {/* Root Visuals (Behind) */}
-      {renderRootVisuals()}
-
       {/* Main Slime Group - REMOVED FILTER FOR MOBILE PERFORMANCE */}
       <g>
         {/* Render Background Accessories (Cape/Hood Back) before Body */}
@@ -686,6 +684,9 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       
       {/* Render Summon Effect after body so the flash overlays the appearing unit */}
       {renderSummonEffect()}
+      
+      {/* Root Visuals - MOVED TO FRONT FOR VISIBILITY */}
+      {renderRootVisuals()}
 
       {/* Boss Shockwave Effect */}
       {isAttacking && !isDying && type === UnitType.BOSS && (
