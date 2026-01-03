@@ -50,9 +50,11 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       else animClass = "animate-slime-attack";
   } else if (isMoving || isDepositing) {
       if (type === UnitType.MAGE || type === UnitType.SMALL) animClass = "animate-mage-float";
+      else if (type === UnitType.ARCHER) animClass = "animate-slime-bounce"; // Bouncy side-to-side
       else animClass = "animate-slime-bounce";
   } else {
       if (type === UnitType.MAGE || type === UnitType.SMALL) animClass = "animate-mage-float";
+      else if (type === UnitType.ARCHER) animClass = "animate-idle-breathe";
       else animClass = "animate-idle-breathe";
   }
 
@@ -63,6 +65,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
   // Enemy: Red/Purple themes
   let baseColor = isPlayer ? "#3b82f6" : "#ef4444"; // Default Blue / Red
   let secondaryColor = isPlayer ? "#1e40af" : "#991b1b"; // Darker rim
+  let hoodColor = isPlayer ? "#2563eb" : "#dc2626"; // For Archer Hood
 
   switch(type) {
       case UnitType.WORKER:
@@ -74,8 +77,10 @@ export const StickmanRender: React.FC<StickmanProps> = ({
           secondaryColor = isPlayer ? "#3f6212" : "#365314";
           break;
       case UnitType.ARCHER:
-          baseColor = isPlayer ? "#22d3ee" : "#0891b2"; // Cyan / Dark Cyan
-          secondaryColor = isPlayer ? "#0e7490" : "#164e63";
+          // Redesign: Bright Green Body with Leaf-like texture
+          // We use Team Color for the Hood/Cape to maintain readability
+          baseColor = "#65a30d"; // Forest Green (Base)
+          secondaryColor = "#365314"; // Dark Green (Outline)
           break;
       case UnitType.PALADIN:
           baseColor = isPlayer ? "#e2e8f0" : "#9ca3af"; // White/Silver / Grey
@@ -102,7 +107,6 @@ export const StickmanRender: React.FC<StickmanProps> = ({
         return (
             <g>
                 <defs>
-                    {/* Add type to ID to prevent conflict if needed, though reuse is fine */}
                     <radialGradient id={`mageGlow-${isPlayer ? 'p' : 'e'}-${type}`} cx="0.5" cy="0.5" r="0.5">
                         <stop offset="0%" stopColor={isPlayer ? '#a78bfa' : '#9333ea'} stopOpacity="0.8" />
                         <stop offset="80%" stopColor={baseColor} stopOpacity="0.4" />
@@ -119,6 +123,25 @@ export const StickmanRender: React.FC<StickmanProps> = ({
             </g>
         );
     }
+
+    // ARCHER REDESIGN: Slim, tall slime shape
+    if (type === UnitType.ARCHER) {
+        return (
+            <g>
+                {/* Slimmer, taller body */}
+                <path 
+                    d="M25 100 Q 20 60 30 40 Q 50 15 70 40 Q 80 60 75 100 Z" 
+                    fill="#84cc16" // Bright Green
+                    stroke={secondaryColor} 
+                    strokeWidth="2"
+                />
+                {/* Armor Bands / Leaf Texture */}
+                <path d="M22 80 Q 50 85 78 80" stroke={secondaryColor} strokeWidth="2" fill="none" opacity="0.6" />
+                <path d="M28 60 Q 50 65 72 60" stroke={secondaryColor} strokeWidth="2" fill="none" opacity="0.6" />
+            </g>
+        );
+    }
+
     return (
       <path 
         d="M15 100 C 15 100 15 40 50 40 C 85 40 85 100 85 100 Z" 
@@ -158,6 +181,19 @@ export const StickmanRender: React.FC<StickmanProps> = ({
              <g>
                  <rect x="35" y="60" width="10" height="4" fill="black" opacity="0.6"/>
                  <rect x="55" y="60" width="10" height="4" fill="black" opacity="0.6"/>
+             </g>
+         );
+     }
+     if (type === UnitType.ARCHER) {
+         // Sharp, focused eyes (angled)
+         return (
+             <g>
+                 {/* Slight frown/focus angle */}
+                 <ellipse cx="38" cy="55" rx="4" ry="5" fill="black" transform="rotate(15 38 55)" />
+                 <ellipse cx="62" cy="55" rx="4" ry="5" fill="black" transform="rotate(-15 62 55)" />
+                 {/* Shine */}
+                 <circle cx="39" cy="53" r="1.5" fill="white" />
+                 <circle cx="61" cy="53" r="1.5" fill="white" />
              </g>
          );
      }
@@ -237,22 +273,40 @@ export const StickmanRender: React.FC<StickmanProps> = ({
           );
       }
 
-      // Archer Bow (Enhanced Animation)
+      // Archer: Redesigned
       if (type === UnitType.ARCHER) {
           return (
-              <g transform="translate(55, 60)">
-                  {/* Bow Body - Uses new wind-up animation */}
-                  <g className={isAttacking ? "animate-archer-bow" : ""}>
-                      <path d="M15 -20 Q -5 0 15 20" stroke="#fcd34d" strokeWidth="3" fill="none" />
-                      {/* String */}
-                      <line x1="15" y1="-20" x2="15" y2="20" stroke="white" strokeWidth="1" opacity="0.6" />
-                  </g>
+              <g>
+                  {/* Hood/Cape (Back Layer) - Team Colored for identity */}
+                  <path d="M30 45 Q 50 35 70 45 L 75 90 L 50 85 L 25 90 Z" fill={hoodColor} />
                   
-                  {/* Arrow - Uses new wind-up and shoot animation */}
-                  <g className={isAttacking ? "animate-archer-arrow" : ""}>
-                      <line x1="-5" y1="0" x2="15" y2="0" stroke="white" strokeWidth="2" />
-                      <path d="M15 0 L 10 -3 L 10 3 Z" fill="white" />
-                      <path d="M-5 0 L -8 -2 M-5 0 L -8 2" stroke="white" strokeWidth="1" />
+                  {/* Quiver (Back) */}
+                  <g transform="translate(15, 55) rotate(-20)">
+                       <rect x="0" y="0" width="10" height="25" rx="3" fill="#3f6212" stroke="#1a2e05" />
+                       {/* Arrow feathers sticking out */}
+                       <path d="M2 0 L -2 -5 M5 0 L 5 -8 M8 0 L 12 -5" stroke="white" strokeWidth="2" />
+                  </g>
+
+                  {/* Bow (Front) */}
+                  <g transform="translate(55, 60)">
+                      <g className={isAttacking ? "animate-archer-bow" : ""}>
+                          {/* Wooden Bow growing from slime */}
+                          <path d="M15 -25 Q -10 0 15 25" stroke="#78350f" strokeWidth="4" fill="none" strokeLinecap="round" />
+                          {/* Leaf details on bow tips */}
+                          <path d="M15 -25 L 12 -20 L 18 -20 Z" fill="#84cc16" />
+                          <path d="M15 25 L 12 20 L 18 20 Z" fill="#84cc16" />
+                          {/* String */}
+                          <line x1="15" y1="-23" x2="15" y2="23" stroke="white" strokeWidth="1" opacity="0.7" />
+                      </g>
+                      
+                      {/* Arrow - Forms from slime energy */}
+                      <g className={isAttacking ? "animate-archer-arrow" : ""} style={{ opacity: isAttacking ? 1 : 0 }}>
+                          {/* Slime Arrow */}
+                          <path d="M15 0 L 5 -4 L 5 4 Z" fill="#bef264" /> {/* Head */}
+                          <line x1="-10" y1="0" x2="5" y2="0" stroke="#bef264" strokeWidth="2" /> {/* Shaft */}
+                          {/* Slime Trail/Feathers */}
+                          <circle cx="-10" cy="0" r="2" fill="#bef264" opacity="0.8" />
+                      </g>
                   </g>
               </g>
           );
@@ -362,6 +416,20 @@ export const StickmanRender: React.FC<StickmanProps> = ({
 
   const ImpactVisuals = () => {
      if (isDying || !isAttacking) return null;
+
+     // Archer Impact (Green Slime Splash)
+     if (type === UnitType.ARCHER) {
+         return (
+             <g className="animate-impact-pop" style={{ animationDelay: `${animationDelay}s` }}>
+                 <circle cx="100" cy="50" r="5" fill="#84cc16" opacity="0.8" />
+                 <path d="M100 50 L 90 40" stroke="#84cc16" strokeWidth="2" />
+                 <path d="M100 50 L 110 40" stroke="#84cc16" strokeWidth="2" />
+                 <path d="M100 50 L 100 35" stroke="#84cc16" strokeWidth="2" />
+                 <circle cx="90" cy="40" r="2" fill="#bef264" />
+                 <circle cx="110" cy="40" r="2" fill="#bef264" />
+             </g>
+         );
+     }
 
      // Mage Special Impact
      if (type === UnitType.MAGE || type === UnitType.SMALL) {

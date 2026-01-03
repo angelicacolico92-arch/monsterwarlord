@@ -254,7 +254,7 @@ export const App: React.FC = () => {
         // Mage Summoning Logic
         if (unit.type === UnitType.MAGE) {
           if (!unit.lastSummonTime) unit.lastSummonTime = now;
-          if (now - unit.lastSummonTime > 20000) { // 20s cooldown (updated from 10s)
+          if (now - unit.lastSummonTime > 10000) { // 10s cooldown
              const activeMinions = processedUnits.filter(u => u.side === unit.side && u.ownerId === unit.id && u.state !== 'DYING').length;
              // Only summon if total units for this side is less than MAX_UNITS
              const totalSideUnits = processedUnits.filter(u => u.side === unit.side && u.state !== 'DYING').length;
