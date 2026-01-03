@@ -49,13 +49,14 @@ export interface GameUnit {
   poisonTicks?: number;
   lastPoisonTickTime?: number;
   
-  // Boss Abilities & Status
-  lastAbility1Time?: number; // Slime Wave
-  lastAbility2Time?: number; // Mega Crash
+  // Boss & Mage Abilities & Status
+  lastAbility1Time?: number; // Boss: Slime Wave | Mage: Mystic Fireburst
+  lastAbility2Time?: number; // Boss: Mega Crash | Mage: Shadow Grasp
   attackCount?: number;
   isEnraged?: boolean; // Last Goo Stand active
   stunnedUntil?: number;
   slowedUntil?: number;
+  rootedUntil?: number; // Mage Shadow Grasp effect
 }
 
 export interface GameProjectile {

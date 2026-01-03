@@ -14,6 +14,8 @@ interface StickmanProps {
   isDepositing?: boolean;
   hasGold?: boolean;
   isSummoning?: boolean;
+  isFirebursting?: boolean; // New prop for Mage Ability 1
+  isRooted?: boolean; // New prop for Mage Ability 2 (on victim)
 }
 
 export const StickmanRender: React.FC<StickmanProps> = ({ 
@@ -28,7 +30,9 @@ export const StickmanRender: React.FC<StickmanProps> = ({
   isMining = false,
   isDepositing = false,
   hasGold = false,
-  isSummoning = false
+  isSummoning = false,
+  isFirebursting = false,
+  isRooted = false
 }) => {
   const animationDelay = useMemo(() => Math.random() * 1, []);
   
@@ -39,6 +43,8 @@ export const StickmanRender: React.FC<StickmanProps> = ({
   let animClass = "";
   if (isDying) {
       animClass = "animate-death-puddle";
+  } else if (isRooted) {
+      animClass = "animate-idle-breathe"; // Struggle anim? Just use idle for now
   } else if (isSummoning && type === UnitType.MAGE) {
       // Mage summon pose (stationary but possibly levitating/channeling)
       animClass = "animate-mage-float"; 
@@ -345,7 +351,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
 
                   {/* Bow (Front) - Flipped to face Forward (Right) */}
                   <g transform="translate(55, 60)">
-                      <g className={isAttacking ? "animate-archer-bow" : ""}>
+                      <g className={isAttacking ? "animate-archer-bow" : ""} style={{ transformOrigin: 'center' }}>
                           {/* Wooden Bow - Curved forward */}
                           {/* Tips at x=0, Belly at x=20 (bulging right) */}
                           <path d="M0 -25 Q 20 0 0 25" stroke="#78350f" strokeWidth="4" fill="none" strokeLinecap="round" />
@@ -436,6 +442,32 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                       {/* Small Orbiting particles around staff */}
                       <circle cx="85" cy="40" r="8" fill="none" stroke="#fff" strokeWidth="0.5" strokeDasharray="2 2" className="animate-spin" style={{ transformOrigin: '85px 40px' }} />
                   </g>
+
+                  {/* ABILITY 1: MYSTIC FIREBURST */}
+                  {type === UnitType.MAGE && isFirebursting && (
+                      <g className="animate-fireburst" pointerEvents="none">
+                          <defs>
+                              <radialGradient id="fireburstGrad" cx="0.5" cy="0.5" r="0.5">
+                                  <stop offset="0%" stopColor="#d8b4fe" stopOpacity="0.8" />
+                                  <stop offset="70%" stopColor="#7c3aed" stopOpacity="0.4" />
+                                  <stop offset="100%" stopColor="#5b21b6" stopOpacity="0" />
+                              </radialGradient>
+                          </defs>
+                          <circle cx="50" cy="75" r="45" fill="url(#fireburstGrad)" className="animate-pulse" />
+                          <circle cx="50" cy="75" r="35" fill="none" stroke="#d8b4fe" strokeWidth="2" opacity="0.7">
+                              <animate attributeName="r" values="25;45" dur="0.8s" repeatCount="1" />
+                              <animate attributeName="opacity" values="0.7;0" dur="0.8s" repeatCount="1" />
+                          </circle>
+                          {/* Runes / Sparks */}
+                          <g transform="translate(50,75)">
+                              {[0, 60, 120, 180, 240, 300].map(deg => (
+                                  <g key={deg} transform={`rotate(${deg}) translate(0, -30)`}>
+                                      <path d="M0 0 L 2 -5 L -2 -5 Z" fill="#fff" className="animate-sparkle" />
+                                  </g>
+                              ))}
+                          </g>
+                      </g>
+                  )}
 
                   {/* Summon Animation: Magic Circle (Only for actual Mage doing summoning) */}
                   {type === UnitType.MAGE && isSummoning && (
@@ -580,6 +612,25 @@ export const StickmanRender: React.FC<StickmanProps> = ({
         </g>
     );
   };
+  
+  const renderRootVisuals = () => {
+      // Ability 2: Shadow Grasp Effect on the Victim
+      if (!isRooted) return null;
+      return (
+          <g className="animate-pulse">
+              {/* Dark Tendrils wrapping base */}
+              <path d="M20 95 Q 35 70 50 85 Q 65 70 80 95" stroke="#4c1d95" strokeWidth="3" fill="none" opacity="0.8" />
+              <path d="M30 100 Q 40 60 50 75 Q 60 60 70 100" stroke="#581c87" strokeWidth="3" fill="none" opacity="0.8" />
+              
+              {/* Constricting rings */}
+              <ellipse cx="50" cy="85" rx="30" ry="10" stroke="#6b21a8" strokeWidth="2" fill="none" opacity="0.6" strokeDasharray="5 5" />
+              
+              {/* Dark Particles */}
+              <circle cx="30" cy="80" r="2" fill="#2e1065" className="animate-ping" style={{ animationDuration: '2s' }} />
+              <circle cx="70" cy="80" r="2" fill="#2e1065" className="animate-ping" style={{ animationDuration: '1.5s' }} />
+          </g>
+      );
+  };
 
   return (
     <svg 
@@ -596,6 +647,9 @@ export const StickmanRender: React.FC<StickmanProps> = ({
             
             @keyframes summon-circle { 0% { opacity: 0; transform: scale(0.5) rotate(0deg); } 50% { opacity: 1; transform: scale(1.2) rotate(180deg); } 100% { opacity: 0; transform: scale(0.5) rotate(360deg); } }
             .animate-summon-circle { animation: summon-circle 1s ease-in-out; }
+            
+            @keyframes fireburst-pulse { 0% { transform: scale(0.5); opacity: 0.8; } 100% { transform: scale(1.5); opacity: 0; } }
+            .animate-fireburst { animation: fireburst-pulse 1s ease-out forwards; transform-origin: 50px 75px; }
             
             @keyframes energy-rise { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-40px); opacity: 0; } }
             .animate-energy-rise { animation: energy-rise 0.8s ease-out; }
@@ -614,6 +668,9 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       {isSelected && !isDying && (
           <ellipse cx="50" cy="95" rx="25" ry="8" fill="none" stroke="#fbbf24" strokeWidth="2" className="animate-pulse" />
       )}
+      
+      {/* Root Visuals (Behind) */}
+      {renderRootVisuals()}
 
       {/* Main Slime Group - REMOVED FILTER FOR MOBILE PERFORMANCE */}
       <g>

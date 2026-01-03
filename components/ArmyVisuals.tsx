@@ -90,6 +90,8 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({
         const isMining = unit.state === 'MINING' || unit.state === 'ATTACKING'; 
         const isDepositing = unit.state === 'DEPOSITING';
         const isSummoning = unit.type === UnitType.MAGE && (Date.now() - (unit.lastSummonTime || 0) < 1000);
+        const isFirebursting = unit.type === UnitType.MAGE && (Date.now() - (unit.lastAbility1Time || 0) < 1000);
+        const isRooted = !!unit.rootedUntil && unit.rootedUntil > Date.now();
         
         // Hide if retreating and at base
         const homeX = isPlayer ? STATUE_PLAYER_POS : STATUE_ENEMY_POS;
@@ -181,11 +183,13 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({
                 isAttacking={unit.state === 'ATTACKING'} 
                 isMining={isMining}
                 isDepositing={isDepositing}
-                isMoving={unit.state === 'WALKING'} 
+                isMoving={unit.state === 'WALKING' && !isRooted} // Stop walking anim if rooted
                 isDying={isDying}
                 isSelected={selectedUnitId === unit.id}
                 hasGold={unit.hasGold}
                 isSummoning={isSummoning}
+                isFirebursting={isFirebursting}
+                isRooted={isRooted}
             />
           </div>
         );

@@ -313,6 +313,21 @@ export const App: React.FC = () => {
             return; // Skip rest of logic
         }
 
+        // Check Root Status (Shadow Grasp)
+        if (unit.rootedUntil && unit.rootedUntil > now) {
+            unit.state = 'IDLE';
+            targetVelocity = 0;
+            unit.currentSpeed = 0;
+            
+            // Apply Minor Dot while rooted (approx 10 dmg per second)
+            // 20ms tick rate * 50 = 1000ms. 0.2 * 50 = 10 dmg.
+            unit.hp -= 0.2;
+            // No lastDamageTime update to avoid spamming text
+            
+            // Do NOT return here, allow attacks if in range, just movement is restricted.
+            // But we need to bypass movement calculation below.
+        }
+
         // Poison Logic
         if (unit.poisonTicks && unit.poisonTicks > 0) {
             if (now - (unit.lastPoisonTickTime || 0) > 1000) {
@@ -424,30 +439,27 @@ export const App: React.FC = () => {
           }
 
           if (shouldAttack) {
-            // BOSS ACTIVE ABILITIES
+            // ACTIVE ABILITIES (Boss & Mage)
             let abilityTriggered = false;
             
+            // --- BOSS ABILITIES ---
             if (unit.type === UnitType.BOSS) {
                 // Ability 2: Mega Slime Crash (25s Cooldown)
-                // Jump range: 15% map width. Triggers if enemies exist in that range.
                 if (!unit.lastAbility2Time) unit.lastAbility2Time = 0;
                 if (now - unit.lastAbility2Time > 25000) {
-                    // Check for valid jump target area (further ahead)
                     const jumpTargetX = unit.x + (dir * 15);
                     const enemiesInJumpZone = potentialTargets.filter(u => Math.abs(u.x - jumpTargetX) < 6);
                     
                     if (enemiesInJumpZone.length > 0) {
                         unit.lastAbility2Time = now;
-                        unit.x = Math.max(0, Math.min(100, jumpTargetX)); // Teleport Jump
+                        unit.x = Math.max(0, Math.min(100, jumpTargetX));
                         setShakeTrigger(now + 600);
                         AudioService.playAttack(UnitType.BOSS);
-                        
-                        // AoE Damage & Stun
                         enemiesInJumpZone.forEach(target => {
                             target.hp -= 90;
                             target.lastDamageTime = now;
                             target.lastDamageAmount = 90;
-                            target.stunnedUntil = now + 1500; // 1.5s Stun
+                            target.stunnedUntil = now + 1500;
                         });
                         abilityTriggered = true;
                     }
@@ -457,24 +469,58 @@ export const App: React.FC = () => {
                 if (!abilityTriggered) {
                     if (!unit.lastAbility1Time) unit.lastAbility1Time = 0;
                     if (now - unit.lastAbility1Time > 10000) {
-                         // Line AoE: 12% Range
                          const waveRange = 12;
                          const enemiesInLine = potentialTargets.filter(u => {
-                             const dist = (u.x - unit.x) * dir; // Positive if in front
+                             const dist = (u.x - unit.x) * dir;
                              return dist > 0 && dist < waveRange;
                          });
                          
                          if (enemiesInLine.length > 0) {
                              unit.lastAbility1Time = now;
-                             AudioService.playSummon(); // Use summon sound for wave
+                             AudioService.playSummon(); 
                              enemiesInLine.forEach(target => {
                                  target.hp -= 30;
                                  target.lastDamageTime = now;
                                  target.lastDamageAmount = 30;
-                                 target.slowedUntil = now + 2000; // 2s Slow
+                                 target.slowedUntil = now + 2000;
                              });
                              abilityTriggered = true;
                          }
+                    }
+                }
+            }
+
+            // --- MAGE ABILITIES ---
+            if (unit.type === UnitType.MAGE && !abilityTriggered) {
+                // Ability 1: Mystic Fireburst (AoE + Slow) - 15s Cooldown
+                if (!unit.lastAbility1Time) unit.lastAbility1Time = 0;
+                if (now - unit.lastAbility1Time > 15000) {
+                    // Small radius burst around self
+                    const burstRadius = 4; 
+                    const burstTargets = potentialTargets.filter(u => Math.abs(u.x - unit.x) < burstRadius);
+                    
+                    if (burstTargets.length > 0) {
+                        unit.lastAbility1Time = now;
+                        AudioService.playAttack(UnitType.MAGE); // Reuse existing sound
+                        burstTargets.forEach(target => {
+                            applyDamage(target, 60, now, false);
+                            target.slowedUntil = now + 3000; // 3s Slow
+                        });
+                        abilityTriggered = true;
+                    }
+                }
+
+                // Ability 2: Shadow Grasp (Root) - 25s Cooldown
+                if (!abilityTriggered) {
+                    if (!unit.lastAbility2Time) unit.lastAbility2Time = 0;
+                    if (now - unit.lastAbility2Time > 25000) {
+                        if (primaryTarget) {
+                            unit.lastAbility2Time = now;
+                            primaryTarget.rootedUntil = now + 2500; // 2.5s Root
+                            primaryTarget.lastDamageTime = now; // Flash red to show effect hit
+                            abilityTriggered = true;
+                            // Visuals handled by renderer checking rootedUntil prop
+                        }
                     }
                 }
             }
@@ -614,6 +660,11 @@ export const App: React.FC = () => {
                 }
             }
           }
+        }
+        
+        // Prevent movement if Rooted (Override targetVelocity from above)
+        if (unit.rootedUntil && unit.rootedUntil > now) {
+            targetVelocity = 0;
         }
 
         // Apply Speed & Slows
