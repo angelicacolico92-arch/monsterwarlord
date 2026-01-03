@@ -116,14 +116,15 @@ const BaseStatue: React.FC<{ x: number; hp: number; variant: 'BLUE' | 'RED'; isF
 
 const TICK_RATE = 20; 
 const DEATH_DURATION = 1500;
+// Lowered agility values for smoother/heavier movement physics
 const UNIT_AGILITY: Record<string, number> = {
-  [UnitType.WORKER]: 10.0,
-  [UnitType.SMALL]: 12.0,
-  [UnitType.TOXIC]: 8.0,
-  [UnitType.ARCHER]: 7.0,
-  [UnitType.MAGE]: 5.0,
-  [UnitType.PALADIN]: 4.0,
-  [UnitType.BOSS]: 2.0
+  [UnitType.WORKER]: 5.0,
+  [UnitType.SMALL]: 6.0,
+  [UnitType.TOXIC]: 4.0,
+  [UnitType.ARCHER]: 3.5,
+  [UnitType.MAGE]: 2.5,
+  [UnitType.PALADIN]: 2.0,
+  [UnitType.BOSS]: 1.0
 };
 
 export const App: React.FC = () => {
@@ -418,7 +419,21 @@ export const App: React.FC = () => {
           
           // 1. Identify Aggro Target (Visible enemy for charging)
           const visibleTargets = potentialTargets.filter(u => Math.abs(u.x - unit.x) < AGGRO_RANGE);
-          visibleTargets.sort((a, b) => Math.abs(a.x - unit.x) - Math.abs(b.x - unit.x));
+          
+          // Sort potential targets by distance, but add HYSTERESIS (bias) to current target
+          // This prevents jittering between two nearly equidistant targets
+          visibleTargets.sort((a, b) => {
+              let distA = Math.abs(a.x - unit.x);
+              let distB = Math.abs(b.x - unit.x);
+              
+              // If we are already targeting this unit, subtract bias from its distance
+              // to make it "stickier" and prevent rapid switching
+              if (a.id === unit.targetId) distA -= 4; 
+              if (b.id === unit.targetId) distB -= 4;
+              
+              return distA - distB;
+          });
+          
           const aggroTarget = visibleTargets.length > 0 ? visibleTargets[0] : null;
 
           // 2. Identify Attack Target (In range to hit)
