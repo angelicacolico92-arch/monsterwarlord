@@ -49,10 +49,10 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       else if (type === UnitType.WORKER && isMining) animClass = "animate-mining";
       else animClass = "animate-slime-attack";
   } else if (isMoving || isDepositing) {
-      if (type === UnitType.MAGE) animClass = "animate-mage-float";
+      if (type === UnitType.MAGE || type === UnitType.SMALL) animClass = "animate-mage-float";
       else animClass = "animate-slime-bounce";
   } else {
-      if (type === UnitType.MAGE) animClass = "animate-mage-float";
+      if (type === UnitType.MAGE || type === UnitType.SMALL) animClass = "animate-mage-float";
       else animClass = "animate-idle-breathe";
   }
 
@@ -82,6 +82,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
           secondaryColor = isPlayer ? "#94a3b8" : "#4b5563";
           break;
       case UnitType.MAGE:
+      case UnitType.SMALL:
           // New Mage Colors: Purple-Blue Glow (as per design)
           // Player: Stronger Blue-Purple, Enemy: Darker Red-Purple
           baseColor = isPlayer ? "#8b5cf6" : "#7c3aed"; 
@@ -91,21 +92,18 @@ export const StickmanRender: React.FC<StickmanProps> = ({
           baseColor = isPlayer ? "#f43f5e" : "#881337"; // Pink/Red / Dark Red
           secondaryColor = isPlayer ? "#9f1239" : "#4c0519";
           break;
-      case UnitType.SMALL:
-          baseColor = isPlayer ? "#60a5fa" : "#f87171"; // Lighter Blue / Red
-          secondaryColor = isPlayer ? "#2563eb" : "#dc2626";
-          break;
   }
 
   // --- COMPONENT PARTS ---
 
   const SlimeBody = () => {
     // Mage has specific semi-transparent body design
-    if (type === UnitType.MAGE) {
+    if (type === UnitType.MAGE || type === UnitType.SMALL) {
         return (
             <g>
                 <defs>
-                    <radialGradient id={`mageGlow-${isPlayer ? 'p' : 'e'}`} cx="0.5" cy="0.5" r="0.5">
+                    {/* Add type to ID to prevent conflict if needed, though reuse is fine */}
+                    <radialGradient id={`mageGlow-${isPlayer ? 'p' : 'e'}-${type}`} cx="0.5" cy="0.5" r="0.5">
                         <stop offset="0%" stopColor={isPlayer ? '#a78bfa' : '#9333ea'} stopOpacity="0.8" />
                         <stop offset="80%" stopColor={baseColor} stopOpacity="0.4" />
                         <stop offset="100%" stopColor={secondaryColor} stopOpacity="0.6" />
@@ -113,7 +111,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                 </defs>
                 <path 
                     d="M15 100 C 15 100 15 40 50 40 C 85 40 85 100 85 100 Z" 
-                    fill={`url(#mageGlow-${isPlayer ? 'p' : 'e'})`}
+                    fill={`url(#mageGlow-${isPlayer ? 'p' : 'e'}-${type})`}
                     stroke={secondaryColor} 
                     strokeWidth="2"
                     strokeOpacity="0.8"
@@ -163,7 +161,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
              </g>
          );
      }
-     if (type === UnitType.MAGE) {
+     if (type === UnitType.MAGE || type === UnitType.SMALL) {
          // Glowing Arcane Eyes
          return (
              <g>
@@ -298,8 +296,8 @@ export const StickmanRender: React.FC<StickmanProps> = ({
           );
       }
 
-      // Mage Redesign (Final)
-      if (type === UnitType.MAGE) {
+      // Mage Redesign (Final) + Small (Mini-Mage)
+      if (type === UnitType.MAGE || type === UnitType.SMALL) {
           return (
               <g>
                   {/* Core: Floating Magic Crystal/Orb inside */}
@@ -325,8 +323,8 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                       <circle cx="85" cy="40" r="8" fill="none" stroke="#fff" strokeWidth="0.5" strokeDasharray="2 2" className="animate-spin" style={{ transformOrigin: '85px 40px' }} />
                   </g>
 
-                  {/* Summon Animation: Magic Circle */}
-                  {isSummoning && (
+                  {/* Summon Animation: Magic Circle (Only for actual Mage doing summoning) */}
+                  {type === UnitType.MAGE && isSummoning && (
                       <g className="animate-summon-circle" style={{ transformOrigin: '50px 95px' }}>
                           <ellipse cx="50" cy="95" rx="30" ry="8" fill="none" stroke="#d8b4fe" strokeWidth="1.5" />
                           <path d="M50 87 L 50 103 M 35 95 L 65 95" stroke="#d8b4fe" strokeWidth="1" />
@@ -338,7 +336,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                   )}
                   
                   {/* Summon Energy Gathering */}
-                  {isSummoning && (
+                  {type === UnitType.MAGE && isSummoning && (
                       <g>
                           <circle cx="50" cy="95" r="2" fill="#fff" className="animate-energy-rise" />
                           <circle cx="40" cy="95" r="1.5" fill="#fff" className="animate-energy-rise" style={{ animationDelay: '0.2s' }} />
@@ -366,7 +364,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
      if (isDying || !isAttacking) return null;
 
      // Mage Special Impact
-     if (type === UnitType.MAGE) {
+     if (type === UnitType.MAGE || type === UnitType.SMALL) {
         return (
             <g style={{ animationDelay: `${animationDelay}s` }}>
                 <circle cx="100" cy="50" r="10" fill="none" stroke="#a855f7" strokeWidth="2" opacity="0">
@@ -480,7 +478,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       )}
       
       {/* Magic Effects */}
-      {isAttacking && !isDying && type === UnitType.MAGE && (
+      {isAttacking && !isDying && (type === UnitType.MAGE || type === UnitType.SMALL) && (
          <circle cx="80" cy="50" r="8" fill="none" stroke={secondaryColor} strokeWidth="2" className="animate-magic-pulse" />
       )}
       
