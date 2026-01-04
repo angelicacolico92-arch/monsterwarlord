@@ -289,15 +289,25 @@ export const StickmanRender: React.FC<StickmanProps> = ({
      if (type === UnitType.PALADIN) return null;
 
      if (type === UnitType.TOXIC) { 
-         // Fierce Warrior Eyes (Angled)
+         // Cute Determined Warrior Eyes
          return (
              <g>
-                <path d="M30 50 L 48 58" stroke="white" strokeWidth="3" strokeLinecap="round" />
-                <path d="M70 50 L 52 58" stroke="white" strokeWidth="3" strokeLinecap="round" />
-                <circle cx="42" cy="62" r="3" fill="white" />
-                <circle cx="42" cy="62" r="1.5" fill="black" />
-                <circle cx="58" cy="62" r="3" fill="white" />
-                <circle cx="58" cy="62" r="1.5" fill="black" />
+                {/* War Paint Blush (Cute but tough) */}
+                <path d="M22 68 L 30 65 M 22 65 L 30 68" stroke={isPlayer ? "#5eead4" : "#fda4af"} strokeWidth="1.5" opacity="0.7" strokeLinecap="round" />
+                <path d="M70 68 L 78 65 M 70 65 L 78 68" stroke={isPlayer ? "#5eead4" : "#fda4af"} strokeWidth="1.5" opacity="0.7" strokeLinecap="round" />
+
+                {/* Large Determined Eyes */}
+                <circle cx="36" cy="60" r="7" fill="white" />
+                <ellipse cx="36" cy="60" rx="4.5" ry="5.5" fill="#0f172a" />
+                <circle cx="34" cy="57" r="2.5" fill="white" /> {/* Shine */}
+                
+                <circle cx="64" cy="60" r="7" fill="white" />
+                <ellipse cx="64" cy="60" rx="4.5" ry="5.5" fill="#0f172a" />
+                <circle cx="62" cy="57" r="2.5" fill="white" /> {/* Shine */}
+
+                {/* Angled Eyebrows (Determination) */}
+                <path d="M28 50 L 42 55" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+                <path d="M72 50 L 58 55" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
              </g>
          );
      }
