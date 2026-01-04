@@ -65,7 +65,10 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       else animClass = "animate-idle-breathe";
   }
 
-  const style = { animationDelay: isDying ? '0s' : `${animationDelay}s` };
+  // Animation overrides for Archer speed (0.7s)
+  const animStyle = type === UnitType.ARCHER && isAttacking 
+      ? { animationDuration: '0.7s', animationDelay: isDying ? '0s' : `${animationDelay}s` } 
+      : { animationDelay: isDying ? '0s' : `${animationDelay}s` };
   
   // -- COLORS --
   let baseColor = isPlayer ? "#3b82f6" : "#ef4444"; 
@@ -84,11 +87,10 @@ export const StickmanRender: React.FC<StickmanProps> = ({
           hoodColor = "#fbbf24"; // Gold Accents for both
           break;
       case UnitType.ARCHER:
-          // Imperial Archer: Deep Emerald (Player) vs Dark Crimson (Enemy)
-          // Gold Accents for both
-          baseColor = isPlayer ? "#047857" : "#991b1b"; 
-          secondaryColor = isPlayer ? "#064e3b" : "#7f1d1d"; 
-          hoodColor = "#fbbf24"; 
+          // Imperial Knight Archer: Royal Green (Player) vs Dark Crimson (Enemy)
+          baseColor = isPlayer ? "#047857" : "#7f1d1d"; 
+          secondaryColor = isPlayer ? "#064e3b" : "#450a0a"; 
+          hoodColor = "#fbbf24"; // Gold Accents
           break;
       case UnitType.PALADIN:
           baseColor = isPlayer ? "#f8fafc" : "#475569"; 
@@ -120,14 +122,15 @@ export const StickmanRender: React.FC<StickmanProps> = ({
               </g>
           );
       }
-      // Quiver for Imperial Archer
+      // Compact Quiver for Imperial Archer (No Cape)
       if (type === UnitType.ARCHER) {
           return (
               <g transform="translate(0,0)">
-                  <path d="M65 45 L 80 85 L 70 90 L 55 50 Z" fill="#4a2c0f" stroke="#271c19" strokeWidth="1" />
-                  <path d="M60 48 L 75 48" stroke={hoodColor} strokeWidth="2" />
-                  <path d="M68 40 L 70 30 L 66 30 Z" fill={hoodColor} />
-                  <path d="M74 42 L 76 32 L 72 32 Z" fill={hoodColor} />
+                  <path d="M68 55 L 75 80 L 65 85 L 58 60 Z" fill="#4a2c0f" stroke="#271c19" strokeWidth="1" />
+                  <path d="M60 58 L 72 58" stroke={hoodColor} strokeWidth="1.5" />
+                  {/* Fletchings visible */}
+                  <path d="M68 50 L 70 40 L 66 40 Z" fill="#ecfccb" />
+                  <path d="M72 52 L 74 42 L 70 42 Z" fill="#ecfccb" />
               </g>
           );
       }
@@ -224,49 +227,52 @@ export const StickmanRender: React.FC<StickmanProps> = ({
     }
 
     if (type === UnitType.ARCHER) {
-        // Imperial Archer Body - Full Plate Armor (Exposed Face)
+        // Imperial Knight Archer - Compact & Round
         return (
             <g>
-                {/* Short Imperial Cape - Attached at shoulders */}
-                <path d="M20 65 Q 10 80 15 92 L 85 92 Q 90 80 80 65" fill={secondaryColor} />
-
-                {/* Base Slime Body (Visible head and bottom) */}
+                {/* Compact Slime Body (Round) */}
                 <path 
-                    d="M20 100 L 22 75 Q 20 45 50 40 Q 80 45 78 75 L 80 100 Z" 
+                    d="M15 100 L 15 95 Q 15 45 50 45 Q 85 45 85 95 L 85 100 Z" 
                     fill={baseColor} 
                     stroke={secondaryColor} 
                     strokeWidth="2" 
                 />
 
-                {/* --- FULL PLATE ARMOR (Fitted) --- */}
+                {/* --- IMPERIAL KNIGHT ARMOR (Compact) --- */}
                 
-                {/* Faulds (Armored Skirt/Base) */}
-                <path d="M22 82 L 20 95 L 35 90 L 35 80 Z" fill="#cbd5e1" stroke="#334155" strokeWidth="1" />
-                <path d="M35 80 L 35 92 L 50 95 L 65 92 L 65 80 Z" fill="#e2e8f0" stroke="#334155" strokeWidth="1" />
-                <path d="M65 80 L 65 90 L 80 95 L 78 82 Z" fill="#cbd5e1" stroke="#334155" strokeWidth="1" />
-
-                {/* Breastplate (Cuirass) - Adjusted to fit body width and sit below eyes */}
+                {/* 1. Compact Chest Plate (Gold-Edged) */}
                 <path 
-                    d="M23 82 Q 21 72 23 65 Q 50 70 77 65 Q 79 72 77 82 Q 50 88 23 82 Z" 
-                    fill="url(#plateGradient)" 
-                    stroke="#334155" 
-                    strokeWidth="1.5" 
+                    d="M30 75 Q 50 82 70 75 L 70 85 Q 50 95 30 85 Z" 
+                    fill="#e2e8f0" 
+                    stroke={hoodColor} 
+                    strokeWidth="1" 
                 />
                 
-                {/* Gorget (Neck Guard) - Sits on top of breastplate, below eyes (y=55) */}
-                <path d="M35 65 Q 50 67 65 65 L 65 62 Q 50 65 35 62 Z" fill="#94a3b8" stroke="#334155" strokeWidth="1" />
-
-                {/* Armor Detail: Vertical Line */}
-                <path d="M50 68 L 50 80" stroke={hoodColor} strokeWidth="1.5" opacity="0.8" />
+                {/* 2. Rounded Short Pauldrons (Shoulders) */}
+                <circle cx="20" cy="70" r="8" fill="#e2e8f0" stroke="#475569" strokeWidth="1" />
+                <circle cx="20" cy="70" r="4" fill={hoodColor} opacity="0.5" />
                 
-                {/* Armor Detail: Emblem */}
-                <path d="M50 72 L 54 75 L 50 78 L 46 75 Z" fill={hoodColor} stroke="#b45309" strokeWidth="0.5" />
+                <circle cx="80" cy="70" r="8" fill="#e2e8f0" stroke="#475569" strokeWidth="1" />
+                <circle cx="80" cy="70" r="4" fill={hoodColor} opacity="0.5" />
 
-                {/* Heavy Pauldrons (Shoulders) - Fitted to sides */}
-                {/* Left */}
-                <path d="M12 68 Q 10 58 28 62 L 30 68 Z" fill="#cbd5e1" stroke="#334155" strokeWidth="1" />
-                {/* Right */}
-                <path d="M88 68 Q 90 58 72 62 L 70 68 Z" fill="#cbd5e1" stroke="#334155" strokeWidth="1" />
+                {/* 3. Open-Face Knight Helmet */}
+                {/* Helmet Dome covers top of slime */}
+                <path 
+                    d="M20 60 Q 20 20 50 20 Q 80 20 80 60 L 80 65 Q 80 60 70 60 L 30 60 Q 20 60 20 65 Z" 
+                    fill="#cbd5e1" 
+                    stroke="#334155" 
+                    strokeWidth="2" 
+                />
+                
+                {/* Cheek Guards (Framing the face) */}
+                <path d="M20 60 L 25 75 L 35 75 L 30 60 Z" fill="#cbd5e1" stroke="#334155" strokeWidth="1" />
+                <path d="M80 60 L 75 75 L 65 75 L 70 60 Z" fill="#cbd5e1" stroke="#334155" strokeWidth="1" />
+
+                {/* Small Crest on Top */}
+                <path d="M45 20 L 45 12 L 55 20" fill={hoodColor} stroke="#b45309" strokeWidth="1" />
+                <path d="M48 12 L 52 12" stroke={hoodColor} strokeWidth="2" />
+
+                {/* 4. Face is left fully exposed in the center (cy=55-60) */}
             </g>
         );
     }
@@ -434,20 +440,20 @@ export const StickmanRender: React.FC<StickmanProps> = ({
      }
      
      if (type === UnitType.ARCHER) {
-         // Imperial Archer: Exposed Face, Combat Eyes (No Helmet)
-         // Eyes are at cy=55. Armor now starts at y=65, leaving 10px clear.
+         // Imperial Archer: Clear, Focused Eyes (Fully Visible under Open Helmet)
+         // Face Center is roughly 50, 60. Helmet frames it.
          return (
              <g>
-                 {/* Eyes: Sharp/Focused */}
-                 <ellipse cx="35" cy="55" rx="3" ry="4" fill="white" />
-                 <ellipse cx="35" cy="55" rx="1.5" ry="2.5" fill="black" />
+                 {/* Eyes */}
+                 <ellipse cx="38" cy="58" rx="3.5" ry="4.5" fill="white" />
+                 <ellipse cx="38" cy="58" rx="1.5" ry="2.5" fill="black" />
                  
-                 <ellipse cx="65" cy="55" rx="3" ry="4" fill="white" />
-                 <ellipse cx="65" cy="55" rx="1.5" ry="2.5" fill="black" />
+                 <ellipse cx="62" cy="58" rx="3.5" ry="4.5" fill="white" />
+                 <ellipse cx="62" cy="58" rx="1.5" ry="2.5" fill="black" />
                  
-                 {/* Eyebrows for determination */}
-                 <path d="M28 50 L 42 53" stroke="#1f2937" strokeWidth="1.5" strokeLinecap="round" />
-                 <path d="M72 50 L 58 53" stroke="#1f2937" strokeWidth="1.5" strokeLinecap="round" />
+                 {/* Serious Eyebrows */}
+                 <path d="M32 52 L 44 55" stroke="#1f2937" strokeWidth="1.5" strokeLinecap="round" />
+                 <path d="M68 52 L 56 55" stroke="#1f2937" strokeWidth="1.5" strokeLinecap="round" />
              </g>
          );
      }
@@ -582,33 +588,34 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       if (type === UnitType.ARCHER) {
           return (
              <g>
-                  {/* Imperial Bow - Attached to arm (visual right) */}
-                  <g transform="translate(72, 65)">
-                      <g className={isAttacking ? "animate-archer-bow" : ""} style={{ transformOrigin: 'center' }}>
-                          
-                          {/* Hand gripping */}
-                          <circle cx="0" cy="0" r="4" fill={baseColor} stroke={secondaryColor} strokeWidth="1" />
+                  {/* Imperial Bow - Compact Wood & Gold */}
+                  <g transform="translate(70, 70)">
+                      <g 
+                        className={isAttacking ? "animate-archer-bow" : ""} 
+                        style={{ transformOrigin: 'center', animationDuration: '0.7s' }}
+                      >
+                          {/* Hand */}
+                          <circle cx="0" cy="0" r="3" fill={baseColor} />
 
-                          {/* Reinforced Imperial Bow */}
-                          <path d="M-2 -25 L -2 25" stroke={hoodColor} strokeWidth="3" />
-                          <path d="M0 -25 Q 15 -35 5 -50" stroke="#5c4033" strokeWidth="3" fill="none" strokeLinecap="round" />
-                          <path d="M0 25 Q 15 35 5 50" stroke="#5c4033" strokeWidth="3" fill="none" strokeLinecap="round" />
+                          {/* Compact Bow Body */}
+                          <path d="M-2 -20 Q 15 -30 10 -40" stroke="#78350f" strokeWidth="3" fill="none" strokeLinecap="round" />
+                          <path d="M-2 20 Q 15 30 10 40" stroke="#78350f" strokeWidth="3" fill="none" strokeLinecap="round" />
+                          <path d="M-2 -20 L -2 20" stroke={hoodColor} strokeWidth="3" /> {/* Handle Grip */}
                           
-                          {/* Gold Accents/Tips */}
-                          <circle cx="5" cy="-50" r="2" fill={hoodColor} />
-                          <circle cx="5" cy="50" r="2" fill={hoodColor} />
+                          {/* Gold Accents */}
+                          <circle cx="10" cy="-40" r="2" fill={hoodColor} />
+                          <circle cx="10" cy="40" r="2" fill={hoodColor} />
 
-                          {/* String */}
-                          <line x1="5" y1="-50" x2="5" y2="50" stroke="white" strokeWidth="0.5" opacity="0.6" />
+                          {/* Energy String (Glowing) */}
+                          <line x1="10" y1="-40" x2="10" y2="40" stroke="#bef264" strokeWidth="1" strokeOpacity="0.8" className="animate-pulse" />
                           
                           {isAttacking && (
-                              <g className="animate-archer-reload">
-                                  {/* Slime Arrow */}
-                                  <line x1="-20" y1="0" x2="10" y2="0" stroke="#bef264" strokeWidth="2" />
-                                  {/* Crystal Tip */}
-                                  <path d="M10 0 L 6 -3 L 6 3 Z" fill="#ecfccb" />
-                                  {/* Fletching */}
-                                  <path d="M-20 0 L -24 -3 L -24 3 Z" fill={hoodColor} />
+                              <g className="animate-archer-reload" style={{ animationDuration: '0.7s' }}>
+                                  {/* Crystal Slime Arrow */}
+                                  <line x1="-15" y1="0" x2="15" y2="0" stroke="#bef264" strokeWidth="2" />
+                                  <path d="M15 0 L 10 -3 L 10 3 Z" fill="#ecfccb" /> {/* Tip */}
+                                  <path d="M-15 0 L -18 -3 L -18 3 Z" fill={hoodColor} /> {/* Fletch */}
+                                  <circle cx="15" cy="0" r="4" fill="#bef264" opacity="0.5" className="animate-ping" /> {/* Sparkle Impact */}
                               </g>
                           )}
                       </g>
@@ -1003,7 +1010,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       
       {/* -- ANIMATED BODY GROUP -- */}
       {/* This group contains everything that should bounce/lunge */}
-      <g className={animClass} style={style}>
+      <g className={animClass} style={animStyle}>
         {renderBackAccessories()}
         {renderSlimeBody()}
         {renderSlimeBubbles()}
