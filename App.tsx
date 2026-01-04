@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { UnitType, GameUnit, GameState, GameCommand, PlayerRole, MapId, GameProjectile } from './types';
 import { 
@@ -402,13 +403,14 @@ export const App: React.FC = () => {
 
               if (targetUnit) {
                   applyDamage(targetUnit, p.damage, now, false, processedUnits);
+                  AudioService.playImpact('PHYSICAL');
               } else {
                  // Hit Statue?
                  const isPlayerProjectile = p.side === 'player';
                  const statueX = isPlayerProjectile ? STATUE_ENEMY_POS : STATUE_PLAYER_POS;
                  if (Math.abs(p.x - statueX) < 3) {
                      if (isPlayerProjectile) eStatueHP -= p.damage; else pStatueHP -= p.damage;
-                     AudioService.playDamage();
+                     AudioService.playImpact('PHYSICAL');
                  }
               }
           }
@@ -626,6 +628,7 @@ export const App: React.FC = () => {
                             target.lastDamageAmount = 90;
                             target.stunnedUntil = now + 1500;
                         });
+                        AudioService.playImpact('PHYSICAL');
                         abilityTriggered = true;
                     }
                 }
@@ -649,6 +652,7 @@ export const App: React.FC = () => {
                                  target.lastDamageAmount = 30;
                                  target.slowedUntil = now + 2000;
                              });
+                             AudioService.playImpact('MAGIC');
                              abilityTriggered = true;
                          }
                     }
@@ -671,6 +675,7 @@ export const App: React.FC = () => {
                             applyDamage(target, 60, now, false, processedUnits);
                             target.slowedUntil = now + 3000; // 3s Slow
                         });
+                        AudioService.playImpact('MAGIC');
                         abilityTriggered = true;
                     }
                 }
@@ -744,6 +749,10 @@ export const App: React.FC = () => {
                             // Standard Unit Attack (Melee & Mage)
                             applyDamage(primaryTarget, currentDamage, now, false, processedUnits);
                             
+                            if (unit.type === UnitType.MAGE) {
+                                AudioService.playImpact('MAGIC');
+                            }
+
                             if (unit.type === UnitType.TOXIC) {
                                 // Keep generic visual tick but reduce effectiveness as it's not "toxic" anymore
                                 // Or remove poison entirely for Imperial Slime?
@@ -767,7 +776,8 @@ export const App: React.FC = () => {
                              processedProjectiles.push(proj);
                         } else {
                             if (isPlayer) eStatueHP -= currentDamage; else pStatueHP -= currentDamage;
-                            AudioService.playDamage();
+                            if (unit.type === UnitType.MAGE) AudioService.playImpact('MAGIC');
+                            else AudioService.playImpact('PHYSICAL');
                         }
                     }
                     unit.lastAttackTime = now;
@@ -859,7 +869,11 @@ export const App: React.FC = () => {
       }
 
       processedUnits = processedUnits.filter(u => {
-        if (u.hp <= 0 && u.state !== 'DYING') { u.state = 'DYING'; u.deathTime = now; }
+        if (u.hp <= 0 && u.state !== 'DYING') { 
+            u.state = 'DYING'; 
+            u.deathTime = now;
+            AudioService.playDeath(); 
+        }
         return !(u.state === 'DYING' && now - (u.deathTime || 0) > DEATH_DURATION);
       });
       

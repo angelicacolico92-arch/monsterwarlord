@@ -224,13 +224,13 @@ export const StickmanRender: React.FC<StickmanProps> = ({
     }
 
     if (type === UnitType.ARCHER) {
-        // Imperial Archer Body - Redesigned
+        // Imperial Archer Body - Full Plate Armor (No Helmet)
         return (
             <g>
                 {/* Short Imperial Cape */}
                 <path d="M25 55 Q 15 75 20 85 L 80 85 Q 85 75 75 55" fill={secondaryColor} />
 
-                {/* Body: Medium-height, firm */}
+                {/* Base Slime Body (Visible at head/joints) */}
                 <path 
                     d="M20 100 L 22 75 Q 20 45 50 40 Q 80 45 78 75 L 80 100 Z" 
                     fill={baseColor} 
@@ -238,25 +238,34 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                     strokeWidth="2" 
                 />
 
-                {/* Imperial Chest Armor */}
+                {/* --- FULL PLATE ARMOR --- */}
+                
+                {/* Faulds (Armored Skirt/Base) */}
+                <path d="M22 80 L 20 95 L 35 90 L 35 78 Z" fill="#cbd5e1" stroke="#334155" strokeWidth="1" />
+                <path d="M35 78 L 35 92 L 50 95 L 65 92 L 65 78 Z" fill="#e2e8f0" stroke="#334155" strokeWidth="1" />
+                <path d="M65 78 L 65 90 L 80 95 L 78 80 Z" fill="#cbd5e1" stroke="#334155" strokeWidth="1" />
+
+                {/* Breastplate (Cuirass) */}
                 <path 
-                    d="M25 65 Q 25 50 50 48 Q 75 50 75 65 Q 50 75 25 65 Z" 
-                    fill="#e2e8f0" 
-                    stroke="#475569" 
-                    strokeWidth="1" 
+                    d="M25 78 Q 20 50 30 48 Q 50 40 70 48 Q 80 50 75 78 Q 50 85 25 78" 
+                    fill="url(#plateGradient)" 
+                    stroke="#334155" 
+                    strokeWidth="1.5" 
                 />
                 
-                {/* Imperial Emblem on Chest */}
-                <circle cx="50" cy="58" r="3" fill={hoodColor} stroke="#b45309" strokeWidth="1" />
+                {/* Gorget (Neck Collar) */}
+                <path d="M32 48 Q 50 55 68 48 L 70 45 Q 50 50 30 45 Z" fill="#94a3b8" stroke="#334155" strokeWidth="1" />
 
-                {/* Gold Trim Sash */}
-                <path d="M25 65 Q 50 75 75 65" fill="none" stroke={hoodColor} strokeWidth="1.5" />
+                {/* Armor Trim/Details */}
+                <path d="M50 48 L 50 78" stroke={hoodColor} strokeWidth="1.5" opacity="0.8" />
+                <path d="M30 55 Q 50 65 70 55" fill="none" stroke={hoodColor} strokeWidth="1.5" opacity="0.6" />
                 
-                {/* Shoulder Guard (Left/Bow Arm - Visual Right) */}
-                <path d="M68 50 Q 82 48 82 60 L 75 65 Z" fill={hoodColor} stroke="#b45309" strokeWidth="1" />
-                
-                {/* Arm Bracer (Visual Left) */}
-                <rect x="20" y="60" width="4" height="10" rx="1" fill="#4b5563" transform="rotate(10 22 65)" />
+                {/* Chest Emblem */}
+                <path d="M50 55 L 54 60 L 50 65 L 46 60 Z" fill={hoodColor} stroke="#b45309" strokeWidth="0.5" />
+
+                {/* Heavy Pauldrons (Shoulders) */}
+                <path d="M15 65 Q 10 50 28 50 L 32 60 Z" fill="#cbd5e1" stroke="#334155" strokeWidth="1" />
+                <path d="M85 65 Q 90 50 72 50 L 68 60 Z" fill="#cbd5e1" stroke="#334155" strokeWidth="1" />
             </g>
         );
     }
@@ -424,23 +433,19 @@ export const StickmanRender: React.FC<StickmanProps> = ({
      }
      
      if (type === UnitType.ARCHER) {
-         // Imperial Archer: Tactical Headband + Combat Eyes (Fixed "Penguin" look)
+         // Imperial Archer: Exposed Face, Combat Eyes (No Helmet)
          return (
              <g>
-                 {/* Imperial Headband (Fabric/Metal band) */}
-                 <path d="M22 45 Q 50 35 78 45" stroke={hoodColor} strokeWidth="5" strokeLinecap="round" fill="none" />
-                 <path d="M22 45 Q 50 35 78 45" stroke="#b45309" strokeWidth="1" fill="none" opacity="0.5" />
-
-                 {/* Center Insignia */}
-                 <circle cx="50" cy="41" r="3" fill={secondaryColor} stroke="#fcd34d" strokeWidth="1" />
-
-                 {/* Eyes: Sharp Horizontal Slits (Combat Focus) */}
-                 <path d="M30 58 L 42 58 L 40 62 L 32 62 Z" fill="white" />
-                 <path d="M70 58 L 58 58 L 60 62 L 68 62 Z" fill="white" />
+                 {/* Eyes: Sharp/Focused */}
+                 <ellipse cx="35" cy="55" rx="3" ry="4" fill="white" />
+                 <ellipse cx="35" cy="55" rx="1.5" ry="2.5" fill="black" />
                  
-                 {/* Eye Mask / War Paint (Subtle) */}
-                 <path d="M28 64 Q 36 66 44 64" stroke={secondaryColor} strokeWidth="1" opacity="0.3" fill="none" />
-                 <path d="M56 64 Q 64 66 72 64" stroke={secondaryColor} strokeWidth="1" opacity="0.3" fill="none" />
+                 <ellipse cx="65" cy="55" rx="3" ry="4" fill="white" />
+                 <ellipse cx="65" cy="55" rx="1.5" ry="2.5" fill="black" />
+                 
+                 {/* Eyebrows for determination */}
+                 <path d="M28 50 L 42 53" stroke="#1f2937" strokeWidth="1.5" strokeLinecap="round" />
+                 <path d="M72 50 L 58 53" stroke="#1f2937" strokeWidth="1.5" strokeLinecap="round" />
              </g>
          );
      }
@@ -968,6 +973,12 @@ export const StickmanRender: React.FC<StickmanProps> = ({
           <linearGradient id="lampBeam" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#fef08a" stopOpacity="0.8" />
               <stop offset="100%" stopColor="#fef08a" stopOpacity="0" />
+          </linearGradient>
+
+          <linearGradient id="plateGradient" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#f1f5f9" />
+              <stop offset="50%" stopColor="#cbd5e1" />
+              <stop offset="100%" stopColor="#94a3b8" />
           </linearGradient>
 
           {/* New Robust Shadow Gradient */}

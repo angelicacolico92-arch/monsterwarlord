@@ -1,3 +1,4 @@
+
 import { UnitType, MapId } from '../types';
 
 let audioCtx: AudioContext | null = null;
@@ -52,6 +53,7 @@ const updateVolumes = () => {
     if (sfxGain) sfxGain.gain.setTargetAtTime(volumes.sfx, t, 0.1);
 };
 
+// Generic Synth Helper
 const playSynth = (freq: number, type: OscillatorType, start: number, duration: number, volume: number, decay: number, targetNode: GainNode | null) => {
   const ctx = getCtx();
   if (!ctx || !targetNode) return;
@@ -67,32 +69,230 @@ const playSynth = (freq: number, type: OscillatorType, start: number, duration: 
   osc.stop(start + duration + decay + 0.1);
 };
 
-// --- DRUM SYNTHS ---
+// --- BATTLE SOUNDS ---
+
+// Melee: Slap + Thud + Light Metal
+const playMeleeHit = (time: number, targetNode: GainNode | null) => {
+    const ctx = getCtx();
+    if (!ctx || !targetNode) return;
+
+    // 1. Slime Slap (Mid-range noise/chirp)
+    const oscSlap = ctx.createOscillator();
+    const gSlap = ctx.createGain();
+    oscSlap.frequency.setValueAtTime(400, time);
+    oscSlap.frequency.exponentialRampToValueAtTime(100, time + 0.1);
+    gSlap.gain.setValueAtTime(0.3, time);
+    gSlap.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
+    oscSlap.connect(gSlap);
+    gSlap.connect(targetNode);
+    oscSlap.start(time);
+    oscSlap.stop(time + 0.15);
+
+    // 2. Body Thud (Low impact)
+    const oscThud = ctx.createOscillator();
+    const gThud = ctx.createGain();
+    oscThud.type = 'sine';
+    oscThud.frequency.setValueAtTime(150, time);
+    oscThud.frequency.exponentialRampToValueAtTime(40, time + 0.15);
+    gThud.gain.setValueAtTime(0.5, time);
+    gThud.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
+    oscThud.connect(gThud);
+    gThud.connect(targetNode);
+    oscThud.start(time);
+    oscThud.stop(time + 0.2);
+
+    // 3. Light Metal Tap (Armor)
+    const oscMetal = ctx.createOscillator();
+    const gMetal = ctx.createGain();
+    oscMetal.type = 'triangle';
+    oscMetal.frequency.setValueAtTime(1200, time);
+    gMetal.gain.setValueAtTime(0.1, time);
+    gMetal.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+    oscMetal.connect(gMetal);
+    gMetal.connect(targetNode);
+    oscMetal.start(time);
+    oscMetal.stop(time + 0.1);
+};
+
+// Boss: Low Boom-Thump
+const playHeavyHit = (time: number, targetNode: GainNode | null) => {
+    const ctx = getCtx();
+    if (!ctx || !targetNode) return;
+
+    // Deep Boom
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.frequency.setValueAtTime(80, time);
+    osc.frequency.exponentialRampToValueAtTime(10, time + 0.4);
+    g.gain.setValueAtTime(0.8, time);
+    g.gain.exponentialRampToValueAtTime(0.001, time + 0.4);
+    osc.connect(g);
+    g.connect(targetNode);
+    osc.start(time);
+    osc.stop(time + 0.5);
+};
+
+// Archer: Quick Fwip (Release)
+const playArcherRelease = (time: number, targetNode: GainNode | null) => {
+    const ctx = getCtx();
+    if (!ctx || !targetNode) return;
+
+    // Filtered Noise Swipe
+    const bufferSize = ctx.sampleRate * 0.1; // 0.1s
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.Q.value = 1;
+    filter.frequency.setValueAtTime(1500, time);
+    filter.frequency.exponentialRampToValueAtTime(300, time + 0.1);
+
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.4, time);
+    g.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
+
+    noise.connect(filter);
+    filter.connect(g);
+    g.connect(targetNode);
+    noise.start(time);
+};
+
+// Mage: Low Woom + Shimmer
+const playMagicCast = (time: number, targetNode: GainNode | null) => {
+    const ctx = getCtx();
+    if (!ctx || !targetNode) return;
+
+    // Low Woom (Swell)
+    const oscLow = ctx.createOscillator();
+    const gLow = ctx.createGain();
+    oscLow.type = 'sine';
+    oscLow.frequency.setValueAtTime(100, time);
+    oscLow.frequency.linearRampToValueAtTime(200, time + 0.2);
+    
+    gLow.gain.setValueAtTime(0, time);
+    gLow.gain.linearRampToValueAtTime(0.4, time + 0.1);
+    gLow.gain.exponentialRampToValueAtTime(0.001, time + 0.3);
+
+    // Crystal Shimmer
+    const oscHigh = ctx.createOscillator();
+    const gHigh = ctx.createGain();
+    oscHigh.type = 'sine';
+    oscHigh.frequency.setValueAtTime(2000, time);
+    
+    // Vibrato
+    const lfo = ctx.createOscillator();
+    lfo.frequency.value = 10;
+    const lfoGain = ctx.createGain();
+    lfoGain.gain.value = 50;
+    lfo.connect(lfoGain);
+    lfoGain.connect(oscHigh.frequency);
+    lfo.start(time);
+
+    gHigh.gain.setValueAtTime(0.1, time);
+    gHigh.gain.exponentialRampToValueAtTime(0.001, time + 0.3);
+
+    oscLow.connect(gLow);
+    gLow.connect(targetNode);
+    oscLow.start(time);
+    oscLow.stop(time + 0.4);
+
+    oscHigh.connect(gHigh);
+    gHigh.connect(targetNode);
+    oscHigh.start(time);
+    oscHigh.stop(time + 0.4);
+};
+
+// Impact: Plip/Thok (Physical) or Fshoom (Magic)
+const playImpactSound = (time: number, type: 'PHYSICAL' | 'MAGIC' | 'SLIME', targetNode: GainNode | null) => {
+    const ctx = getCtx();
+    if (!ctx || !targetNode) return;
+
+    if (type === 'MAGIC') {
+        // Soft Fireburst (Noise puff)
+        const bufferSize = ctx.sampleRate * 0.2;
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+        const noise = ctx.createBufferSource();
+        noise.buffer = buffer;
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(800, time);
+        filter.frequency.linearRampToValueAtTime(100, time + 0.2);
+
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.5, time);
+        g.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
+
+        noise.connect(filter);
+        filter.connect(g);
+        g.connect(targetNode);
+        noise.start(time);
+    } else {
+        // Physical/Slime: Plip/Thok (Quick pitch drop)
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.frequency.setValueAtTime(400, time);
+        osc.frequency.exponentialRampToValueAtTime(50, time + 0.05); // Fast drop
+        
+        g.gain.setValueAtTime(type === 'PHYSICAL' ? 0.3 : 0.5, time);
+        g.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+
+        osc.connect(g);
+        g.connect(targetNode);
+        osc.start(time);
+        osc.stop(time + 0.1);
+    }
+};
+
+// Death: Glop Collapse
+const playGlopDeath = (time: number, targetNode: GainNode | null) => {
+    const ctx = getCtx();
+    if (!ctx || !targetNode) return;
+
+    // 3 bubble pops
+    [0, 0.05, 0.1].forEach((offset, i) => {
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        const freq = 400 - (i * 100);
+        osc.frequency.setValueAtTime(freq, time + offset);
+        osc.frequency.exponentialRampToValueAtTime(freq / 2, time + offset + 0.05);
+        
+        g.gain.setValueAtTime(0.2, time + offset);
+        g.gain.exponentialRampToValueAtTime(0.001, time + offset + 0.05);
+        
+        osc.connect(g);
+        g.connect(targetNode);
+        osc.start(time + offset);
+        osc.stop(time + offset + 0.1);
+    });
+};
+
+// --- DRUM SYNTHS FOR MUSIC ---
 const playKick = (time: number, vol: number, targetNode: GainNode | null) => {
   const ctx = getCtx();
   if (!ctx || !targetNode) return;
   const osc = ctx.createOscillator();
   const g = ctx.createGain();
-  
-  // Softer Kick for Forest Theme
   osc.frequency.setValueAtTime(120, time);
   osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.4);
-  
   g.gain.setValueAtTime(vol, time);
   g.gain.exponentialRampToValueAtTime(0.01, time + 0.4);
-  
   osc.connect(g);
   g.connect(targetNode);
   osc.start(time);
   osc.stop(time + 0.4);
 };
 
-// Deep, Cavernous Kick for Mine
 const playDeepKick = (time: number, vol: number, targetNode: GainNode | null) => {
   const ctx = getCtx();
   if (!ctx || !targetNode) return;
-  
-  // 1. The Thud
   const osc = ctx.createOscillator();
   const g = ctx.createGain();
   osc.frequency.setValueAtTime(70, time);
@@ -103,11 +303,9 @@ const playDeepKick = (time: number, vol: number, targetNode: GainNode | null) =>
   g.connect(targetNode);
   osc.start(time);
   osc.stop(time + 0.5);
-
-  // 2. The Echo (Cave reverb sim)
   const oscEcho = ctx.createOscillator();
   const gEcho = ctx.createGain();
-  oscEcho.frequency.setValueAtTime(45, time + 0.2); // Delayed
+  oscEcho.frequency.setValueAtTime(45, time + 0.2); 
   oscEcho.frequency.exponentialRampToValueAtTime(0.01, time + 0.5);
   gEcho.gain.setValueAtTime(vol * 0.25, time + 0.2); 
   gEcho.gain.exponentialRampToValueAtTime(0.001, time + 0.6);
@@ -125,15 +323,12 @@ const playSnare = (time: number, vol: number, targetNode: GainNode | null) => {
   const data = buffer.getChannelData(0);
   for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
   noise.buffer = buffer;
-  
   const g = ctx.createGain();
   g.gain.setValueAtTime(vol, time);
-  g.gain.exponentialRampToValueAtTime(0.01, time + 0.15); // Slightly longer tail
-  
+  g.gain.exponentialRampToValueAtTime(0.01, time + 0.15); 
   const filter = ctx.createBiquadFilter();
   filter.type = 'bandpass';
-  filter.frequency.setValueAtTime(1500, time); // Softer tone
-  
+  filter.frequency.setValueAtTime(1500, time);
   noise.connect(filter);
   filter.connect(g);
   g.connect(targetNode);
@@ -147,18 +342,14 @@ const playHiHat = (time: number, vol: number, targetNode: GainNode | null) => {
   const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
   const data = buffer.getChannelData(0);
   for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-
   const noise = ctx.createBufferSource();
   noise.buffer = buffer;
-
   const filter = ctx.createBiquadFilter();
   filter.type = 'highpass';
   filter.frequency.value = 8000;
-
   const g = ctx.createGain();
   g.gain.setValueAtTime(vol * 0.5, time);
   g.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
-
   noise.connect(filter);
   filter.connect(g);
   g.connect(targetNode);
@@ -170,20 +361,14 @@ const playMetallicPerc = (time: number, vol: number, targetNode: GainNode | null
   if (!ctx || !targetNode) return;
   const osc = ctx.createOscillator();
   const g = ctx.createGain();
-  
-  // Metallic: Square wave with bandpass
   osc.type = 'square';
   osc.frequency.setValueAtTime(highPitch ? 2400 : 1200, time);
-  
-  // Quick decay (Pickaxe hit)
   g.gain.setValueAtTime(vol * 0.4, time);
   g.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
-
   const filter = ctx.createBiquadFilter();
   filter.type = 'bandpass';
   filter.frequency.value = highPitch ? 3000 : 1800;
   filter.Q.value = 8;
-
   osc.connect(filter);
   filter.connect(g);
   g.connect(targetNode);
@@ -191,96 +376,72 @@ const playMetallicPerc = (time: number, vol: number, targetNode: GainNode | null
   osc.stop(time + 0.15);
 };
 
-// Heavy Anvil Sound
 const playAnvil = (time: number, vol: number, targetNode: GainNode | null) => {
   const ctx = getCtx();
   if (!ctx || !targetNode) return;
   const osc = ctx.createOscillator();
   const g = ctx.createGain();
-  
-  // Heavy Ring
   osc.type = 'triangle';
-  osc.frequency.setValueAtTime(600, time); // Lower heavy ring
-  
+  osc.frequency.setValueAtTime(600, time);
   g.gain.setValueAtTime(0, time);
-  g.gain.linearRampToValueAtTime(vol * 0.8, time + 0.02); // Impact
-  g.gain.exponentialRampToValueAtTime(0.001, time + 1.2); // Long tail
-  
-  // Add some metallic dissonance
+  g.gain.linearRampToValueAtTime(vol * 0.8, time + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.001, time + 1.2);
   const mod = ctx.createOscillator();
-  mod.frequency.value = 840; // Dissonant interval
+  mod.frequency.value = 840; 
   const modGain = ctx.createGain();
   modGain.gain.value = 200;
   mod.connect(modGain);
   modGain.connect(osc.frequency);
   mod.start(time);
   mod.stop(time + 1.2);
-
   osc.connect(g);
   g.connect(targetNode);
   osc.start(time);
   osc.stop(time + 1.2);
 };
 
-// --- INSTRUMENTS ---
-
-// Flute: Sine wave, soft attack, smooth sustain
 const playFlute = (freq: number, time: number, vol: number, targetNode: GainNode | null) => {
   const ctx = getCtx();
   if (!ctx || !targetNode) return;
   const osc = ctx.createOscillator();
   const g = ctx.createGain();
-  
   osc.type = 'sine';
   osc.frequency.setValueAtTime(freq, time);
-  
-  // Envelope: Soft attack, sustain, soft release
   const attack = 0.05;
   const sustain = 0.1;
   const release = 0.1;
-  
   g.gain.setValueAtTime(0, time);
   g.gain.linearRampToValueAtTime(vol, time + attack); 
   g.gain.setValueAtTime(vol * 0.8, time + attack + sustain);
   g.gain.exponentialRampToValueAtTime(0.001, time + attack + sustain + release);
-
-  // Subtle Vibrato
   const vibrato = ctx.createOscillator();
-  vibrato.frequency.value = 5; // 5Hz
+  vibrato.frequency.value = 5; 
   const vibratoGain = ctx.createGain();
-  vibratoGain.gain.value = 2; // Depth
+  vibratoGain.gain.value = 2; 
   vibrato.connect(vibratoGain);
   vibratoGain.connect(osc.frequency);
   vibrato.start(time);
   vibrato.stop(time + attack + sustain + release);
-
   osc.connect(g);
   g.connect(targetNode);
   osc.start(time);
   osc.stop(time + attack + sustain + release);
 };
 
-// Strings/Pad: Sawtooth + Lowpass, slow attack
 const playStrings = (freq: number, time: number, vol: number, duration: number, targetNode: GainNode | null) => {
   const ctx = getCtx();
   if (!ctx || !targetNode) return;
   const osc = ctx.createOscillator();
   const g = ctx.createGain();
   const filter = ctx.createBiquadFilter();
-
   osc.type = 'sawtooth';
   osc.frequency.setValueAtTime(freq, time);
-
-  // Filter to soften the buzz
   filter.type = 'lowpass';
   filter.frequency.setValueAtTime(freq * 2, time);
-
-  // Envelope: Slow attack, long release
   g.gain.setValueAtTime(0, time);
   g.gain.linearRampToValueAtTime(vol, time + 0.3);
   g.gain.setValueAtTime(vol * 0.8, time + duration - 0.5);
   g.gain.exponentialRampToValueAtTime(0.001, time + duration);
-
   osc.connect(filter);
   filter.connect(g);
   g.connect(targetNode);
@@ -288,27 +449,20 @@ const playStrings = (freq: number, time: number, vol: number, duration: number, 
   osc.stop(time + duration);
 };
 
-// Low Cello/Bass Pad for Mine
 const playLowPad = (freq: number, time: number, vol: number, duration: number, targetNode: GainNode | null) => {
   const ctx = getCtx();
   if (!ctx || !targetNode) return;
   const osc = ctx.createOscillator();
   const g = ctx.createGain();
   const filter = ctx.createBiquadFilter();
-
   osc.type = 'sawtooth';
   osc.frequency.setValueAtTime(freq, time);
-
-  // Darker filter
   filter.type = 'lowpass';
   filter.frequency.setValueAtTime(freq * 1.5, time);
-
-  // Heavy, slow envelope
   g.gain.setValueAtTime(0, time);
   g.gain.linearRampToValueAtTime(vol, time + 0.5);
   g.gain.setValueAtTime(vol * 0.9, time + duration - 0.5);
   g.gain.exponentialRampToValueAtTime(0.001, time + duration);
-
   osc.connect(filter);
   filter.connect(g);
   g.connect(targetNode);
@@ -316,21 +470,15 @@ const playLowPad = (freq: number, time: number, vol: number, duration: number, t
   osc.stop(time + duration);
 };
 
-// --- SEQUENCER SCALES ---
-// A Minor / C Major Scale (Fantasy Feel)
 const SCALE = {
     A2: 110.00, C3: 130.81, D3: 146.83, E3: 164.81, G3: 196.00,
     A3: 220.00, C4: 261.63, D4: 293.66, E4: 329.63, G4: 392.00,
     A4: 440.00, B4: 493.88, C5: 523.25, E5: 659.25,
-    // Low notes for Mine
     E2: 82.41, G2: 98.00, B2: 123.47
 };
 
-// FOREST THEME: Light drums, Flute, Strings
 const playForestSequence = (time: number, step: number, secondsPerStep: number) => {
     const barStep = step % 16;
-  
-    // --- DRUMS (Light, Steady) ---
     if (barStep === 0) playKick(time, 0.4, musicGain);
     if (barStep === 8) playKick(time, 0.3, musicGain);
     if (barStep === 10 && Math.random() > 0.5) playKick(time, 0.2, musicGain);
@@ -338,20 +486,18 @@ const playForestSequence = (time: number, step: number, secondsPerStep: number) 
     if (barStep % 2 === 0) playHiHat(time, 0.1, musicGain);
     if (barStep % 2 !== 0 && Math.random() > 0.7) playHiHat(time, 0.05, musicGain);
 
-    // --- HARMONY (Strings/Pads) ---
     if (barStep === 0) {
         const barIndex = Math.floor(step / 16) % 4;
         let root, third;
-        if (barIndex === 0) { root = SCALE.A2; third = SCALE.C3; } // Am
-        else if (barIndex === 1) { root = SCALE.C3; third = SCALE.E3; } // C
-        else if (barIndex === 2) { root = SCALE.G3; third = SCALE.D3; } // G
-        else { root = SCALE.A2; third = SCALE.E3; } // Am
+        if (barIndex === 0) { root = SCALE.A2; third = SCALE.C3; } 
+        else if (barIndex === 1) { root = SCALE.C3; third = SCALE.E3; } 
+        else if (barIndex === 2) { root = SCALE.G3; third = SCALE.D3; } 
+        else { root = SCALE.A2; third = SCALE.E3; } 
         
         playStrings(root, time, 0.15, secondsPerStep * 16, musicGain);
         playStrings(third, time, 0.12, secondsPerStep * 16, musicGain);
     }
 
-    // --- MELODY (Flute) ---
     const isMelodyStep = barStep % 2 === 0;
     if (isMelodyStep && Math.random() > 0.6) {
         const notes = [SCALE.A3, SCALE.C4, SCALE.D4, SCALE.E4, SCALE.G4, SCALE.A4, SCALE.C5];
@@ -361,61 +507,36 @@ const playForestSequence = (time: number, step: number, secondsPerStep: number) 
     }
 };
 
-// MINE THEME: "Mine March" - Deep, Industrial, Tense
 const playMineSequence = (time: number, step: number, secondsPerStep: number) => {
     const barStep = step % 16;
-
-    // --- DRUMS (Heavy March) ---
-    // Deep kicks on 1 and 3 (Downbeats) - The heavy footfalls
     if (barStep === 0 || barStep === 8) playDeepKick(time, 0.6, musicGain);
-    
-    // Light snare/tom on 2 and 4 to drive rhythm
     if (barStep === 4 || barStep === 12) playSnare(time, 0.15, musicGain);
-    
-    // Occasional extra kick for syncopation
     if (barStep === 10 && Math.random() > 0.5) playDeepKick(time, 0.4, musicGain);
-
-    // --- PERCUSSION (Industrial) ---
-    // Heavy Anvil on some downbeats (Accent)
     if (barStep === 0 && step % 32 === 0) playAnvil(time, 0.25, musicGain);
-    
-    // Pickaxe Clinks (Syncopated high hats)
     if ((barStep === 2 || barStep === 6 || barStep === 10 || barStep === 14) && Math.random() > 0.3) {
         playMetallicPerc(time, 0.12, musicGain, Math.random() > 0.5);
     }
-
-    // --- ATMOSPHERE (Deep Drones) ---
-    // Change chord every 2 bars (32 steps) for a slow, oppressive feel
     if (step % 32 === 0) {
         const sequenceIndex = Math.floor(step / 32) % 4;
-        
-        // Progression: Em -> G -> C -> Bm (Darker, more epic)
         let root = SCALE.E2;
         let fifth = SCALE.B2;
-
         if (sequenceIndex === 1) { root = SCALE.G2; fifth = SCALE.D3; }
         else if (sequenceIndex === 2) { root = SCALE.C3; fifth = SCALE.G3; }
-        else if (sequenceIndex === 3) { root = SCALE.B2; fifth = SCALE.E2; } // Tension
-
-        // Deep Bass Drone
+        else if (sequenceIndex === 3) { root = SCALE.B2; fifth = SCALE.E2; }
         playLowPad(root, time, 0.3, secondsPerStep * 32, musicGain);
-        // Harmonic mid-range pad
         playStrings(fifth, time, 0.15, secondsPerStep * 32, musicGain);
     }
 };
 
 const playSwampSequence = (time: number, step: number, secondsPerStep: number) => {
-    // Re-use Forest for now but slower (handled by tempo)
     playForestSequence(time, step, secondsPerStep);
 };
 
 const sequencerStep = () => {
   const ctx = getCtx();
   if (!ctx || !isMusicPlaying) return;
-
-  const secondsPerStep = 60 / (tempo * 4); // 16th notes
+  const secondsPerStep = 60 / (tempo * 4); 
   const time = ctx.currentTime + 0.1;
-  
   if (currentMapId === MapId.MINE) {
       playMineSequence(time, currentStep, secondsPerStep);
   } else if (currentMapId === MapId.SWAMP) {
@@ -423,7 +544,6 @@ const sequencerStep = () => {
   } else {
       playForestSequence(time, currentStep, secondsPerStep);
   }
-
   currentStep = (currentStep + 1) % 64;
 };
 
@@ -434,28 +554,15 @@ export const AudioService = {
   },
 
   startMusic: (mapId: MapId = MapId.FOREST) => {
-    // If music is already playing and map hasn't changed, do nothing
     if (isMusicPlaying && currentMapId === mapId) return;
-    
-    // Update Map ID
     currentMapId = mapId;
-    
-    // Set Tempo based on map
-    if (mapId === MapId.MINE) tempo = 85; // Slower, heavier march
+    if (mapId === MapId.MINE) tempo = 85; 
     else if (mapId === MapId.SWAMP) tempo = 90;
-    else tempo = 105; // Adventure
-
+    else tempo = 105; 
     const ctx = getCtx();
     if (!ctx) return;
-    
-    // Reset step for clean transition
     currentStep = 0;
-    
-    if (!isMusicPlaying) {
-        isMusicPlaying = true;
-    }
-    
-    // Always restart interval to apply new tempo
+    if (!isMusicPlaying) isMusicPlaying = true;
     if (sequencerInterval) clearInterval(sequencerInterval);
     sequencerInterval = setInterval(sequencerStep, (60 / (tempo * 4)) * 1000);
   },
@@ -467,7 +574,6 @@ export const AudioService = {
   
   isMusicPlaying: () => isMusicPlaying,
 
-  // SETTINGS API
   setMasterVolume: (val: number) => {
       volumes.master = Math.max(0, Math.min(1, val));
       updateVolumes();
@@ -482,7 +588,6 @@ export const AudioService = {
   },
   getVolumes: () => ({ ...volumes }),
 
-  // SFX CALLS (Routed to sfxGain)
   playSelect: () => {
     const ctx = getCtx();
     if (!ctx || !sfxGain) return;
@@ -495,25 +600,15 @@ export const AudioService = {
     const ctx = getCtx();
     if (!ctx || !sfxGain) return;
     const time = ctx.currentTime;
-    playSynth(220, 'triangle', time, 0.1, 0.3, 0.2, sfxGain);
-    playSynth(330, 'triangle', time + 0.1, 0.1, 0.2, 0.2, sfxGain);
-  },
-
-  playDamage: () => {
-    const ctx = getCtx();
-    if (!ctx || !sfxGain) return;
-    const time = ctx.currentTime;
-    playSynth(100, 'sawtooth', time, 0.1, 0.3, 0.3, sfxGain);
+    playSynth(1800, 'sine', time, 0.02, 0.1, 0.15, sfxGain);
+    playSynth(2800, 'sine', time, 0.01, 0.05, 0.1, sfxGain);
   },
 
   playSummon: () => {
     const ctx = getCtx();
     if (!ctx || !sfxGain) return;
     const time = ctx.currentTime;
-    // Magic shimmering sound
-    playSynth(660, 'sine', time, 0.1, 0.2, 0.2, sfxGain);
-    playSynth(880, 'sine', time + 0.05, 0.1, 0.15, 0.2, sfxGain);
-    playSynth(1320, 'sine', time + 0.1, 0.1, 0.1, 0.2, sfxGain);
+    playMagicCast(time, sfxGain);
   },
 
   playAttack: (type: UnitType) => {
@@ -521,11 +616,23 @@ export const AudioService = {
     if (!ctx || !sfxGain) return;
     const time = ctx.currentTime;
     switch (type) {
-      case UnitType.BOSS: playKick(time, 0.6, sfxGain); break;
-      case UnitType.ARCHER: playSynth(1200, 'sine', time, 0.02, 0.1, 0.05, sfxGain); break;
-      case UnitType.MAGE: playSynth(600, 'square', time, 0.1, 0.1, 0.4, sfxGain); break;
-      default: playSynth(300, 'triangle', time, 0.05, 0.15, 0.1, sfxGain);
+      case UnitType.BOSS: playHeavyHit(time, sfxGain); break;
+      case UnitType.ARCHER: playArcherRelease(time, sfxGain); break;
+      case UnitType.MAGE: playMagicCast(time, sfxGain); break;
+      default: playMeleeHit(time, sfxGain); // Warrior, Paladin, Worker, Minion
     }
+  },
+
+  playImpact: (type: 'PHYSICAL' | 'MAGIC' | 'SLIME' = 'PHYSICAL') => {
+      const ctx = getCtx();
+      if (!ctx || !sfxGain) return;
+      playImpactSound(ctx.currentTime, type, sfxGain);
+  },
+
+  playDeath: () => {
+      const ctx = getCtx();
+      if (!ctx || !sfxGain) return;
+      playGlopDeath(ctx.currentTime, sfxGain);
   },
 
   playFanfare: (isVictory: boolean) => {
