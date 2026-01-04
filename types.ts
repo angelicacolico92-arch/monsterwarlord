@@ -34,7 +34,7 @@ export interface GameUnit {
   x: number; // Position 0-100%
   hp: number;
   maxHp: number;
-  state: 'IDLE' | 'WALKING' | 'ATTACKING' | 'DYING' | 'MINING' | 'DEPOSITING';
+  state: 'IDLE' | 'WALKING' | 'ATTACKING' | 'DYING' | 'MINING' | 'DEPOSITING' | 'GARRISONED';
   lastAttackTime: number; 
   deathTime?: number;
   targetId?: string | null;

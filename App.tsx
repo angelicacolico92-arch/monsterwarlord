@@ -76,9 +76,16 @@ const CrystalRock: React.FC<{ x: number; isFlipped?: boolean }> = ({ x, isFlippe
 const BaseStatue: React.FC<{ x: number; hp: number; variant: 'BLUE' | 'RED'; isFlipped?: boolean; isRetreating?: boolean }> = ({ x, hp, variant, isFlipped, isRetreating }) => {
     const hpPercent = Math.max(0, (hp / STATUE_HP) * 100);
     const isRed = variant === 'RED';
+    
+    // Theme Colors
     const primaryColor = isRed ? '#ef4444' : '#3b82f6';
     const darkColor = isRed ? '#7f1d1d' : '#1e3a8a';
     const lightColor = isRed ? '#fca5a5' : '#93c5fd';
+    
+    // Portal Energy Colors (Always Purple/Mystical as requested, slightly tinted by team)
+    const portalCore = isRed ? '#4c0519' : '#1e1b4b'; // Dark void
+    const portalSwirl1 = '#a855f7'; // Purple
+    const portalSwirl2 = isRed ? '#f43f5e' : '#3b82f6'; // Team accent
 
     return (
         <div 
@@ -86,11 +93,12 @@ const BaseStatue: React.FC<{ x: number; hp: number; variant: 'BLUE' | 'RED'; isF
             style={{ 
                 left: `${x}%`, 
                 transform: 'translateX(-50%) translate3d(0,0,0)',
-                height: 'min(340px, 55vh)', 
+                height: 'min(360px, 60vh)', 
                 width: 'auto', 
-                aspectRatio: '200 / 350'
+                aspectRatio: '220 / 380'
             }}
         >
+            {/* HP Bar */}
             <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-[140%] h-3 sm:h-4 bg-black/70 rounded-full border border-white/30 backdrop-blur-md overflow-hidden z-20 shadow-lg">
                 <div 
                     className={`h-full transition-all duration-500 ease-out ${isRed ? 'bg-gradient-to-r from-red-600 to-rose-400' : 'bg-gradient-to-r from-blue-600 to-cyan-400'}`} 
@@ -99,43 +107,97 @@ const BaseStatue: React.FC<{ x: number; hp: number; variant: 'BLUE' | 'RED'; isF
             </div>
             
             <div className={`w-full h-full relative ${isFlipped ? 'scale-x-[-1]' : ''}`}>
-                <svg viewBox="0 0 200 350" className="w-full h-full overflow-visible drop-shadow-2xl">
+                <svg viewBox="0 0 220 380" className="w-full h-full overflow-visible drop-shadow-2xl">
                     <defs>
-                        <linearGradient id={`slime-body-${variant}`} x1="0" y1="1" x2="0" y2="0">
+                        <linearGradient id={`tower-body-${variant}`} x1="0" y1="1" x2="0" y2="0">
                             <stop offset="0%" stopColor={darkColor} />
-                            <stop offset="40%" stopColor={primaryColor} />
+                            <stop offset="50%" stopColor={primaryColor} />
                             <stop offset="100%" stopColor={lightColor} stopOpacity="0.9" />
                         </linearGradient>
+                        <radialGradient id="portal-glow" cx="0.5" cy="0.5" r="0.5">
+                             <stop offset="40%" stopColor={portalCore} />
+                             <stop offset="100%" stopColor={portalSwirl1} stopOpacity="0.1" />
+                        </radialGradient>
+                        <filter id="stoneTexture" x="0%" y="0%" width="100%" height="100%">
+                             <feTurbulence type="fractalNoise" baseFrequency="0.5" numOctaves="3" result="noise" />
+                             <feColorMatrix type="saturate" values="0.1" />
+                             <feBlend in="SourceGraphic" in2="noise" mode="multiply" />
+                        </filter>
                     </defs>
 
-                    {/* PORTAL EFFECT - BEHIND */}
-                    {isRetreating && (
-                        <g className="animate-portal-spin" style={{ opacity: 0.6 }}>
-                            {/* Swirling Rings */}
-                             <path d="M100 100 A 100 100 0 0 1 100 300 A 100 100 0 0 1 100 100" 
-                                   fill="none" stroke={primaryColor} strokeWidth="4" strokeDasharray="20 40" />
-                             <path d="M100 130 A 70 70 0 0 0 100 270 A 70 70 0 0 0 100 130" 
-                                   fill="none" stroke={lightColor} strokeWidth="6" strokeDasharray="30 30" />
-                        </g>
-                    )}
+                    {/* --- BACK LAYER: PORTAL ENERGY LEAK --- */}
+                    <g className={isRetreating ? "animate-pulse" : ""} opacity={0.6}>
+                        <circle cx="110" cy="180" r="70" fill={portalSwirl1} filter="blur(20px)" />
+                    </g>
 
-                    <path d="M20 340 Q 0 340 10 320 Q 50 300 100 310 Q 150 300 190 320 Q 200 340 180 340 Q 140 355 100 350 Q 60 355 20 340" 
-                          fill={darkColor} opacity="0.8" />
+                    {/* --- STONE FOUNDATION (Fused with Slime) --- */}
+                    <g transform="translate(0, 320)">
+                       <path d="M20 0 L 40 -20 L 70 10 L 110 -15 L 150 10 L 180 -20 L 200 0 L 220 60 L 0 60 Z" fill="#44403c" />
+                       <path d="M30 10 L 50 -5 L 60 15 Z" fill="#57534e" opacity="0.6" />
+                       <path d="M160 5 L 180 -10 L 170 20 Z" fill="#57534e" opacity="0.6" />
+                    </g>
+
+                    {/* --- MAIN TOWER SLIME BODY --- */}
+                    {/* A massive, slightly melting tower shape */}
                     <path 
-                        d="M50 320 C 20 250, 40 150, 70 80 Q 100 50, 130 80 C 160 150, 180 250, 150 320 Q 100 340, 50 320 Z" 
-                        fill={`url(#slime-body-${variant})`} 
-                        stroke={lightColor} 
-                        strokeWidth="2" 
-                        strokeOpacity="0.5"
+                        d="M30 340 
+                           Q 10 340 10 300 
+                           Q 15 200 40 120 
+                           Q 80 20 110 20 
+                           Q 140 20 180 120 
+                           Q 205 200 210 300 
+                           Q 210 340 190 340 
+                           Q 110 360 30 340"
+                        fill={`url(#tower-body-${variant})`}
+                        stroke={lightColor}
+                        strokeWidth="2"
+                        className="animate-idle-breathe"
+                        style={{ transformOrigin: 'bottom center' }}
                     />
-                    <circle cx="100" cy="70" r="25" fill="white" opacity="0.2" className="animate-pulse" />
+                    
+                    {/* --- PORTAL ASSEMBLY (Center) --- */}
+                    <g transform="translate(110, 180)">
+                        {/* 1. Portal Frame (Embedded Slime/Stone Ring) */}
+                        <circle cx="0" cy="0" r="55" fill="none" stroke={darkColor} strokeWidth="8" opacity="0.6" />
+                        <circle cx="0" cy="0" r="55" fill={portalCore} opacity="0.8" />
+                        
+                        {/* 2. Swirling Energy (Rotates) */}
+                        <g className={isRetreating ? "animate-spin-fast" : "animate-portal-spin"} style={{ transformBox: 'fill-box', transformOrigin: 'center' }}>
+                            <defs>
+                                <style>{`
+                                    @keyframes spin-fast { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+                                    .animate-spin-fast { animation: spin-fast 1.5s linear infinite; }
+                                `}</style>
+                            </defs>
+                            {/* Swirl Paths */}
+                            <path d="M-40 -20 Q 0 -60 40 -20 Q 0 20 -40 -20" fill="none" stroke={portalSwirl1} strokeWidth="4" opacity="0.8" />
+                            <path d="M-20 40 Q 60 0 20 -40" fill="none" stroke={portalSwirl2} strokeWidth="3" opacity="0.7" transform="rotate(90)" />
+                            <path d="M-30 0 Q 0 -30 30 0 Q 0 30 -30 0" fill="none" stroke="white" strokeWidth="1" opacity="0.4" transform="rotate(45)" />
+                        </g>
+                        
+                        {/* 3. Runes (Float) */}
+                        <g className="animate-pulse">
+                           <circle cx="0" cy="-65" r="3" fill="#e9d5ff" />
+                           <circle cx="65" cy="0" r="3" fill="#e9d5ff" />
+                           <circle cx="0" cy="65" r="3" fill="#e9d5ff" />
+                           <circle cx="-65" cy="0" r="3" fill="#e9d5ff" />
+                        </g>
+                        
+                        {/* 4. Core Glow */}
+                        <circle cx="0" cy="0" r="15" fill="white" opacity="0.2" filter="blur(5px)" className="animate-pulse" />
+                    </g>
 
-                    {/* PORTAL EFFECT - FRONT/CENTER GLOW */}
+                    {/* --- DECORATIVE SLIME DRIPS --- */}
+                    <path d="M110 240 Q 110 280 120 300 Q 130 280 130 250" fill={darkColor} opacity="0.3" />
+                    <path d="M60 280 Q 60 310 70 320" fill="none" stroke={darkColor} strokeWidth="4" strokeLinecap="round" opacity="0.3" />
+
+                    {/* --- RETREAT / SUMMON EFFECT OVERLAY --- */}
                     {isRetreating && (
-                         <circle cx="100" cy="200" r="0" fill={lightColor} opacity="0.4">
-                             <animate attributeName="r" values="10;80" dur="1.5s" repeatCount="indefinite" />
-                             <animate attributeName="opacity" values="0.8;0" dur="1.5s" repeatCount="indefinite" />
-                         </circle>
+                         <g>
+                             {/* Particles getting sucked in */}
+                             <circle cx="80" cy="300" r="2" fill="white" className="animate-ping" style={{ animationDuration: '0.8s' }} />
+                             <circle cx="140" cy="300" r="3" fill="white" className="animate-ping" style={{ animationDuration: '1.2s' }} />
+                         </g>
                     )}
                 </svg>
             </div>
@@ -295,14 +357,15 @@ export const App: React.FC = () => {
               hit = true;
               
               // Apply damage
-              // Try to find the specific target first
-              let targetUnit = processedUnits.find(u => u.id === p.targetId && u.state !== 'DYING');
+              // Try to find the specific target first (skip GARRISONED)
+              let targetUnit = processedUnits.find(u => u.id === p.targetId && u.state !== 'DYING' && u.state !== 'GARRISONED');
               
               // If specific target is dead/gone, hit ANY enemy unit near the impact zone
               if (!targetUnit) {
                   targetUnit = processedUnits.find(u => 
                       u.side !== p.side && 
                       u.state !== 'DYING' && 
+                      u.state !== 'GARRISONED' &&
                       u.hp > 0 &&
                       Math.abs(u.x - p.x) < 2
                   );
@@ -328,8 +391,28 @@ export const App: React.FC = () => {
       // Physics and Logic
       processedUnits.forEach(unit => {
         if (unit.state === 'DYING') return;
+        
         const config = UNIT_CONFIGS[unit.type];
         const isPlayer = unit.side === 'player';
+        
+        // Determine active command for this unit's side
+        const cmd = isPlayer ? p1Command : p2Command;
+
+        // --- GARRISON/RETREAT HANDLING ---
+        // If already garrisoned, check if we should stay there or exit
+        if (unit.state === 'GARRISONED') {
+            if (cmd === GameCommand.RETREAT) {
+                // Heal while inside (0.5% per tick = ~25% per second)
+                if (unit.hp < unit.maxHp) {
+                    unit.hp = Math.min(unit.hp + (unit.maxHp * 0.005), unit.maxHp);
+                }
+                return; // Skip remaining logic for this unit
+            } else {
+                // Exit garrison
+                unit.state = 'IDLE'; // Will switch to walking below
+            }
+        }
+        
         let targetVelocity = 0;
 
         // Check Stun Status
@@ -392,9 +475,6 @@ export const App: React.FC = () => {
           }
         }
 
-        // Determine active command for this unit's side
-        const cmd = isPlayer ? p1Command : p2Command;
-
         // --- RETREAT LOGIC (High Priority - Applies to ALL units) ---
         if (cmd === GameCommand.RETREAT) {
              const homeX = isPlayer ? STATUE_PLAYER_POS : STATUE_ENEMY_POS;
@@ -402,7 +482,7 @@ export const App: React.FC = () => {
              
              // Move to tower
              if (distToHome < 2) {
-                 unit.state = 'IDLE';
+                 unit.state = 'GARRISONED';
                  targetVelocity = 0;
              } else {
                  unit.state = 'WALKING';
@@ -440,7 +520,7 @@ export const App: React.FC = () => {
              
           // TARGETING & AGGRO
           const AGGRO_RANGE = 30; // Vision range to start charging
-          const potentialTargets = processedUnits.filter(u => u.side !== unit.side && u.state !== 'DYING');
+          const potentialTargets = processedUnits.filter(u => u.side !== unit.side && u.state !== 'DYING' && u.state !== 'GARRISONED');
           
           // 1. Identify Aggro Target (Visible enemy for charging)
           const visibleTargets = potentialTargets.filter(u => Math.abs(u.x - unit.x) < AGGRO_RANGE);
@@ -745,8 +825,8 @@ export const App: React.FC = () => {
       // --- IMPROVED AI LOGIC ---
       if ((role === PlayerRole.HOST || role === PlayerRole.OFFLINE) && now - aiStateRef.current.lastDecisionTime > 2000) {
           const aiGold = p2Gold;
-          const aiUnits = processedUnits.filter(u => u.side === 'enemy' && u.state !== 'DYING');
-          const playerUnits = processedUnits.filter(u => u.side === 'player' && u.state !== 'DYING');
+          const aiUnits = processedUnits.filter(u => u.side === 'enemy' && u.state !== 'DYING' && u.state !== 'GARRISONED');
+          const playerUnits = processedUnits.filter(u => u.side === 'player' && u.state !== 'DYING' && u.state !== 'GARRISONED');
           
           if (aiUnits.length < MAX_UNITS) {
             // Economy: Ensure workers

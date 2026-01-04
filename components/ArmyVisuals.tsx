@@ -82,6 +82,9 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({
       })}
 
       {units.map((unit) => {
+        // Do not render garrisoned units
+        if (unit.state === 'GARRISONED') return null;
+
         const isPlayer = unit.side === 'player';
         const command = isPlayer ? p1Command : p2Command;
         const isRetreating = command === GameCommand.RETREAT;
@@ -93,12 +96,6 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({
         const isFirebursting = unit.type === UnitType.MAGE && (Date.now() - (unit.lastAbility1Time || 0) < 1000);
         const isBossAbility = unit.type === UnitType.BOSS && (Date.now() - (unit.lastAbility2Time || 0) < 1000);
         const isRooted = !!unit.rootedUntil && unit.rootedUntil > Date.now();
-        
-        // Hide if retreating and at base
-        const homeX = isPlayer ? STATUE_PLAYER_POS : STATUE_ENEMY_POS;
-        if (isRetreating && Math.abs(unit.x - homeX) < 3 && !isDying) {
-            return null;
-        }
         
         // VISUAL LAYERING SYSTEM
         // Calculate Base Depth
