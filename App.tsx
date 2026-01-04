@@ -27,24 +27,19 @@ import { SettingsModal } from './components/SettingsModal';
 
 const CrystalRock: React.FC<{ x: number; isFlipped?: boolean }> = ({ x, isFlipped }) => (
   <div 
-    className="absolute bottom-20 w-40 h-48 z-0 pointer-events-none"
+    className="absolute bottom-16 w-24 h-24 z-0 pointer-events-none"
     style={{ left: `${x}%`, transform: 'translateX(-50%) translate3d(0,0,0)' }}
   >
      <div className={`w-full h-full ${isFlipped ? 'scale-x-[-1]' : ''}`}>
-        <svg viewBox="0 0 100 120" className="overflow-visible">
+        <svg viewBox="0 0 100 100" className="overflow-visible">
            <defs>
-             <linearGradient id="crystalGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+             <linearGradient id="miniCrystalGrad" x1="0%" y1="100%" x2="100%" y2="0%">
                 <stop offset="0%" stopColor="#4c1d95" /> {/* Deep Purple Base */}
-                <stop offset="40%" stopColor="#7c3aed" /> {/* Mid Violet */}
-                <stop offset="80%" stopColor="#c084fc" stopOpacity="0.9" /> {/* Light Lavender */}
-                <stop offset="100%" stopColor="#e9d5ff" stopOpacity="0.8" /> {/* Highlight */}
+                <stop offset="60%" stopColor="#7c3aed" /> {/* Mid Violet */}
+                <stop offset="100%" stopColor="#e9d5ff" stopOpacity="0.9" /> {/* Highlight */}
              </linearGradient>
-             <linearGradient id="shardGradient" x1="0%" y1="100%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#581c87" /> 
-                <stop offset="100%" stopColor="#a855f7" stopOpacity="0.9" />
-             </linearGradient>
-             <filter id="crystalGlow" x="-50%" y="-50%" width="200%" height="200%">
-               <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+             <filter id="miniGlow" x="-50%" y="-50%" width="200%" height="200%">
+               <feGaussianBlur stdDeviation="2" result="coloredBlur" />
                <feMerge>
                  <feMergeNode in="coloredBlur" />
                  <feMergeNode in="SourceGraphic" />
@@ -52,57 +47,27 @@ const CrystalRock: React.FC<{ x: number; isFlipped?: boolean }> = ({ x, isFlippe
              </filter>
            </defs>
 
-           {/* Aura / Mist */}
-           <ellipse cx="50" cy="110" rx="35" ry="10" fill="#7c3aed" opacity="0.3" filter="blur(8px)" className="animate-pulse" />
+           {/* Small Aura */}
+           <ellipse cx="50" cy="90" rx="25" ry="6" fill="#7c3aed" opacity="0.3" filter="blur(4px)" className="animate-pulse" />
 
-           {/* Ground connection shards */}
-           <path d="M20 115 L 30 90 L 40 115 Z" fill="#3b0764" opacity="0.8" />
-           <path d="M70 115 L 80 95 L 60 115 Z" fill="#3b0764" opacity="0.8" />
+           {/* Crystal Cluster - Simplified for Mobile/Mini */}
+           <g filter="url(#miniGlow)">
+               {/* Left Shard */}
+               <path d="M30 90 L 20 60 L 35 45 L 45 85 Z" fill="url(#miniCrystalGrad)" stroke="#e9d5ff" strokeWidth="0.5" />
+               
+               {/* Right Shard */}
+               <path d="M70 90 L 80 65 L 65 50 L 55 85 Z" fill="url(#miniCrystalGrad)" stroke="#e9d5ff" strokeWidth="0.5" />
 
-           {/* Side Crystal (Left) */}
-           <path 
-             d="M35 110 L 15 70 L 30 40 L 50 80 Z" 
-             fill="url(#shardGradient)" 
-             stroke="#e9d5ff" 
-             strokeWidth="0.5" 
-             opacity="0.9"
-           />
-           
-           {/* Side Crystal (Right) */}
-           <path 
-             d="M65 110 L 85 75 L 75 45 L 55 85 Z" 
-             fill="url(#shardGradient)" 
-             stroke="#e9d5ff" 
-             strokeWidth="0.5"
-             opacity="0.9"
-           />
-
-           {/* Main Crystal Spire */}
-           <g filter="url(#crystalGlow)">
-             <path 
-                d="M50 115 L 25 60 L 50 5 L 75 60 Z" 
-                fill="url(#crystalGradient)" 
-                stroke="#e9d5ff" 
-                strokeWidth="1"
-                className="animate-idle-breathe" // Gentle float/breathe
-                style={{ transformOrigin: '50% 115px' }}
-             />
-             {/* Main Facet Line */}
-             <path d="M50 5 L 50 115" stroke="#e9d5ff" strokeWidth="0.5" opacity="0.4" className="animate-idle-breathe" style={{ transformOrigin: '50% 115px' }} />
-             {/* Cross Facet */}
-             <path d="M25 60 L 50 45 L 75 60" fill="none" stroke="#e9d5ff" strokeWidth="0.5" opacity="0.3" className="animate-idle-breathe" style={{ transformOrigin: '50% 115px' }} />
+               {/* Center Main Shard */}
+               <path d="M50 95 L 35 55 L 50 20 L 65 55 Z" fill="url(#miniCrystalGrad)" stroke="#e9d5ff" strokeWidth="1" className="animate-idle-breathe" style={{ transformOrigin: '50% 95px' }} />
+               
+               {/* Facet Detail on Main Shard */}
+               <path d="M50 20 L 50 95" stroke="#e9d5ff" strokeWidth="0.5" opacity="0.5" />
            </g>
 
-           {/* Sparkles */}
-           <circle cx="50" cy="5" r="1.5" fill="white" className="animate-pulse" />
-           <path d="M20 50 L 22 45 L 24 50 L 22 55 Z" fill="#e9d5ff" className="animate-bounce" style={{ animationDuration: '3s' }} />
-           <path d="M80 40 L 82 35 L 84 40 L 82 45 Z" fill="#e9d5ff" className="animate-bounce" style={{ animationDuration: '2.2s' }} />
-           
-           {/* Floating particles (Magic) */}
-           <circle cx="45" cy="30" r="1" fill="#d8b4fe" opacity="0.6">
-              <animate attributeName="cy" values="30;20;30" dur="4s" repeatCount="indefinite" />
-              <animate attributeName="opacity" values="0;0.8;0" dur="4s" repeatCount="indefinite" />
-           </circle>
+           {/* Subtle Sparkles */}
+           <circle cx="50" cy="20" r="1" fill="white" className="animate-pulse" />
+           <path d="M35 45 L 37 42 L 39 45 L 37 48 Z" fill="#e9d5ff" className="animate-bounce" style={{ animationDuration: '3s' }} opacity="0.8" />
         </svg>
      </div>
   </div>
