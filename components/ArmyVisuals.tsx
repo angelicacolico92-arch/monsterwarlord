@@ -69,13 +69,21 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({
                    transform: `translate3d(-50%, -20px, 0) scaleX(${facingScale})`,
                }}
              >
-                 {/* Arrow Graphic */}
+                 {/* High-Contrast Hardened Slime Arrow */}
                  <svg viewBox="0 0 40 10" className="w-full h-full overflow-visible drop-shadow-md">
-                    <line x1="5" y1="5" x2="35" y2="5" stroke="#e5e7eb" strokeWidth="1.5" strokeLinecap="round" />
-                    <path d="M32 2 L 40 5 L 32 8 L 34 5 Z" fill="#bef264" stroke="none" />
-                    <path d="M10 5 L 2 1 L 4 5 Z" fill="#bef264" opacity="0.9" />
-                    <path d="M10 5 L 2 9 L 4 5 Z" fill="#bef264" opacity="0.9" />
-                    <circle cx="38" cy="5" r="3" fill="#bef264" opacity="0.3" className="animate-pulse" />
+                    {/* Glowing Trail */}
+                    <line x1="0" y1="5" x2="30" y2="5" stroke="#bef264" strokeWidth="2" strokeOpacity="0.5" />
+                    
+                    {/* Shaft */}
+                    <line x1="5" y1="5" x2="35" y2="5" stroke="#ecfccb" strokeWidth="1.5" strokeLinecap="round" />
+                    
+                    {/* Head */}
+                    <path d="M32 2 L 40 5 L 32 8 L 34 5 Z" fill="#84cc16" stroke="none" />
+                    <circle cx="38" cy="5" r="4" fill="#84cc16" opacity="0.4" className="animate-pulse" />
+                    
+                    {/* Fletching */}
+                    <path d="M8 5 L 0 2 L 2 5 Z" fill="#ecfccb" />
+                    <path d="M8 5 L 0 8 L 2 5 Z" fill="#ecfccb" />
                  </svg>
              </div>
           );

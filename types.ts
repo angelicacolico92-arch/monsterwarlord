@@ -1,7 +1,7 @@
 
 export enum UnitType {
   WORKER = 'WORKER',    // Slime Miner
-  TOXIC = 'TOXIC',      // Toxic Slime (Ranged/Poison)
+  TOXIC = 'TOXIC',      // Warrior Slime (Melee/Sword)
   ARCHER = 'ARCHER',    // Archer Slime
   PALADIN = 'PALADIN',  // Paladin Slime (Tank)
   MAGE = 'MAGE',        // Mage Slime

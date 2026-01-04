@@ -43,10 +43,10 @@ export const UNIT_CONFIGS: Record<UnitType, UnitConfig> = {
   },
   [UnitType.TOXIC]: {
     type: UnitType.TOXIC,
-    name: 'Slime Soldier',
+    name: 'Warrior Slime',
     cost: 120,
-    stats: { hp: 400, maxHp: 400, damage: 50, range: 1.5, speed: 3.5, attackSpeed: 1500 },
-    description: 'Melee Infantry. Sharp sword attacks cause bleeding.'
+    stats: { hp: 450, maxHp: 450, damage: 45, range: 1.5, speed: 3.5, attackSpeed: 1400 },
+    description: 'Balanced frontline fighter with hardened slime armor.'
   },
   [UnitType.PALADIN]: {
     type: UnitType.PALADIN,
@@ -57,10 +57,10 @@ export const UNIT_CONFIGS: Record<UnitType, UnitConfig> = {
   },
   [UnitType.ARCHER]: {
     type: UnitType.ARCHER,
-    name: 'Archer Slime',
-    cost: 130,
-    stats: { hp: 200, maxHp: 200, damage: 70, range: ATTACK_RANGE_RANGED, speed: 3, attackSpeed: 2200 },
-    description: 'Ranged damage. Targets enemies from behind'
+    name: 'Archer Warrior',
+    cost: 140,
+    stats: { hp: 250, maxHp: 250, damage: 85, range: ATTACK_RANGE_RANGED, speed: 3, attackSpeed: 2500 },
+    description: 'Ranged warrior. High damage, prioritizes front targets.'
   },
   [UnitType.MAGE]: {
     type: UnitType.MAGE,
@@ -106,7 +106,7 @@ export const MAP_CONFIGS: Record<MapId, MapConfig> = {
     name: 'Gold Mine',
     difficulty: 'Medium',
     description: 'Rocky mine with tunnels and cliffs.',
-    specialFeature: 'Tunnels: Ranged units (Archer/Mage) move 20% faster.'
+    specialFeature: 'Tunnels: Ranged units (Archer/Mage) move 20% slower.'
   },
   [MapId.SWAMP]: {
     id: MapId.SWAMP,
