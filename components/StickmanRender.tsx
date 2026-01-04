@@ -125,8 +125,10 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       if (type === UnitType.ARCHER) {
           return (
               <g transform="translate(0,0)">
+                  {/* Quiver */}
                   <path d="M68 55 L 75 80 L 65 85 L 58 60 Z" fill="#4a2c0f" stroke="#271c19" strokeWidth="1" />
                   <path d="M60 58 L 72 58" stroke={hoodColor} strokeWidth="1.5" />
+                  {/* Fletchings */}
                   <path d="M68 50 L 70 40 L 66 40 Z" fill="#ecfccb" />
                   <path d="M72 52 L 74 42 L 70 42 Z" fill="#ecfccb" />
               </g>
@@ -207,7 +209,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
     if (type === UnitType.ARCHER) {
         return (
             <g>
-                {/* Compact Slime Body (Round) - No Helmet */}
+                {/* Rounded Slime Body */}
                 <path 
                     d="M15 100 L 15 95 Q 15 45 50 45 Q 85 45 85 95 L 85 100 Z" 
                     fill={baseColor} 
@@ -228,6 +230,8 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                 <circle cx="20" cy="70" r="4" fill={hoodColor} opacity="0.5" />
                 <circle cx="80" cy="70" r="8" fill="#e2e8f0" stroke="#475569" strokeWidth="1" />
                 <circle cx="80" cy="70" r="4" fill={hoodColor} opacity="0.5" />
+                
+                {/* NO HELMET - Removed as requested */}
             </g>
         );
     }
@@ -504,7 +508,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       if (type === UnitType.ARCHER) {
           return (
              <g>
-                  {/* Imperial Bow - Reversed to Face Correctly */}
+                  {/* Imperial Bow - CORRECT ORIENTATION */}
                   <g transform="translate(70, 70)">
                       <g 
                         className={isAttacking ? "animate-archer-bow" : ""} 
@@ -513,27 +517,31 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                           {/* Hand */}
                           <circle cx="0" cy="0" r="3" fill={baseColor} />
 
-                          {/* Bow Limbs - Curving forward (Right) */}
-                          <path d="M0 -5 Q 12 -25 -5 -40" stroke="#78350f" strokeWidth="3" fill="none" strokeLinecap="round" />
-                          <path d="M0 5 Q 12 25 -5 40" stroke="#78350f" strokeWidth="3" fill="none" strokeLinecap="round" />
+                          {/* Bow Limbs - Curving towards target (Right) */}
+                          {/* D-Shape: Ends are slightly back/left relative to center when unstrung, but string is Left of wood */}
+                          {/* Wood Curve: ) */}
+                          <path d="M0 -5 Q 10 0 0 5" stroke="#78350f" strokeWidth="3" fill="none" strokeLinecap="round" />
                           
-                          {/* Handle Grip */}
-                          <path d="M0 -5 L 0 5" stroke={hoodColor} strokeWidth="3" />
-                          
-                          {/* Gold Accents */}
-                          <circle cx="-5" cy="-40" r="2" fill={hoodColor} />
-                          <circle cx="-5" cy="40" r="2" fill={hoodColor} />
+                          {/* Tips (Ends of limbs) */}
+                          <circle cx="0" cy="-5" r="2" fill={hoodColor} />
+                          <circle cx="0" cy="5" r="2" fill={hoodColor} />
 
-                          {/* Energy String - Connecting Tips */}
-                          <line x1="-5" y1="-40" x2="-5" y2="40" stroke="#bef264" strokeWidth="1" strokeOpacity="0.8" className="animate-pulse" />
+                          {/* String - Pulled back to Left when drawn */}
+                          {isAttacking ? (
+                              // Drawn String (<)
+                              <polyline points="0,-5 -10,0 0,5" stroke="#bef264" strokeWidth="1" fill="none" strokeOpacity="0.8" className="animate-pulse" />
+                          ) : (
+                              // Resting String (|)
+                              <line x1="0" y1="-5" x2="0" y2="5" stroke="#bef264" strokeWidth="1" strokeOpacity="0.6" />
+                          )}
                           
                           {isAttacking && (
                               <g className="animate-archer-reload" style={{ animationDuration: '2.5s' }}>
                                   {/* Arrow sitting on string */}
-                                  <line x1="-5" y1="0" x2="20" y2="0" stroke="#bef264" strokeWidth="2" />
-                                  <path d="M20 0 L 15 -3 L 15 3 Z" fill="#ecfccb" />
-                                  <path d="M-5 0 L -8 -3 L -8 3 Z" fill={hoodColor} />
-                                  <circle cx="20" cy="0" r="4" fill="#bef264" opacity="0.5" className="animate-ping" />
+                                  <line x1="-10" y1="0" x2="15" y2="0" stroke="#bef264" strokeWidth="2" />
+                                  <path d="M15 0 L 10 -3 L 10 3 Z" fill="#ecfccb" />
+                                  <path d="M-10 0 L -13 -3 L -13 3 Z" fill={hoodColor} />
+                                  <circle cx="15" cy="0" r="4" fill="#bef264" opacity="0.5" className="animate-ping" />
                               </g>
                           )}
                       </g>
@@ -897,12 +905,13 @@ export const StickmanRender: React.FC<StickmanProps> = ({
             }
             .animate-archer-reload { animation: arrow-reload-cycle 2.5s linear infinite; }
 
+            /* Fixed Body Sway to remove forward lunge */
             @keyframes archer-body-sway-cycle {
-                0% { transform: rotate(5deg); } /* Recoil Forward */
-                10% { transform: rotate(0deg); }
-                80% { transform: rotate(-5deg); } /* Lean Back */
+                0% { transform: rotate(0deg); } /* Neutral Recoil */
+                5% { transform: rotate(-2deg); } /* Slight recoil back */
+                80% { transform: rotate(-5deg); } /* Lean Back while drawing */
                 95% { transform: rotate(-5deg); }
-                100% { transform: rotate(5deg); }
+                100% { transform: rotate(0deg); }
             }
             .animate-archer-body { transform-origin: bottom center; animation: archer-body-sway-cycle 2.5s ease-in-out infinite; }
           `}</style>

@@ -74,8 +74,8 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({
                   const progress = Math.min(1, Math.max(0, currentDist / totalDist));
                   
                   // Parabolic height: 4 * h * x * (1 - x)
-                  // Max height proportional to total distance (e.g., 20% of screen width distance -> ~100px height)
-                  const maxArcHeight = Math.min(150, totalDist * 8); 
+                  // Significantly flattened arc for "fired" look (max 50px height)
+                  const maxArcHeight = Math.min(50, totalDist * 3); 
                   const arcY = 4 * maxArcHeight * progress * (1 - progress);
                   
                   yOffset = -20 - arcY;
@@ -92,23 +92,23 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({
           return (
              <div 
                key={p.id}
-               className="absolute bottom-16 w-10 h-3 transition-transform duration-100 will-change-transform z-[110]"
+               className="absolute bottom-16 w-14 h-3 transition-transform duration-100 will-change-transform z-[110]"
                style={{
                    left: `${visualX}%`,
                    transform: `translate3d(-50%, ${yOffset}px, 0) scaleX(${facingScale}) rotate(${rotation}deg)`,
                }}
              >
-                 {/* High-Contrast Imperial Slime Arrow */}
-                 <svg viewBox="0 0 40 10" className="w-full h-full overflow-visible drop-shadow-md">
+                 {/* High-Contrast Imperial Slime Arrow - Extended Length */}
+                 <svg viewBox="0 0 60 10" className="w-full h-full overflow-visible drop-shadow-md">
                     {/* Glowing Trail */}
-                    <line x1="0" y1="5" x2="30" y2="5" stroke="#10b981" strokeWidth="2" strokeOpacity="0.5" />
+                    <line x1="0" y1="5" x2="40" y2="5" stroke="#10b981" strokeWidth="2" strokeOpacity="0.5" />
                     
                     {/* Shaft */}
-                    <line x1="5" y1="5" x2="35" y2="5" stroke="#d1fae5" strokeWidth="1.5" strokeLinecap="round" />
+                    <line x1="5" y1="5" x2="55" y2="5" stroke="#d1fae5" strokeWidth="1.5" strokeLinecap="round" />
                     
                     {/* Emerald Head */}
-                    <path d="M32 2 L 40 5 L 32 8 L 34 5 Z" fill="#059669" stroke="none" />
-                    <circle cx="38" cy="5" r="4" fill="#10b981" opacity="0.4" className="animate-pulse" />
+                    <path d="M52 2 L 60 5 L 52 8 L 54 5 Z" fill="#059669" stroke="none" />
+                    <circle cx="58" cy="5" r="4" fill="#10b981" opacity="0.4" className="animate-pulse" />
                     
                     {/* Gold Fletching */}
                     <path d="M8 5 L 0 2 L 2 5 Z" fill="#fbbf24" />
