@@ -255,11 +255,11 @@ export const App: React.FC = () => {
   // Audio Control Effect
   useEffect(() => {
     if (appMode === 'GAME') {
-        AudioService.startMusic();
+        AudioService.startMusic(gameState.mapId);
     } else {
         AudioService.stopMusic();
     }
-  }, [appMode]);
+  }, [appMode, gameState.mapId]);
 
   const isMirrored = role === PlayerRole.CLIENT;
   const currentGold = role === PlayerRole.HOST || role === PlayerRole.OFFLINE ? gameState.p1Gold : gameState.p2Gold;
@@ -548,7 +548,7 @@ export const App: React.FC = () => {
           };
 
           // Sort potential targets by distance AND priority
-          // We only apply priority if targets are roughly equidistant (within small range difference)
+          // We only apply priority if targets are roughly equidistant (within 5 units)
           visibleTargets.sort((a, b) => {
               let distA = Math.abs(a.x - unit.x);
               let distB = Math.abs(b.x - unit.x);

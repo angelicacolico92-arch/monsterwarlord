@@ -1,4 +1,4 @@
-import { UnitType } from '../types';
+import { UnitType, MapId } from '../types';
 
 let audioCtx: AudioContext | null = null;
 let masterGain: GainNode | null = null;
@@ -7,12 +7,13 @@ let sfxGain: GainNode | null = null;
 let isMusicPlaying = false;
 let sequencerInterval: any = null;
 let currentStep = 0;
-let tempo = 100; // Slightly slower for that "Adventure" feel
+let tempo = 100; // Default tempo
+let currentMapId: MapId = MapId.FOREST;
 
 // Volume State
 const volumes = {
     master: 0.5,
-    music: 0.4, // Lower music volume as requested
+    music: 0.4, 
     sfx: 0.7
 };
 
@@ -86,6 +87,36 @@ const playKick = (time: number, vol: number, targetNode: GainNode | null) => {
   osc.stop(time + 0.4);
 };
 
+// Deep, Cavernous Kick for Mine
+const playDeepKick = (time: number, vol: number, targetNode: GainNode | null) => {
+  const ctx = getCtx();
+  if (!ctx || !targetNode) return;
+  
+  // 1. The Thud
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
+  osc.frequency.setValueAtTime(70, time);
+  osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.5);
+  g.gain.setValueAtTime(vol, time);
+  g.gain.exponentialRampToValueAtTime(0.01, time + 0.5);
+  osc.connect(g);
+  g.connect(targetNode);
+  osc.start(time);
+  osc.stop(time + 0.5);
+
+  // 2. The Echo (Cave reverb sim)
+  const oscEcho = ctx.createOscillator();
+  const gEcho = ctx.createGain();
+  oscEcho.frequency.setValueAtTime(45, time + 0.2); // Delayed
+  oscEcho.frequency.exponentialRampToValueAtTime(0.01, time + 0.5);
+  gEcho.gain.setValueAtTime(vol * 0.25, time + 0.2); 
+  gEcho.gain.exponentialRampToValueAtTime(0.001, time + 0.6);
+  oscEcho.connect(gEcho);
+  gEcho.connect(targetNode);
+  oscEcho.start(time + 0.2);
+  oscEcho.stop(time + 0.6);
+};
+
 const playSnare = (time: number, vol: number, targetNode: GainNode | null) => {
   const ctx = getCtx();
   if (!ctx || !targetNode) return;
@@ -132,6 +163,63 @@ const playHiHat = (time: number, vol: number, targetNode: GainNode | null) => {
   filter.connect(g);
   g.connect(targetNode);
   noise.start(time);
+};
+
+const playMetallicPerc = (time: number, vol: number, targetNode: GainNode | null, highPitch = false) => {
+  const ctx = getCtx();
+  if (!ctx || !targetNode) return;
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
+  
+  // Metallic: Square wave with bandpass
+  osc.type = 'square';
+  osc.frequency.setValueAtTime(highPitch ? 2400 : 1200, time);
+  
+  // Quick decay (Pickaxe hit)
+  g.gain.setValueAtTime(vol * 0.4, time);
+  g.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
+
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.value = highPitch ? 3000 : 1800;
+  filter.Q.value = 8;
+
+  osc.connect(filter);
+  filter.connect(g);
+  g.connect(targetNode);
+  osc.start(time);
+  osc.stop(time + 0.15);
+};
+
+// Heavy Anvil Sound
+const playAnvil = (time: number, vol: number, targetNode: GainNode | null) => {
+  const ctx = getCtx();
+  if (!ctx || !targetNode) return;
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
+  
+  // Heavy Ring
+  osc.type = 'triangle';
+  osc.frequency.setValueAtTime(600, time); // Lower heavy ring
+  
+  g.gain.setValueAtTime(0, time);
+  g.gain.linearRampToValueAtTime(vol * 0.8, time + 0.02); // Impact
+  g.gain.exponentialRampToValueAtTime(0.001, time + 1.2); // Long tail
+  
+  // Add some metallic dissonance
+  const mod = ctx.createOscillator();
+  mod.frequency.value = 840; // Dissonant interval
+  const modGain = ctx.createGain();
+  modGain.gain.value = 200;
+  mod.connect(modGain);
+  modGain.connect(osc.frequency);
+  mod.start(time);
+  mod.stop(time + 1.2);
+
+  osc.connect(g);
+  g.connect(targetNode);
+  osc.start(time);
+  osc.stop(time + 1.2);
 };
 
 // --- INSTRUMENTS ---
@@ -200,63 +288,140 @@ const playStrings = (freq: number, time: number, vol: number, duration: number, 
   osc.stop(time + duration);
 };
 
+// Low Cello/Bass Pad for Mine
+const playLowPad = (freq: number, time: number, vol: number, duration: number, targetNode: GainNode | null) => {
+  const ctx = getCtx();
+  if (!ctx || !targetNode) return;
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
+  const filter = ctx.createBiquadFilter();
+
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(freq, time);
+
+  // Darker filter
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(freq * 1.5, time);
+
+  // Heavy, slow envelope
+  g.gain.setValueAtTime(0, time);
+  g.gain.linearRampToValueAtTime(vol, time + 0.5);
+  g.gain.setValueAtTime(vol * 0.9, time + duration - 0.5);
+  g.gain.exponentialRampToValueAtTime(0.001, time + duration);
+
+  osc.connect(filter);
+  filter.connect(g);
+  g.connect(targetNode);
+  osc.start(time);
+  osc.stop(time + duration);
+};
+
 // --- SEQUENCER SCALES ---
 // A Minor / C Major Scale (Fantasy Feel)
 const SCALE = {
     A2: 110.00, C3: 130.81, D3: 146.83, E3: 164.81, G3: 196.00,
     A3: 220.00, C4: 261.63, D4: 293.66, E4: 329.63, G4: 392.00,
-    A4: 440.00, C5: 523.25, E5: 659.25
+    A4: 440.00, B4: 493.88, C5: 523.25, E5: 659.25,
+    // Low notes for Mine
+    E2: 82.41, G2: 98.00, B2: 123.47
 };
 
-const step = () => {
+// FOREST THEME: Light drums, Flute, Strings
+const playForestSequence = (time: number, step: number, secondsPerStep: number) => {
+    const barStep = step % 16;
+  
+    // --- DRUMS (Light, Steady) ---
+    if (barStep === 0) playKick(time, 0.4, musicGain);
+    if (barStep === 8) playKick(time, 0.3, musicGain);
+    if (barStep === 10 && Math.random() > 0.5) playKick(time, 0.2, musicGain);
+    if (barStep === 4 || barStep === 12) playSnare(time, 0.15, musicGain);
+    if (barStep % 2 === 0) playHiHat(time, 0.1, musicGain);
+    if (barStep % 2 !== 0 && Math.random() > 0.7) playHiHat(time, 0.05, musicGain);
+
+    // --- HARMONY (Strings/Pads) ---
+    if (barStep === 0) {
+        const barIndex = Math.floor(step / 16) % 4;
+        let root, third;
+        if (barIndex === 0) { root = SCALE.A2; third = SCALE.C3; } // Am
+        else if (barIndex === 1) { root = SCALE.C3; third = SCALE.E3; } // C
+        else if (barIndex === 2) { root = SCALE.G3; third = SCALE.D3; } // G
+        else { root = SCALE.A2; third = SCALE.E3; } // Am
+        
+        playStrings(root, time, 0.15, secondsPerStep * 16, musicGain);
+        playStrings(third, time, 0.12, secondsPerStep * 16, musicGain);
+    }
+
+    // --- MELODY (Flute) ---
+    const isMelodyStep = barStep % 2 === 0;
+    if (isMelodyStep && Math.random() > 0.6) {
+        const notes = [SCALE.A3, SCALE.C4, SCALE.D4, SCALE.E4, SCALE.G4, SCALE.A4, SCALE.C5];
+        const note = notes[Math.floor(Math.random() * notes.length)];
+        const finalNote = Math.random() > 0.8 ? note * 2 : note;
+        playFlute(finalNote, time, 0.12, musicGain);
+    }
+};
+
+// MINE THEME: "Mine March" - Deep, Industrial, Tense
+const playMineSequence = (time: number, step: number, secondsPerStep: number) => {
+    const barStep = step % 16;
+
+    // --- DRUMS (Heavy March) ---
+    // Deep kicks on 1 and 3 (Downbeats) - The heavy footfalls
+    if (barStep === 0 || barStep === 8) playDeepKick(time, 0.6, musicGain);
+    
+    // Light snare/tom on 2 and 4 to drive rhythm
+    if (barStep === 4 || barStep === 12) playSnare(time, 0.15, musicGain);
+    
+    // Occasional extra kick for syncopation
+    if (barStep === 10 && Math.random() > 0.5) playDeepKick(time, 0.4, musicGain);
+
+    // --- PERCUSSION (Industrial) ---
+    // Heavy Anvil on some downbeats (Accent)
+    if (barStep === 0 && step % 32 === 0) playAnvil(time, 0.25, musicGain);
+    
+    // Pickaxe Clinks (Syncopated high hats)
+    if ((barStep === 2 || barStep === 6 || barStep === 10 || barStep === 14) && Math.random() > 0.3) {
+        playMetallicPerc(time, 0.12, musicGain, Math.random() > 0.5);
+    }
+
+    // --- ATMOSPHERE (Deep Drones) ---
+    // Change chord every 2 bars (32 steps) for a slow, oppressive feel
+    if (step % 32 === 0) {
+        const sequenceIndex = Math.floor(step / 32) % 4;
+        
+        // Progression: Em -> G -> C -> Bm (Darker, more epic)
+        let root = SCALE.E2;
+        let fifth = SCALE.B2;
+
+        if (sequenceIndex === 1) { root = SCALE.G2; fifth = SCALE.D3; }
+        else if (sequenceIndex === 2) { root = SCALE.C3; fifth = SCALE.G3; }
+        else if (sequenceIndex === 3) { root = SCALE.B2; fifth = SCALE.E2; } // Tension
+
+        // Deep Bass Drone
+        playLowPad(root, time, 0.3, secondsPerStep * 32, musicGain);
+        // Harmonic mid-range pad
+        playStrings(fifth, time, 0.15, secondsPerStep * 32, musicGain);
+    }
+};
+
+const playSwampSequence = (time: number, step: number, secondsPerStep: number) => {
+    // Re-use Forest for now but slower (handled by tempo)
+    playForestSequence(time, step, secondsPerStep);
+};
+
+const sequencerStep = () => {
   const ctx = getCtx();
   if (!ctx || !isMusicPlaying) return;
 
   const secondsPerStep = 60 / (tempo * 4); // 16th notes
   const time = ctx.currentTime + 0.1;
   
-  // --- DRUMS (Light, Steady) ---
-  const barStep = currentStep % 16;
-  
-  // Kick on 1, 9 (and soft syncopation)
-  if (barStep === 0) playKick(time, 0.4, musicGain);
-  if (barStep === 8) playKick(time, 0.3, musicGain);
-  if (barStep === 10 && Math.random() > 0.5) playKick(time, 0.2, musicGain);
-
-  // Snare on 5, 13 (Soft backbeat)
-  if (barStep === 4 || barStep === 12) playSnare(time, 0.15, musicGain);
-
-  // HiHats (Steady 8ths, with random 16ths)
-  if (barStep % 2 === 0) playHiHat(time, 0.1, musicGain);
-  if (barStep % 2 !== 0 && Math.random() > 0.7) playHiHat(time, 0.05, musicGain);
-
-  // --- HARMONY (Strings/Pads) ---
-  // Change chord every 16 steps (1 bar)
-  // Progression: Am -> C -> G -> Am
-  if (barStep === 0) {
-      const barIndex = Math.floor(currentStep / 16) % 4;
-      let root, third;
-      if (barIndex === 0) { root = SCALE.A2; third = SCALE.C3; } // Am
-      else if (barIndex === 1) { root = SCALE.C3; third = SCALE.E3; } // C
-      else if (barIndex === 2) { root = SCALE.G3; third = SCALE.D3; } // G (using D as 5th for open sound)
-      else { root = SCALE.A2; third = SCALE.E3; } // Am
-      
-      playStrings(root, time, 0.15, secondsPerStep * 16, musicGain);
-      playStrings(third, time, 0.12, secondsPerStep * 16, musicGain);
-  }
-
-  // --- MELODY (Flute) ---
-  // Playful, sparse melody on top
-  const isMelodyStep = barStep % 2 === 0; // Quantize to 8th notes
-  if (isMelodyStep && Math.random() > 0.6) {
-      // Pick a note from the pentatonic scale
-      const notes = [SCALE.A3, SCALE.C4, SCALE.D4, SCALE.E4, SCALE.G4, SCALE.A4, SCALE.C5];
-      const note = notes[Math.floor(Math.random() * notes.length)];
-      
-      // Chance for a higher octave flourish
-      const finalNote = Math.random() > 0.8 ? note * 2 : note;
-      
-      playFlute(finalNote, time, 0.12, musicGain);
+  if (currentMapId === MapId.MINE) {
+      playMineSequence(time, currentStep, secondsPerStep);
+  } else if (currentMapId === MapId.SWAMP) {
+      playSwampSequence(time, currentStep, secondsPerStep);
+  } else {
+      playForestSequence(time, currentStep, secondsPerStep);
   }
 
   currentStep = (currentStep + 1) % 64;
@@ -268,15 +433,31 @@ export const AudioService = {
     if (ctx && ctx.state === 'suspended') ctx.resume();
   },
 
-  startMusic: () => {
-    if (isMusicPlaying) return;
+  startMusic: (mapId: MapId = MapId.FOREST) => {
+    // If music is already playing and map hasn't changed, do nothing
+    if (isMusicPlaying && currentMapId === mapId) return;
+    
+    // Update Map ID
+    currentMapId = mapId;
+    
+    // Set Tempo based on map
+    if (mapId === MapId.MINE) tempo = 85; // Slower, heavier march
+    else if (mapId === MapId.SWAMP) tempo = 90;
+    else tempo = 105; // Adventure
+
     const ctx = getCtx();
     if (!ctx) return;
-    isMusicPlaying = true;
+    
+    // Reset step for clean transition
     currentStep = 0;
-    // Clear any existing interval just in case
+    
+    if (!isMusicPlaying) {
+        isMusicPlaying = true;
+    }
+    
+    // Always restart interval to apply new tempo
     if (sequencerInterval) clearInterval(sequencerInterval);
-    sequencerInterval = setInterval(step, (60 / (tempo * 4)) * 1000);
+    sequencerInterval = setInterval(sequencerStep, (60 / (tempo * 4)) * 1000);
   },
 
   stopMusic: () => {
