@@ -643,8 +643,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       width={100 * scale} 
       height={100 * scale} 
       viewBox="0 0 100 100" 
-      className={`overflow-visible ${animClass}`}
-      style={style}
+      className="overflow-visible"
     >
       <defs>
           <style>{`
@@ -738,38 +737,51 @@ export const StickmanRender: React.FC<StickmanProps> = ({
               <stop offset="0%" stopColor="#fef08a" stopOpacity="0.8" />
               <stop offset="100%" stopColor="#fef08a" stopOpacity="0" />
           </linearGradient>
+
+          {/* New Robust Shadow Gradient */}
+          <radialGradient id="groundShadow">
+              <stop offset="0%" stopColor="#000000" stopOpacity="0.8" />
+              <stop offset="60%" stopColor="#000000" stopOpacity="0.4" />
+              <stop offset="100%" stopColor="#000000" stopOpacity="0" />
+          </radialGradient>
       </defs>
 
-      {/* -- SHADOW -- Added for grounding effect */}
+      {/* -- SHADOW -- Enhanced for dark backgrounds */}
       {!isDying && (
-         <ellipse cx="50" cy="100" rx="25" ry="6" fill="black" opacity="0.3" filter="blur(2px)" />
+         <ellipse cx="50" cy="100" rx="30" ry="8" fill="url(#groundShadow)" />
       )}
 
+      {/* SELECTION RING - Detached */}
       {isSelected && !isDying && (
           <ellipse cx="50" cy="95" rx="25" ry="8" fill="none" stroke="#fbbf24" strokeWidth="2" className="animate-pulse" />
       )}
       
-      <g>
+      {/* -- ANIMATED BODY GROUP -- */}
+      {/* This group contains everything that should bounce/lunge */}
+      <g className={animClass} style={style}>
         {renderBackAccessories()}
         {renderSlimeBody()}
         {renderSlimeBubbles()}
         {renderEyes()}
         {renderAccessories()}
+        {/* Magic effects attached to body parts */}
+        {isAttacking && !isDying && (type === UnitType.MAGE || type === UnitType.SMALL) && (
+           <circle cx="80" cy="50" r="8" fill="none" stroke={secondaryColor} strokeWidth="2" className="animate-magic-pulse" />
+        )}
+        {renderImpactVisuals()}
       </g>
       
+      {/* -- STATIC / GROUND EFFECTS -- */}
+      {/* These stay on the ground even if body jumps */}
       {renderSummonEffect()}
       {renderRootVisuals()}
       {renderBossAbilityVisuals()}
 
+      {/* Boss Shockwave - Fixed position on ground */}
       {isAttacking && !isDying && type === UnitType.BOSS && !isBossAbility && (
-         <circle cx="50" cy="50" r="25" fill="none" stroke="white" strokeWidth="2" className="animate-shockwave" />
+         <circle cx="50" cy="90" r="25" fill="none" stroke="white" strokeWidth="2" className="animate-shockwave" />
       )}
       
-      {isAttacking && !isDying && (type === UnitType.MAGE || type === UnitType.SMALL) && (
-         <circle cx="80" cy="50" r="8" fill="none" stroke={secondaryColor} strokeWidth="2" className="animate-magic-pulse" />
-      )}
-      
-      {renderImpactVisuals()}
     </svg>
   );
 };

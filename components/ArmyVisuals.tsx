@@ -63,7 +63,7 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({
           return (
              <div 
                key={p.id}
-               className="absolute bottom-16 w-10 h-3 transition-transform duration-100 will-change-transform z-[150]"
+               className="absolute bottom-16 w-10 h-3 transition-transform duration-100 will-change-transform z-[110]"
                style={{
                    left: `${visualX}%`,
                    transform: `translate3d(-50%, -20px, 0) scaleX(${facingScale})`,
@@ -146,7 +146,7 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({
             style={{
                left: `${visualX}%`,
                transform: transformString,
-               zIndex: isDying ? 0 : 200 - Math.floor(depthOffset), // Closer units (lower offset) have higher Z
+               zIndex: isDying ? 0 : 100 - Math.floor(depthOffset), // Range 0-100 relative to game container
                width: '80px',
                height: '80px'
             }}

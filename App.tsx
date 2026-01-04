@@ -1040,7 +1040,7 @@ export const App: React.FC = () => {
     <div className="h-[100dvh] w-screen bg-black overflow-hidden relative">
       <div 
         ref={scrollContainerRef}
-        className={`absolute inset-0 flex flex-col bg-inamorta select-none overflow-x-auto overflow-y-hidden touch-pan-x`}
+        className={`absolute inset-0 flex flex-col bg-inamorta select-none overflow-x-auto overflow-y-hidden touch-pan-x z-0 isolation-isolate`}
         onMouseDown={(e) => { setIsDragging(true); setStartX(e.pageX); setScrollLeft(scrollContainerRef.current!.scrollLeft); }}
         onMouseMove={(e) => { if (!isDragging) return; scrollContainerRef.current!.scrollLeft = scrollLeft - (e.pageX - startX) * 1.5; }}
         onMouseUp={() => setIsDragging(false)}

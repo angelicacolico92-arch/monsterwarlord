@@ -18,7 +18,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLeaveGa
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in">
+    <div 
+        className="fixed inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in"
+        style={{ zIndex: 9999, transform: 'translateZ(100px)' }} // Force top layer composite
+    >
         <div className="bg-stone-900 w-full max-w-md mx-4 rounded-xl border border-stone-700 shadow-2xl p-6 relative">
             
             <div className="flex justify-between items-center mb-6">
