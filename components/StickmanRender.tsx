@@ -149,9 +149,16 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                   </defs>
                   
                   {/* Rotating Rune Rings (The "Aura" effect) */}
-                  <g className="animate-spin-slow" style={{ transformOrigin: '50px 65px', opacity: 0.6 }}>
-                      <circle cx="50" cy="65" r="42" stroke={auraPrimary} strokeWidth="1" strokeDasharray="10 20" fill="none" />
-                      <circle cx="50" cy="65" r="35" stroke={auraPrimary} strokeWidth="0.5" strokeDasharray="5 5" fill="none" opacity="0.5" />
+                  <g className="animate-spin-slow" style={{ transformOrigin: '50px 65px', opacity: 0.7 }}>
+                      {/* Outer Ring */}
+                      <circle cx="50" cy="65" r="45" stroke={auraPrimary} strokeWidth="1" strokeDasharray="15 10" fill="none" />
+                      <circle cx="50" cy="65" r="42" stroke={auraSecondary} strokeWidth="0.5" opacity="0.5" />
+                  </g>
+                  
+                  {/* Inner Counter-Rotating Ring */}
+                  <g className="animate-spin-slow" style={{ transformOrigin: '50px 65px', opacity: 0.6, animationDirection: 'reverse', animationDuration: '10s' }}>
+                      <circle cx="50" cy="65" r="32" stroke={auraPrimary} strokeWidth="1.5" strokeDasharray="2 8" fill="none" />
+                      <rect x="34" y="49" width="32" height="32" stroke={auraSecondary} strokeWidth="0.5" transform="rotate(45 50 65)" opacity="0.4" />
                   </g>
 
                   {/* Pulsing Aura Field */}
@@ -219,7 +226,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
     }
 
     if (type === UnitType.ARCHER) {
-        // Imperial Archer Body (Athletic, Firm)
+        // Imperial Archer Body (Redesigned - Imperial Army Style)
         return (
             <g>
                 {/* Body */}
@@ -230,13 +237,20 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                     strokeWidth="2" 
                 />
 
-                {/* Imperial Chest Guard (Redesigned - Solid Armor Plate) */}
+                {/* Imperial Armor: Light Scale Mail */}
                 <path 
                     d="M25 75 Q 25 55 35 50 Q 50 45 65 50 Q 75 55 75 75 Q 50 85 25 75 Z" 
                     fill="#e2e8f0" 
                     stroke="#475569" 
                     strokeWidth="1" 
                 />
+
+                {/* Simulated Scales */}
+                <g opacity="0.3">
+                    <path d="M30 55 Q 35 60 40 55 T 50 55 T 60 55 T 70 55" stroke="#475569" strokeWidth="1" fill="none" />
+                    <path d="M28 65 Q 33 70 38 65 T 48 65 T 58 65 T 68 65 T 75 62" stroke="#475569" strokeWidth="1" fill="none" />
+                </g>
+
                 {/* Gold Trim */}
                 <path 
                     d="M25 75 Q 25 55 35 50 Q 50 45 65 50 Q 75 55 75 75" 
@@ -244,13 +258,12 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                     stroke={hoodColor} 
                     strokeWidth="2" 
                 />
-                {/* Central Diamond/Emblem */}
-                <path d="M50 50 L 56 60 L 50 70 L 44 60 Z" fill={hoodColor} stroke="#b45309" strokeWidth="0.5" />
 
-                {/* Sash/Belt under armor */}
-                <path d="M20 80 Q 50 85 80 75" stroke={secondaryColor} strokeWidth="3" fill="none" opacity="0.8" />
+                {/* Imperial Sash (Matching Toxic Unit) */}
+                <path d="M30 52 L 70 72" stroke={hoodColor} strokeWidth="3" opacity="0.9" />
+                <rect x="45" y="72" width="10" height="6" rx="1" fill={hoodColor} stroke="#b45309" strokeWidth="1" />
 
-                {/* Arm Bracers (Implied on sides) */}
+                {/* Arm Bracers */}
                 <rect x="75" y="60" width="4" height="12" rx="1" fill="#4b5563" transform="rotate(-5 77 66)" />
                 <rect x="21" y="60" width="4" height="12" rx="1" fill="#4b5563" transform="rotate(5 23 66)" />
             </g>
@@ -420,23 +433,29 @@ export const StickmanRender: React.FC<StickmanProps> = ({
      }
      
      if (type === UnitType.ARCHER) {
-         // Imperial Archer: Imperial Helm Design
+         // Imperial Archer: Full Imperial Galea Helm
          return (
              <g>
-                 {/* Imperial Helmet Brow & Nose Guard */}
-                 <path d="M22 50 Q 50 38 78 50" fill="none" stroke={hoodColor} strokeWidth="2.5" strokeLinecap="round" />
-                 <path d="M50 44 L 50 62" stroke={hoodColor} strokeWidth="2" strokeLinecap="round" />
+                 {/* Helmet Dome */}
+                 <path d="M25 50 Q 50 25 75 50" fill={hoodColor} stroke="#b45309" strokeWidth="1.5" />
                  
-                 {/* Helmet Side Plates */}
-                 <path d="M22 50 L 22 65 Q 30 72 38 68" fill="none" stroke={hoodColor} strokeWidth="1.5" />
-                 <path d="M78 50 L 78 65 Q 70 72 62 68" fill="none" stroke={hoodColor} strokeWidth="1.5" />
+                 {/* Cheek Guards */}
+                 <path d="M25 50 L 25 68 Q 35 75 40 68" fill={hoodColor} stroke="#b45309" strokeWidth="1" />
+                 <path d="M75 50 L 75 68 Q 65 75 60 68" fill={hoodColor} stroke="#b45309" strokeWidth="1" />
 
-                 {/* Sharp Eyes */}
-                 <path d="M32 58 L 44 58 L 42 62 L 34 63 Z" fill="white" />
-                 <path d="M68 58 L 56 58 L 58 62 L 66 63 Z" fill="white" />
+                 {/* Brow Guard */}
+                 <path d="M22 50 Q 50 45 78 50" fill="none" stroke="#b45309" strokeWidth="2" />
                  
-                 {/* Emerald Emblem on Forehead */}
-                 <path d="M50 38 L 54 44 L 50 50 L 46 44 Z" fill="#10b981" />
+                 {/* Nose Guard */}
+                 <path d="M50 48 L 50 60" stroke={hoodColor} strokeWidth="3" />
+                 <path d="M50 48 L 50 60" stroke="#b45309" strokeWidth="1" />
+
+                 {/* Eyes (Visible through helm) */}
+                 <path d="M32 58 L 44 58 L 42 61 L 34 61 Z" fill="white" />
+                 <path d="M68 58 L 56 58 L 58 61 L 66 61 Z" fill="white" />
+                 
+                 {/* Crest (Smaller than Toxic) */}
+                 <path d="M40 30 Q 50 25 60 30 L 50 45 Z" fill={secondaryColor} />
              </g>
          );
      }
