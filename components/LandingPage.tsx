@@ -1,8 +1,8 @@
-
 import React, { useState } from 'react';
 import { mpService } from '../services/multiplayerService';
-import { Users, Copy, Play, Sword, Zap } from 'lucide-react';
+import { Users, Copy, Play, Sword, Zap, Settings } from 'lucide-react';
 import { AudioService } from '../services/audioService';
+import { SettingsModal } from './SettingsModal';
 
 interface LandingPageProps {
   onStartHost: (surge: boolean) => void;
@@ -17,6 +17,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartHost, onStartCl
   const [isCopied, setIsCopied] = useState(false);
   const [status, setStatus] = useState('');
   const [surgeMode, setSurgeMode] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   const handleCreateLobby = () => {
     AudioService.playSelect();
@@ -73,6 +74,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartHost, onStartCl
         {/* Background Atmosphere */}
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-50"></div>
         <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-900/40 to-red-900/40 pointer-events-none"></div>
+
+        {/* Settings Button (Top Right) */}
+        <button 
+            onClick={() => { AudioService.playSelect(); setShowSettings(true); }}
+            className="absolute top-4 right-4 z-20 p-2 bg-stone-900/50 rounded-full border border-white/10 hover:bg-stone-800 transition-colors"
+        >
+            <Settings className="text-stone-300" size={24} />
+        </button>
+        
+        {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
 
         <div className="z-10 bg-stone-900/90 border-2 border-stone-600 p-6 sm:p-8 rounded-xl max-w-md w-full backdrop-blur-md shadow-2xl flex flex-col justify-center max-h-full overflow-y-auto">
             

@@ -22,7 +22,8 @@ import { MapSelection } from './components/MapSelection';
 import { BattlefieldBackground } from './components/BattlefieldBackground';
 import { AudioService } from './services/audioService';
 import { mpService } from './services/multiplayerService';
-import { Coins, Shield, Swords, Music, VolumeX, CornerDownLeft, Users, Flag } from 'lucide-react';
+import { Coins, Shield, Swords, CornerDownLeft, Users, Settings } from 'lucide-react';
+import { SettingsModal } from './components/SettingsModal';
 
 const GoldMine: React.FC<{ x: number; isFlipped?: boolean }> = ({ x, isFlipped }) => (
   <div 
@@ -132,8 +133,8 @@ export const App: React.FC = () => {
   const [role, setRole] = useState<PlayerRole>(PlayerRole.HOST);
   const [isSurgeMode, setIsSurgeMode] = useState(false);
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
-  const [isMusicEnabled, setIsMusicEnabled] = useState(false);
   const [shakeTrigger, setShakeTrigger] = useState<number>(0);
+  const [showSettings, setShowSettings] = useState(false);
   const [showSurrenderConfirm, setShowSurrenderConfirm] = useState(false);
   
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -170,16 +171,12 @@ export const App: React.FC = () => {
     setIsSurgeMode(false);
     mpService.destroy();
     setAppMode('LANDING');
+    setShowSettings(false);
   }, []);
 
-  const toggleMusic = () => {
-    if (isMusicEnabled) {
-        AudioService.stopMusic();
-        setIsMusicEnabled(false);
-    } else {
-        AudioService.startMusic();
-        setIsMusicEnabled(true);
-    }
+  const handleLeaveGame = () => {
+      setShowSettings(false);
+      setShowSurrenderConfirm(true);
   };
 
   // Helper function for damage calculation
@@ -913,22 +910,18 @@ export const App: React.FC = () => {
          <div className="flex items-center gap-2"><Users className={myUnitsCount >= MAX_UNITS ? "text-red-500" : "text-stone-400"} size={18} /><span className={myUnitsCount >= MAX_UNITS ? "text-red-400 font-bold" : "text-stone-100 font-bold"}>{myUnitsCount}/{MAX_UNITS}</span></div>
       </div>
 
-      {/* TOP RIGHT BELOW RESOURCES: Controls (Surrender + Volume) */}
+      {/* TOP RIGHT BELOW RESOURCES: Controls (Settings + Volume) */}
       <div className="fixed top-16 right-4 z-40 flex gap-2">
-          {/* Surrender Button */}
+          {/* Settings Button (Replaces simple volume) */}
           <button 
-              onClick={() => setShowSurrenderConfirm(true)}
-              className="bg-black/60 p-2 rounded-full border border-red-500/30 text-red-500 hover:bg-red-900/50 transition-colors shadow-lg active:scale-95"
-              title="Surrender"
+              onClick={() => { AudioService.playSelect(); setShowSettings(true); }}
+              className="p-2 bg-black/60 rounded-full border border-white/20 text-stone-300 hover:text-white shadow-lg active:scale-95"
           >
-              <Flag size={20} />
-          </button>
-          
-          {/* Volume Button (Moved here) */}
-          <button onClick={toggleMusic} className="p-2 bg-black/60 rounded-full border border-white/20 text-yellow-400 shadow-lg active:scale-95">
-              {isMusicEnabled ? <Music size={20} /> : <VolumeX size={20} />}
+              <Settings size={20} />
           </button>
       </div>
+
+      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} onLeaveGame={handleLeaveGame} />}
 
       {/* TOP CENTER: Army Recruitment Bar */}
       <div className="fixed top-2 left-1/2 -translate-x-1/2 z-40 bg-black/80 p-2 rounded-xl flex gap-2 border border-white/10 max-w-[90vw] overflow-x-auto no-scrollbar">
