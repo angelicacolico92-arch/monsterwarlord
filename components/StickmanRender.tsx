@@ -1,5 +1,4 @@
 
-
 import React, { useMemo } from 'react';
 import { UnitType } from '../types';
 
@@ -19,6 +18,7 @@ interface StickmanProps {
   isFirebursting?: boolean;
   isRooted?: boolean;
   isBossAbility?: boolean;
+  style?: React.CSSProperties;
 }
 
 export const StickmanRender: React.FC<StickmanProps> = ({ 
@@ -36,7 +36,8 @@ export const StickmanRender: React.FC<StickmanProps> = ({
   isSummoning = false,
   isFirebursting = false,
   isRooted = false,
-  isBossAbility = false
+  isBossAbility = false,
+  style = {}
 }) => {
   const animationDelay = useMemo(() => Math.random() * 1, []);
   const bubbleDelays = useMemo(() => [Math.random() * 2, Math.random() * 2, Math.random() * 2], []);
@@ -206,32 +207,27 @@ export const StickmanRender: React.FC<StickmanProps> = ({
     if (type === UnitType.ARCHER) {
         return (
             <g>
+                {/* Compact Slime Body (Round) - No Helmet */}
                 <path 
                     d="M15 100 L 15 95 Q 15 45 50 45 Q 85 45 85 95 L 85 100 Z" 
                     fill={baseColor} 
                     stroke={secondaryColor} 
                     strokeWidth="2" 
                 />
+                
+                {/* Chest Plate */}
                 <path 
                     d="M30 75 Q 50 82 70 75 L 70 85 Q 50 95 30 85 Z" 
                     fill="#e2e8f0" 
                     stroke={hoodColor} 
                     strokeWidth="1" 
                 />
+                
+                {/* Pauldrons */}
                 <circle cx="20" cy="70" r="8" fill="#e2e8f0" stroke="#475569" strokeWidth="1" />
                 <circle cx="20" cy="70" r="4" fill={hoodColor} opacity="0.5" />
                 <circle cx="80" cy="70" r="8" fill="#e2e8f0" stroke="#475569" strokeWidth="1" />
                 <circle cx="80" cy="70" r="4" fill={hoodColor} opacity="0.5" />
-                <path 
-                    d="M20 60 Q 20 20 50 20 Q 80 20 80 60 L 80 65 Q 80 60 70 60 L 30 60 Q 20 60 20 65 Z" 
-                    fill="#cbd5e1" 
-                    stroke="#334155" 
-                    strokeWidth="2" 
-                />
-                <path d="M20 60 L 25 75 L 35 75 L 30 60 Z" fill="#cbd5e1" stroke="#334155" strokeWidth="1" />
-                <path d="M80 60 L 75 75 L 65 75 L 70 60 Z" fill="#cbd5e1" stroke="#334155" strokeWidth="1" />
-                <path d="M45 20 L 45 12 L 55 20" fill={hoodColor} stroke="#b45309" strokeWidth="1" />
-                <path d="M48 12 L 52 12" stroke={hoodColor} strokeWidth="2" />
             </g>
         );
     }
@@ -386,7 +382,6 @@ export const StickmanRender: React.FC<StickmanProps> = ({
      
      if (type === UnitType.ARCHER) {
          // Imperial Archer: Lime Green Dash Eyes + Blush (Cute & Determined)
-         // Fully visible under the open-face helmet
          return (
              <g>
                  {/* Lime Green Dash Eyes */}
@@ -509,7 +504,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       if (type === UnitType.ARCHER) {
           return (
              <g>
-                  {/* Imperial Bow - Compact Wood & Gold */}
+                  {/* Imperial Bow - Reversed to Face Correctly */}
                   <g transform="translate(70, 70)">
                       <g 
                         className={isAttacking ? "animate-archer-bow" : ""} 
@@ -518,22 +513,27 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                           {/* Hand */}
                           <circle cx="0" cy="0" r="3" fill={baseColor} />
 
-                          {/* Compact Bow Body */}
-                          <path d="M-2 -20 Q 15 -30 10 -40" stroke="#78350f" strokeWidth="3" fill="none" strokeLinecap="round" />
-                          <path d="M-2 20 Q 15 30 10 40" stroke="#78350f" strokeWidth="3" fill="none" strokeLinecap="round" />
-                          <path d="M-2 -20 L -2 20" stroke={hoodColor} strokeWidth="3" /> 
+                          {/* Bow Limbs - Curving forward (Right) */}
+                          <path d="M0 -5 Q 12 -25 -5 -40" stroke="#78350f" strokeWidth="3" fill="none" strokeLinecap="round" />
+                          <path d="M0 5 Q 12 25 -5 40" stroke="#78350f" strokeWidth="3" fill="none" strokeLinecap="round" />
                           
-                          <circle cx="10" cy="-40" r="2" fill={hoodColor} />
-                          <circle cx="10" cy="40" r="2" fill={hoodColor} />
+                          {/* Handle Grip */}
+                          <path d="M0 -5 L 0 5" stroke={hoodColor} strokeWidth="3" />
+                          
+                          {/* Gold Accents */}
+                          <circle cx="-5" cy="-40" r="2" fill={hoodColor} />
+                          <circle cx="-5" cy="40" r="2" fill={hoodColor} />
 
-                          <line x1="10" y1="-40" x2="10" y2="40" stroke="#bef264" strokeWidth="1" strokeOpacity="0.8" className="animate-pulse" />
+                          {/* Energy String - Connecting Tips */}
+                          <line x1="-5" y1="-40" x2="-5" y2="40" stroke="#bef264" strokeWidth="1" strokeOpacity="0.8" className="animate-pulse" />
                           
                           {isAttacking && (
                               <g className="animate-archer-reload" style={{ animationDuration: '2.5s' }}>
-                                  <line x1="-15" y1="0" x2="15" y2="0" stroke="#bef264" strokeWidth="2" />
-                                  <path d="M15 0 L 10 -3 L 10 3 Z" fill="#ecfccb" />
-                                  <path d="M-15 0 L -18 -3 L -18 3 Z" fill={hoodColor} />
-                                  <circle cx="15" cy="0" r="4" fill="#bef264" opacity="0.5" className="animate-ping" />
+                                  {/* Arrow sitting on string */}
+                                  <line x1="-5" y1="0" x2="20" y2="0" stroke="#bef264" strokeWidth="2" />
+                                  <path d="M20 0 L 15 -3 L 15 3 Z" fill="#ecfccb" />
+                                  <path d="M-5 0 L -8 -3 L -8 3 Z" fill={hoodColor} />
+                                  <circle cx="20" cy="0" r="4" fill="#bef264" opacity="0.5" className="animate-ping" />
                               </g>
                           )}
                       </g>
@@ -804,6 +804,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
             @keyframes energy-rise { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-40px); opacity: 0; } }
             .animate-energy-rise { animation: energy-rise 0.8s ease-out; }
 
+            /* Updated Sword Swing for Imperial Slime - Closer to body */
             @keyframes sword-swing {
                 0% { transform: translate(68px, 72px) rotate(-15deg); } /* Closer to body */
                 30% { transform: translate(65px, 65px) rotate(-50deg); } /* Windup back */
@@ -877,34 +878,30 @@ export const StickmanRender: React.FC<StickmanProps> = ({
             }
             .animate-paladin-attack { animation: paladin-attack 0.4s ease-in-out infinite; }
 
-            /* UPDATED ARCHER ANIMATIONS - Start with RECOIL/FIRE for instant feedback */
-            /* Cycle: Fire (0) -> Rest (10) -> Load (30) -> Draw (80) -> Hold (95) -> Fire (100) */
-            
+            /* UPDATED ARCHER ANIMATIONS - No "Throwing" Motion */
             @keyframes archer-draw-cycle {
-                0% { transform: translateX(4px) scale(1.05, 0.95); } /* RECOIL/FIRE */
-                10% { transform: translateX(0) scale(1, 1); } /* Rest */
-                30% { transform: translateX(-2px) scale(1, 1); } /* Start Draw */
-                80% { transform: translateX(-6px) scale(0.95, 1.05); } /* Full Draw */
-                95% { transform: translateX(-6px) scale(0.95, 1.05); } /* Hold */
-                100% { transform: translateX(4px) scale(1.05, 0.95); } /* Snap to Fire */
+                0% { transform: scale(1, 1) rotate(0deg); } /* Fire/Recoil */
+                10% { transform: scale(1, 1); } /* Rest */
+                80% { transform: scale(0.95, 1) rotate(-2deg); } /* Draw (slight compression & tilt) */
+                95% { transform: scale(0.95, 1) rotate(-2deg); } /* Hold */
+                100% { transform: scale(1, 1) rotate(0deg); } /* Snap */
             }
             .animate-archer-bow { animation: archer-draw-cycle 2.5s ease-in-out infinite; }
 
             @keyframes arrow-reload-cycle {
-                0% { opacity: 0; transform: translateX(0); } /* Just Fired - Gone */
-                10% { opacity: 0; transform: translateX(0); }
-                15% { opacity: 1; transform: translateX(0); } /* Reappear */
-                80% { opacity: 1; transform: translateX(-8px); } /* Drawn Back */
-                95% { opacity: 1; transform: translateX(-8px); } /* Hold */
-                100% { opacity: 0; transform: translateX(0); } /* Vanish (Fire) */
+                0% { opacity: 0; transform: translateX(0); }
+                15% { opacity: 1; transform: translateX(0); } /* Appear at rest */
+                80% { opacity: 1; transform: translateX(-12px); } /* Draw back */
+                95% { opacity: 1; transform: translateX(-12px); } /* Hold */
+                100% { opacity: 0; transform: translateX(0); } /* Fire (Vanish) */
             }
             .animate-archer-reload { animation: arrow-reload-cycle 2.5s linear infinite; }
 
             @keyframes archer-body-sway-cycle {
                 0% { transform: rotate(5deg); } /* Recoil Forward */
                 10% { transform: rotate(0deg); }
-                80% { transform: rotate(-10deg); } /* Lean Back */
-                95% { transform: rotate(-10deg); }
+                80% { transform: rotate(-5deg); } /* Lean Back */
+                95% { transform: rotate(-5deg); }
                 100% { transform: rotate(5deg); }
             }
             .animate-archer-body { transform-origin: bottom center; animation: archer-body-sway-cycle 2.5s ease-in-out infinite; }
@@ -941,7 +938,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       
       {/* -- ANIMATED BODY GROUP -- */}
       {/* This group contains everything that should bounce/lunge */}
-      <g className={animClass} style={animStyle}>
+      <g className={animClass} style={Object.assign({}, style, animStyle)}>
         {renderBackAccessories()}
         {renderSlimeBody()}
         {renderSlimeBubbles()}
