@@ -86,8 +86,8 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       case UnitType.ARCHER:
           // Imperial Archer: Deep Emerald (Player) vs Dark Crimson (Enemy)
           // Gold Accents for both
-          baseColor = isPlayer ? "#059669" : "#991b1b"; 
-          secondaryColor = isPlayer ? "#065f46" : "#7f1d1d"; 
+          baseColor = isPlayer ? "#047857" : "#991b1b"; 
+          secondaryColor = isPlayer ? "#064e3b" : "#7f1d1d"; 
           hoodColor = "#fbbf24"; 
           break;
       case UnitType.PALADIN:
@@ -124,11 +124,10 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       if (type === UnitType.ARCHER) {
           return (
               <g transform="translate(0,0)">
-                  {/* Quiver body behind */}
-                  <path d="M60 40 L 85 90 L 75 95 L 50 45 Z" fill="#4a2c0f" stroke="#271c19" strokeWidth="1" />
-                  {/* Arrows fletching peeking out */}
-                  <path d="M65 35 L 68 25 L 62 25 Z" fill={hoodColor} />
-                  <path d="M72 38 L 75 28 L 69 28 Z" fill={hoodColor} />
+                  <path d="M65 45 L 80 85 L 70 90 L 55 50 Z" fill="#4a2c0f" stroke="#271c19" strokeWidth="1" />
+                  <path d="M60 48 L 75 48" stroke={hoodColor} strokeWidth="2" />
+                  <path d="M68 40 L 70 30 L 66 30 Z" fill={hoodColor} />
+                  <path d="M74 42 L 76 32 L 72 32 Z" fill={hoodColor} />
               </g>
           );
       }
@@ -139,30 +138,29 @@ export const StickmanRender: React.FC<StickmanProps> = ({
 
           return (
               <g>
-                  {/* Arcane Aura */}
+                  {/* Arcane Aura - Enhanced */}
                   <defs>
-                      <radialGradient id={`aura-${isPlayer ? 'p' : 'e'}`} cx="0.5" cy="0.5" r="0.65">
-                          <stop offset="0%" stopColor={auraPrimary} stopOpacity="0.5" />
-                          <stop offset="60%" stopColor={auraSecondary} stopOpacity="0.1" />
+                      <radialGradient id={`aura-${isPlayer ? 'p' : 'e'}`} cx="0.5" cy="0.5" r="0.7">
+                          <stop offset="0%" stopColor={auraPrimary} stopOpacity="0.6" />
+                          <stop offset="50%" stopColor={auraSecondary} stopOpacity="0.2" />
                           <stop offset="100%" stopColor="transparent" stopOpacity="0" />
                       </radialGradient>
                   </defs>
                   
-                  {/* Rotating Rune Rings (The "Aura" effect) */}
-                  <g className="animate-spin-slow" style={{ transformOrigin: '50px 65px', opacity: 0.7 }}>
-                      {/* Outer Ring */}
-                      <circle cx="50" cy="65" r="45" stroke={auraPrimary} strokeWidth="1" strokeDasharray="15 10" fill="none" />
-                      <circle cx="50" cy="65" r="42" stroke={auraSecondary} strokeWidth="0.5" opacity="0.5" />
-                  </g>
-                  
-                  {/* Inner Counter-Rotating Ring */}
-                  <g className="animate-spin-slow" style={{ transformOrigin: '50px 65px', opacity: 0.6, animationDirection: 'reverse', animationDuration: '10s' }}>
-                      <circle cx="50" cy="65" r="32" stroke={auraPrimary} strokeWidth="1.5" strokeDasharray="2 8" fill="none" />
-                      <rect x="34" y="49" width="32" height="32" stroke={auraSecondary} strokeWidth="0.5" transform="rotate(45 50 65)" opacity="0.4" />
+                  {/* Outer Rune Ring */}
+                  <g className="animate-spin-slow" style={{ transformOrigin: '50px 65px', opacity: 0.8 }}>
+                       <path d="M50 20 L 50 25 M 50 105 L 50 110 M 5 65 L 10 65 M 90 65 L 95 65" stroke={auraPrimary} strokeWidth="2" />
+                       <circle cx="50" cy="65" r="45" stroke={auraPrimary} strokeWidth="1.5" strokeDasharray="10 30" fill="none" />
                   </g>
 
-                  {/* Pulsing Aura Field */}
-                  <circle cx="50" cy="65" r="50" fill={`url(#aura-${isPlayer ? 'p' : 'e'})`} className="animate-pulse" style={{ animationDuration: '3s' }} />
+                  {/* Inner Counter-Rotating Ring */}
+                  <g className="animate-spin-slow" style={{ transformOrigin: '50px 65px', opacity: 0.6, animationDirection: 'reverse', animationDuration: '6s' }}>
+                      <circle cx="50" cy="65" r="30" stroke={auraSecondary} strokeWidth="1" strokeDasharray="5 5" fill="none" />
+                      <path d="M50 35 L 50 95 M 20 65 L 80 65" stroke={auraSecondary} strokeWidth="0.5" />
+                  </g>
+
+                  {/* Pulsing Core Field */}
+                  <circle cx="50" cy="65" r="50" fill={`url(#aura-${isPlayer ? 'p' : 'e'})`} className="animate-pulse" />
                   
                   {/* Heavy Royal Cape */}
                   <path 
@@ -226,46 +224,39 @@ export const StickmanRender: React.FC<StickmanProps> = ({
     }
 
     if (type === UnitType.ARCHER) {
-        // Imperial Archer Body (Redesigned - Imperial Army Style)
+        // Imperial Archer Body - Redesigned
         return (
             <g>
-                {/* Body */}
+                {/* Short Imperial Cape */}
+                <path d="M25 55 Q 15 75 20 85 L 80 85 Q 85 75 75 55" fill={secondaryColor} />
+
+                {/* Body: Medium-height, firm */}
                 <path 
-                    d="M18 100 L 20 85 Q 15 50 35 45 Q 50 40 65 45 Q 85 50 80 85 L 82 100 Z" 
+                    d="M20 100 L 22 75 Q 20 45 50 40 Q 80 45 78 75 L 80 100 Z" 
                     fill={baseColor} 
                     stroke={secondaryColor} 
                     strokeWidth="2" 
                 />
 
-                {/* Imperial Armor: Light Scale Mail */}
+                {/* Imperial Chest Armor */}
                 <path 
-                    d="M25 75 Q 25 55 35 50 Q 50 45 65 50 Q 75 55 75 75 Q 50 85 25 75 Z" 
+                    d="M25 65 Q 25 50 50 48 Q 75 50 75 65 Q 50 75 25 65 Z" 
                     fill="#e2e8f0" 
                     stroke="#475569" 
                     strokeWidth="1" 
                 />
+                
+                {/* Imperial Emblem on Chest */}
+                <circle cx="50" cy="58" r="3" fill={hoodColor} stroke="#b45309" strokeWidth="1" />
 
-                {/* Simulated Scales */}
-                <g opacity="0.3">
-                    <path d="M30 55 Q 35 60 40 55 T 50 55 T 60 55 T 70 55" stroke="#475569" strokeWidth="1" fill="none" />
-                    <path d="M28 65 Q 33 70 38 65 T 48 65 T 58 65 T 68 65 T 75 62" stroke="#475569" strokeWidth="1" fill="none" />
-                </g>
-
-                {/* Gold Trim */}
-                <path 
-                    d="M25 75 Q 25 55 35 50 Q 50 45 65 50 Q 75 55 75 75" 
-                    fill="none" 
-                    stroke={hoodColor} 
-                    strokeWidth="2" 
-                />
-
-                {/* Imperial Sash (Matching Toxic Unit) */}
-                <path d="M30 52 L 70 72" stroke={hoodColor} strokeWidth="3" opacity="0.9" />
-                <rect x="45" y="72" width="10" height="6" rx="1" fill={hoodColor} stroke="#b45309" strokeWidth="1" />
-
-                {/* Arm Bracers */}
-                <rect x="75" y="60" width="4" height="12" rx="1" fill="#4b5563" transform="rotate(-5 77 66)" />
-                <rect x="21" y="60" width="4" height="12" rx="1" fill="#4b5563" transform="rotate(5 23 66)" />
+                {/* Gold Trim Sash */}
+                <path d="M25 65 Q 50 75 75 65" fill="none" stroke={hoodColor} strokeWidth="1.5" />
+                
+                {/* Shoulder Guard (Left/Bow Arm - Visual Right) */}
+                <path d="M68 50 Q 82 48 82 60 L 75 65 Z" fill={hoodColor} stroke="#b45309" strokeWidth="1" />
+                
+                {/* Arm Bracer (Visual Left) */}
+                <rect x="20" y="60" width="4" height="10" rx="1" fill="#4b5563" transform="rotate(10 22 65)" />
             </g>
         );
     }
@@ -433,29 +424,25 @@ export const StickmanRender: React.FC<StickmanProps> = ({
      }
      
      if (type === UnitType.ARCHER) {
-         // Imperial Archer: Full Imperial Galea Helm
+         // Imperial Archer: Sharp Eyes + Brow Guard + Mark
          return (
              <g>
-                 {/* Helmet Dome */}
-                 <path d="M25 50 Q 50 25 75 50" fill={hoodColor} stroke="#b45309" strokeWidth="1.5" />
-                 
-                 {/* Cheek Guards */}
-                 <path d="M25 50 L 25 68 Q 35 75 40 68" fill={hoodColor} stroke="#b45309" strokeWidth="1" />
-                 <path d="M75 50 L 75 68 Q 65 75 60 68" fill={hoodColor} stroke="#b45309" strokeWidth="1" />
+                 {/* Imperial Marking (Forehead) */}
+                 <path d="M50 40 L 53 45 L 50 48 L 47 45 Z" fill={hoodColor} />
 
+                 {/* Sharp Oval Eyes */}
+                 <ellipse cx="35" cy="55" rx="3.5" ry="5" fill="white" />
+                 <ellipse cx="35" cy="55" rx="1.5" ry="3" fill="black" />
+                 
+                 <ellipse cx="65" cy="55" rx="3.5" ry="5" fill="white" />
+                 <ellipse cx="65" cy="55" rx="1.5" ry="3" fill="black" />
+                 
+                 {/* Focused Eyebrows */}
+                 <path d="M28 50 L 42 52" stroke="#1f2937" strokeWidth="1.5" strokeLinecap="round" />
+                 <path d="M72 50 L 58 52" stroke="#1f2937" strokeWidth="1.5" strokeLinecap="round" />
+                 
                  {/* Brow Guard */}
-                 <path d="M22 50 Q 50 45 78 50" fill="none" stroke="#b45309" strokeWidth="2" />
-                 
-                 {/* Nose Guard */}
-                 <path d="M50 48 L 50 60" stroke={hoodColor} strokeWidth="3" />
-                 <path d="M50 48 L 50 60" stroke="#b45309" strokeWidth="1" />
-
-                 {/* Eyes (Visible through helm) */}
-                 <path d="M32 58 L 44 58 L 42 61 L 34 61 Z" fill="white" />
-                 <path d="M68 58 L 56 58 L 58 61 L 66 61 Z" fill="white" />
-                 
-                 {/* Crest (Smaller than Toxic) */}
-                 <path d="M40 30 Q 50 25 60 30 L 50 45 Z" fill={secondaryColor} />
+                 <path d="M25 45 Q 50 38 75 45" fill="none" stroke={hoodColor} strokeWidth="2.5" />
              </g>
          );
      }
@@ -590,31 +577,33 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       if (type === UnitType.ARCHER) {
           return (
              <g>
-                  {/* Imperial Bow */}
-                  <g transform="translate(60, 60)">
+                  {/* Imperial Bow - Attached to arm (visual right) */}
+                  <g transform="translate(72, 65)">
                       <g className={isAttacking ? "animate-archer-bow" : ""} style={{ transformOrigin: 'center' }}>
-                          {/* Reinforced Riser */}
-                          <path d="M0 -15 L 0 15" stroke={hoodColor} strokeWidth="3" />
                           
-                          {/* Limbs */}
-                          <path d="M0 -15 Q 20 -25 5 -40" stroke="#3f2e18" strokeWidth="3" fill="none" strokeLinecap="round" />
-                          <path d="M0 15 Q 20 25 5 40" stroke="#3f2e18" strokeWidth="3" fill="none" strokeLinecap="round" />
+                          {/* Hand gripping */}
+                          <circle cx="0" cy="0" r="4" fill={baseColor} stroke={secondaryColor} strokeWidth="1" />
+
+                          {/* Reinforced Imperial Bow */}
+                          <path d="M-2 -25 L -2 25" stroke={hoodColor} strokeWidth="3" />
+                          <path d="M0 -25 Q 15 -35 5 -50" stroke="#5c4033" strokeWidth="3" fill="none" strokeLinecap="round" />
+                          <path d="M0 25 Q 15 35 5 50" stroke="#5c4033" strokeWidth="3" fill="none" strokeLinecap="round" />
                           
-                          {/* Gold Accents on tips */}
-                          <circle cx="5" cy="-40" r="2" fill={hoodColor} />
-                          <circle cx="5" cy="40" r="2" fill={hoodColor} />
+                          {/* Gold Accents/Tips */}
+                          <circle cx="5" cy="-50" r="2" fill={hoodColor} />
+                          <circle cx="5" cy="50" r="2" fill={hoodColor} />
 
                           {/* String */}
-                          <line x1="5" y1="-40" x2="5" y2="40" stroke="white" strokeWidth="0.5" opacity="0.5" />
+                          <line x1="5" y1="-50" x2="5" y2="50" stroke="white" strokeWidth="0.5" opacity="0.6" />
                           
                           {isAttacking && (
                               <g className="animate-archer-reload">
-                                  {/* Arrow Shaft */}
-                                  <line x1="-20" y1="0" x2="15" y2="0" stroke="#dcfce7" strokeWidth="1.5" />
-                                  {/* Emerald Tip */}
-                                  <path d="M15 0 L 10 -3 L 10 3 Z" fill="#10b981" />
+                                  {/* Slime Arrow */}
+                                  <line x1="-20" y1="0" x2="10" y2="0" stroke="#bef264" strokeWidth="2" />
+                                  {/* Crystal Tip */}
+                                  <path d="M10 0 L 6 -3 L 6 3 Z" fill="#ecfccb" />
                                   {/* Fletching */}
-                                  <path d="M-20 0 L -25 -3 L -25 3 Z" fill={hoodColor} />
+                                  <path d="M-20 0 L -24 -3 L -24 3 Z" fill={hoodColor} />
                               </g>
                           )}
                       </g>
