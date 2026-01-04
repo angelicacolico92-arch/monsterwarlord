@@ -182,15 +182,23 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                     strokeWidth="3"
                 />
 
-                {/* Imperial Armor: Chest Plate */}
-                <path d="M30 85 L 30 65 Q 50 55 70 65 L 70 85 Q 50 95 30 85 Z" fill="#e2e8f0" stroke="#475569" strokeWidth="1" />
-                {/* Emblem */}
-                <circle cx="50" cy="72" r="4" fill={hoodColor} stroke="#b45309" strokeWidth="1" />
-                <path d="M30 65 L 70 65" stroke={hoodColor} strokeWidth="2" opacity="0.8" />
+                {/* Imperial Armor: Diagonal Sash (Officer/Imperial Look) */}
+                {/* Avoids the "facemask" issue by cutting across the body */}
+                <path 
+                    d="M20 55 Q 35 60 45 70 L 80 95 Q 65 90 55 80 L 20 55 Z" 
+                    fill="#e2e8f0" 
+                    stroke="#475569" 
+                    strokeWidth="1" 
+                    opacity="0.9"
+                />
+                <path d="M30 62 L 65 87" stroke={hoodColor} strokeWidth="2" strokeDasharray="3 2" opacity="0.8" />
 
-                {/* Shoulder Guards */}
-                <path d="M12 65 Q 15 50 28 60" fill={hoodColor} stroke="#b45309" strokeWidth="1" />
-                <path d="M88 65 Q 85 50 72 60" fill={hoodColor} stroke="#b45309" strokeWidth="1" />
+                {/* Shoulder Pauldrons (Rounded plates) */}
+                <path d="M10 65 Q 10 50 30 55 L 30 70 Q 15 65 10 65 Z" fill={hoodColor} stroke="#b45309" strokeWidth="1" />
+                <path d="M90 65 Q 90 50 70 55 L 70 70 Q 85 65 90 65 Z" fill={hoodColor} stroke="#b45309" strokeWidth="1" />
+                
+                {/* Central Medallion */}
+                <circle cx="48" cy="72" r="4" fill={hoodColor} stroke="#b45309" strokeWidth="1" />
             </g>
         );
     }
@@ -375,13 +383,22 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       if (type === UnitType.TOXIC) {
           return (
               <g>
-                  {/* Imperial Helmet / Headband */}
-                  <path d="M22 42 Q 50 35 78 42" stroke={hoodColor} strokeWidth="4" fill="none" strokeLinecap="round" />
+                  {/* Imperial Galea (Crest) - Plume style */}
+                  <path d="M25 40 Q 50 20 75 40" fill="none" stroke={hoodColor} strokeWidth="4" strokeLinecap="round" />
+                  {/* Bristles */}
+                  <g stroke={isPlayer ? "#fbbf24" : "#f87171"} strokeWidth="2">
+                      <line x1="30" y1="38" x2="30" y2="25" />
+                      <line x1="40" y1="34" x2="40" y2="22" />
+                      <line x1="50" y1="32" x2="50" y2="20" />
+                      <line x1="60" y1="34" x2="60" y2="22" />
+                      <line x1="70" y1="38" x2="70" y2="25" />
+                  </g>
                   
                   {/* Weapon: Imperial Short Sword */}
+                  {/* Anchor moved to (68, 72) to fix floating */}
                   <g 
-                    transform={isAttacking ? "translate(75, 65) rotate(60)" : "translate(75, 60) rotate(-10)"}
-                    className={isAttacking ? "animate-sword-swing" : (isMoving ? "animate-slime-bounce" : "")}
+                    transform={isAttacking ? "translate(68, 72) rotate(60)" : "translate(68, 72) rotate(-15)"}
+                    className={isAttacking ? "animate-sword-swing" : ""}
                     style={{ transformOrigin: '0 0' }}
                   >
                       {/* Clean blade */}
@@ -391,8 +408,12 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                         stroke="#475569" 
                         strokeWidth="1" 
                       />
-                      <rect x="-4" y="0" width="18" height="4" fill={hoodColor} stroke="#b45309" strokeWidth="0.5" />
+                      {/* Crossguard */}
+                      <rect x="-6" y="0" width="22" height="4" rx="1" fill={hoodColor} stroke="#b45309" strokeWidth="0.5" />
+                      {/* Handle */}
                       <rect x="2" y="4" width="6" height="10" rx="2" fill="#4a2c0f" />
+                      {/* Pommel */}
+                      <circle cx="5" cy="14" r="2.5" fill={hoodColor} />
                   </g>
               </g>
           );
@@ -703,11 +724,12 @@ export const StickmanRender: React.FC<StickmanProps> = ({
             @keyframes energy-rise { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-40px); opacity: 0; } }
             .animate-energy-rise { animation: energy-rise 0.8s ease-out; }
 
+            /* Updated Sword Swing for Imperial Slime - Closer to body */
             @keyframes sword-swing {
-                0% { transform: translate(75px, 65px) rotate(-20deg); }
-                30% { transform: translate(75px, 60px) rotate(-40deg); } /* Windup */
-                60% { transform: translate(75px, 75px) rotate(80deg); } /* Swing */
-                100% { transform: translate(75px, 65px) rotate(-20deg); } /* Return */
+                0% { transform: translate(68px, 72px) rotate(-15deg); } /* Closer to body */
+                30% { transform: translate(65px, 65px) rotate(-50deg); } /* Windup back */
+                60% { transform: translate(75px, 75px) rotate(100deg); } /* Swing forward */
+                100% { transform: translate(68px, 72px) rotate(-15deg); }
             }
             .animate-sword-swing { animation: sword-swing 0.4s ease-in-out; transform-origin: 0 0; }
 
