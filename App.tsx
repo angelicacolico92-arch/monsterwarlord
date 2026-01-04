@@ -12,7 +12,8 @@ import {
   MAX_UNITS,
   INITIAL_GOLD,
   INITIAL_GOLD_SURGE,
-  FORMATION_OFFSETS
+  FORMATION_OFFSETS,
+  MAP_CONFIGS
 } from './constants';
 import { StickmanRender } from './components/StickmanRender';
 import { ArmyVisuals } from './components/ArmyVisuals';
@@ -223,7 +224,6 @@ export const App: React.FC = () => {
   const [role, setRole] = useState<PlayerRole>(PlayerRole.HOST);
   const [isSurgeMode, setIsSurgeMode] = useState(false);
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
-  const [shakeTrigger, setShakeTrigger] = useState<number>(0);
   const [showSettings, setShowSettings] = useState(false);
   const [showSurrenderConfirm, setShowSurrenderConfirm] = useState(false);
   
@@ -247,10 +247,19 @@ export const App: React.FC = () => {
   });
 
   const stateRef = useRef(gameState);
-  const aiStateRef = useRef({ lastDecisionTime: 0 });
+  const aiStateRef = useRef({ lastDecisionTime: 0, state: 'GATHERING' });
   const actionQueueRef = useRef<any[]>([]);
   
   useEffect(() => { stateRef.current = gameState; }, [gameState]);
+
+  // Audio Control Effect
+  useEffect(() => {
+    if (appMode === 'GAME') {
+        AudioService.startMusic();
+    } else {
+        AudioService.stopMusic();
+    }
+  }, [appMode]);
 
   const isMirrored = role === PlayerRole.CLIENT;
   const currentGold = role === PlayerRole.HOST || role === PlayerRole.OFFLINE ? gameState.p1Gold : gameState.p2Gold;
@@ -294,6 +303,9 @@ export const App: React.FC = () => {
   // Unified Game Loop
   useEffect(() => {
     if ((role !== PlayerRole.HOST && role !== PlayerRole.OFFLINE) || appMode !== 'GAME') return;
+
+    // Get Map Difficulty config for AI logic
+    const mapDifficulty = MAP_CONFIGS[stateRef.current.mapId]?.difficulty || 'Medium';
 
     const intervalId = setInterval(() => {
       const now = Date.now();
@@ -525,17 +537,31 @@ export const App: React.FC = () => {
           // 1. Identify Aggro Target (Visible enemy for charging)
           const visibleTargets = potentialTargets.filter(u => Math.abs(u.x - unit.x) < AGGRO_RANGE);
           
-          // Sort potential targets by distance, but add HYSTERESIS (bias) to current target
-          // This prevents jittering between two nearly equidistant targets
+          // TARGET PRIORITY SCORING SYSTEM
+          // Units should prioritize Threat (Mage/Boss/Archer) over Tank/Small
+          const getThreatScore = (u: GameUnit) => {
+               if (u.type === UnitType.MAGE) return 20;
+               if (u.type === UnitType.ARCHER) return 15;
+               if (u.type === UnitType.BOSS) return 10;
+               if (u.type === UnitType.PALADIN) return 5;
+               return 1;
+          };
+
+          // Sort potential targets by distance AND priority
+          // We only apply priority if targets are roughly equidistant (within small range difference)
           visibleTargets.sort((a, b) => {
               let distA = Math.abs(a.x - unit.x);
               let distB = Math.abs(b.x - unit.x);
               
-              // If we are already targeting this unit, subtract bias from its distance
-              // to make it "stickier" and prevent rapid switching
-              if (a.id === unit.targetId) distA -= 4; 
-              if (b.id === unit.targetId) distB -= 4;
+              // If we are already targeting this unit, stick to it slightly
+              if (a.id === unit.targetId) distA -= 2; 
+              if (b.id === unit.targetId) distB -= 2;
               
+              // Apply Priority Score if distance is comparable (within 5 units)
+              if (Math.abs(distA - distB) < 5) {
+                   return (distA - getThreatScore(a)) - (distB - getThreatScore(b));
+              }
+
               return distA - distB;
           });
           
@@ -562,6 +588,9 @@ export const App: React.FC = () => {
             // ACTIVE ABILITIES (Boss & Mage)
             let abilityTriggered = false;
             
+            // Smart Ability Usage: Only trigger if density is high enough (Harder difficulties = smarter)
+            const minTargetsForAbility = mapDifficulty === 'Hard' ? 2 : 1; 
+
             // --- BOSS ABILITIES ---
             if (unit.type === UnitType.BOSS) {
                 // Ability 2: Mega Slime Crash (25s Cooldown)
@@ -570,10 +599,9 @@ export const App: React.FC = () => {
                     const jumpTargetX = unit.x + (dir * 15);
                     const enemiesInJumpZone = potentialTargets.filter(u => Math.abs(u.x - jumpTargetX) < 6);
                     
-                    if (enemiesInJumpZone.length > 0) {
+                    if (enemiesInJumpZone.length >= minTargetsForAbility) {
                         unit.lastAbility2Time = now;
                         unit.x = Math.max(0, Math.min(100, jumpTargetX));
-                        setShakeTrigger(now + 600);
                         AudioService.playAttack(UnitType.BOSS);
                         enemiesInJumpZone.forEach(target => {
                             target.hp -= 90;
@@ -595,7 +623,7 @@ export const App: React.FC = () => {
                              return dist > 0 && dist < waveRange;
                          });
                          
-                         if (enemiesInLine.length > 0) {
+                         if (enemiesInLine.length >= minTargetsForAbility) {
                              unit.lastAbility1Time = now;
                              AudioService.playSummon(); 
                              enemiesInLine.forEach(target => {
@@ -619,7 +647,7 @@ export const App: React.FC = () => {
                     const burstRadius = 10; 
                     const burstTargets = potentialTargets.filter(u => Math.abs(u.x - unit.x) < burstRadius);
                     
-                    if (burstTargets.length > 0) {
+                    if (burstTargets.length >= minTargetsForAbility) {
                         unit.lastAbility1Time = now;
                         AudioService.playAttack(UnitType.MAGE); // Reuse existing sound
                         burstTargets.forEach(target => {
@@ -679,8 +707,6 @@ export const App: React.FC = () => {
                                 // Knockback
                                 target.x += dir * 2;
                             });
-                            
-                            setShakeTrigger(now + 300);
                         } else if (unit.type === UnitType.ARCHER) {
                             // ARCHER PROJECTILE LOGIC
                             // Fire projectile instead of instant damage
@@ -705,9 +731,6 @@ export const App: React.FC = () => {
                                 primaryTarget.poisonTicks = 3;
                                 primaryTarget.lastPoisonTickTime = now;
                             }
-                            if (unit.type === UnitType.PALADIN) {
-                                setShakeTrigger(now + 200);
-                            }
                         }
                     } else if (canSiege) {
                         // Statue Siege logic
@@ -726,7 +749,6 @@ export const App: React.FC = () => {
                         } else {
                             if (isPlayer) eStatueHP -= currentDamage; else pStatueHP -= currentDamage;
                             AudioService.playDamage();
-                            if (unit.type === UnitType.BOSS) setShakeTrigger(now + 400);
                         }
                     }
                     unit.lastAttackTime = now;
@@ -822,64 +844,117 @@ export const App: React.FC = () => {
         return !(u.state === 'DYING' && now - (u.deathTime || 0) > DEATH_DURATION);
       });
       
-      // --- IMPROVED AI LOGIC ---
-      if ((role === PlayerRole.HOST || role === PlayerRole.OFFLINE) && now - aiStateRef.current.lastDecisionTime > 2000) {
-          const aiGold = p2Gold;
-          const aiUnits = processedUnits.filter(u => u.side === 'enemy' && u.state !== 'DYING' && u.state !== 'GARRISONED');
-          const playerUnits = processedUnits.filter(u => u.side === 'player' && u.state !== 'DYING' && u.state !== 'GARRISONED');
+      // --- UPGRADED AI CONTROLLER ---
+      // Scalable AI that uses Wave Tactics, Retreat Logic, and Counter-Play
+      if ((role === PlayerRole.HOST || role === PlayerRole.OFFLINE)) {
           
-          if (aiUnits.length < MAX_UNITS) {
-            // Economy: Ensure workers
-            const workers = aiUnits.filter(u => u.type === UnitType.WORKER).length;
-            const desiredWorkers = Math.min(6, Math.max(2, Math.floor(aiUnits.length / 3))); // Scale economy
-            
-            if (workers < desiredWorkers && aiGold >= UNIT_CONFIGS[UnitType.WORKER].cost) {
-              actionQueueRef.current.push({ type: 'RECRUIT', unitType: UnitType.WORKER, side: 'enemy' });
-            } else {
-              // Combat Unit Strategy
-              const playerTanks = playerUnits.filter(u => u.type === UnitType.PALADIN || u.type === UnitType.BOSS).length;
-              const playerRanged = playerUnits.filter(u => u.type === UnitType.ARCHER || u.type === UnitType.MAGE).length;
-              const playerSwarm = playerUnits.filter(u => u.type === UnitType.TOXIC || u.type === UnitType.SMALL).length;
-              
-              let desiredUnit = UnitType.PALADIN; // Default tank
+          // Difficulty Configuration
+          const difficultyConfig = {
+              'Easy':   { reactionTime: 3000, waveSize: 2, retreatEnabled: false },
+              'Medium': { reactionTime: 2000, waveSize: 4, retreatEnabled: true },
+              'Hard':   { reactionTime: 1000, waveSize: 6, retreatEnabled: true },
+          }[mapDifficulty] || { reactionTime: 2000, waveSize: 4, retreatEnabled: true };
 
-              // Counter-play
-              if (playerTanks > 1) desiredUnit = UnitType.MAGE; // Magic vs Armor
-              else if (playerSwarm > 3) desiredUnit = UnitType.TOXIC; // Splash vs Swarm
-              else if (playerRanged > 2) desiredUnit = UnitType.BOSS; // High HP vs Ranged
-              else if (Math.random() > 0.6) desiredUnit = UnitType.ARCHER; // Mix in ranged
-
-              // Smart Saving: Sometimes save for a BOSS if we have a decent army
-              const saveForBoss = Math.random() > 0.7 && aiUnits.length > 5;
+          if (now - aiStateRef.current.lastDecisionTime > difficultyConfig.reactionTime) {
+              const aiGold = p2Gold;
+              const aiCombatUnits = processedUnits.filter(u => u.side === 'enemy' && u.state !== 'DYING' && u.state !== 'GARRISONED' && u.type !== UnitType.WORKER);
+              const aiWorkers = processedUnits.filter(u => u.side === 'enemy' && u.type === UnitType.WORKER && u.state !== 'DYING');
+              const playerCombatUnits = processedUnits.filter(u => u.side === 'player' && u.state !== 'DYING' && u.type !== UnitType.WORKER);
               
-              if (saveForBoss) {
-                  if (aiGold >= UNIT_CONFIGS[UnitType.BOSS].cost) {
-                      actionQueueRef.current.push({ type: 'RECRUIT', unitType: UnitType.BOSS, side: 'enemy' });
+              // 1. ECONOMY MANAGEMENT (Always check first)
+              // Ensure consistent worker count based on difficulty
+              const targetWorkers = mapDifficulty === 'Hard' ? 8 : (mapDifficulty === 'Medium' ? 6 : 4);
+              if (aiWorkers.length < targetWorkers && aiGold >= UNIT_CONFIGS[UnitType.WORKER].cost) {
+                  actionQueueRef.current.push({ type: 'RECRUIT', unitType: UnitType.WORKER, side: 'enemy' });
+              }
+              // 2. UNIT RECRUITMENT LOGIC (Counter-Play)
+              else if (aiCombatUnits.length + aiWorkers.length < MAX_UNITS) {
+                  const playerTanks = playerCombatUnits.filter(u => u.type === UnitType.PALADIN || u.type === UnitType.BOSS).length;
+                  const playerRanged = playerCombatUnits.filter(u => u.type === UnitType.ARCHER || u.type === UnitType.MAGE).length;
+                  const playerSwarm = playerCombatUnits.filter(u => u.type === UnitType.TOXIC || u.type === UnitType.SMALL).length;
+                  
+                  let desiredUnit = UnitType.PALADIN; // Default Foundation
+
+                  // Hard Mode: Hard Countering
+                  if (mapDifficulty === 'Hard') {
+                      if (playerTanks > 2) desiredUnit = UnitType.MAGE; // Magic melts armor
+                      else if (playerSwarm > 4) desiredUnit = UnitType.TOXIC; // Splash/Cleave needed
+                      else if (playerRanged > 3) desiredUnit = UnitType.BOSS; // Tank through poke
+                      else desiredUnit = UnitType.ARCHER; // DPS
+                  } else {
+                      // Easy/Med: More random
+                      const roll = Math.random();
+                      if (roll < 0.3) desiredUnit = UnitType.TOXIC;
+                      else if (roll < 0.6) desiredUnit = UnitType.ARCHER;
+                      else if (roll < 0.8) desiredUnit = UnitType.PALADIN;
+                      else desiredUnit = UnitType.MAGE;
                   }
-              } else {
-                  // Buy if affordable
-                  if (aiGold >= UNIT_CONFIGS[desiredUnit].cost) {
-                      actionQueueRef.current.push({ type: 'RECRUIT', unitType: desiredUnit, side: 'enemy' });
-                  } else if (aiGold >= UNIT_CONFIGS[UnitType.TOXIC].cost && Math.random() > 0.6) {
-                      // Fallback to cheaper unit if main choice is too expensive
-                      actionQueueRef.current.push({ type: 'RECRUIT', unitType: UnitType.TOXIC, side: 'enemy' });
+
+                  // Boss Saving Logic (Only Med/Hard)
+                  const canSaveForBoss = mapDifficulty !== 'Easy' && aiCombatUnits.length > 3 && Math.random() > 0.6;
+                  
+                  if (canSaveForBoss) {
+                      if (aiGold >= UNIT_CONFIGS[UnitType.BOSS].cost) {
+                           actionQueueRef.current.push({ type: 'RECRUIT', unitType: UnitType.BOSS, side: 'enemy' });
+                      }
+                  } else {
+                      if (aiGold >= UNIT_CONFIGS[desiredUnit].cost) {
+                           actionQueueRef.current.push({ type: 'RECRUIT', unitType: desiredUnit, side: 'enemy' });
+                      }
                   }
               }
-            }
-          }
-          
-          // Aggression Management
-          const hasBoss = aiUnits.some(u => u.type === UnitType.BOSS);
-          const armyAdvantage = aiUnits.length > playerUnits.length * 1.4;
-          const underAttack = aiUnits.length < playerUnits.length * 0.5;
-          
-          if ((hasBoss || armyAdvantage) && p2Command !== GameCommand.ATTACK) {
-               actionQueueRef.current.push({ type: 'CHANGE_COMMAND', side: 'enemy', command: GameCommand.ATTACK });
-          } else if (underAttack && p2Command === GameCommand.ATTACK) {
-               actionQueueRef.current.push({ type: 'CHANGE_COMMAND', side: 'enemy', command: GameCommand.RETREAT });
-          }
 
-          aiStateRef.current.lastDecisionTime = now;
+              // 3. COMMAND LOGIC (State Machine)
+              // States: GATHERING (Defend) -> PUSHING (Attack) -> RETREATING (Retreat)
+              
+              const isBaseThreatened = eStatueHP < STATUE_HP * 0.3; // 30% HP Panic Threshold
+              const activeThreatsNearBase = playerCombatUnits.some(u => u.x > 80); // Enemies near AI base
+              
+              // PANIC RETREAT LOGIC (If enabled)
+              if (difficultyConfig.retreatEnabled && isBaseThreatened && activeThreatsNearBase && p2Command !== GameCommand.RETREAT) {
+                  // If we are losing badly, retreat to heal in garrison
+                   actionQueueRef.current.push({ type: 'CHANGE_COMMAND', side: 'enemy', command: GameCommand.RETREAT });
+                   aiStateRef.current.state = 'RETREATING';
+              }
+              else if (aiStateRef.current.state === 'RETREATING') {
+                  // Stop retreating if base is safe OR units are fully healed/ready
+                  // For simplicity: If Statue is healed (mechanic not here yet) OR if no enemies near base
+                  if (!activeThreatsNearBase) {
+                      aiStateRef.current.state = 'GATHERING';
+                      actionQueueRef.current.push({ type: 'CHANGE_COMMAND', side: 'enemy', command: GameCommand.DEFEND });
+                  }
+              }
+              else if (aiStateRef.current.state === 'GATHERING') {
+                  // Ensure we are in Defend mode while gathering
+                  if (p2Command !== GameCommand.DEFEND) {
+                      actionQueueRef.current.push({ type: 'CHANGE_COMMAND', side: 'enemy', command: GameCommand.DEFEND });
+                  }
+                  
+                  // Check if wave is ready
+                  if (aiCombatUnits.length >= difficultyConfig.waveSize) {
+                      aiStateRef.current.state = 'PUSHING';
+                      actionQueueRef.current.push({ type: 'CHANGE_COMMAND', side: 'enemy', command: GameCommand.ATTACK });
+                  }
+              }
+              else if (aiStateRef.current.state === 'PUSHING') {
+                   // Ensure we are attacking
+                   if (p2Command !== GameCommand.ATTACK) {
+                      actionQueueRef.current.push({ type: 'CHANGE_COMMAND', side: 'enemy', command: GameCommand.ATTACK });
+                   }
+
+                   // If army wiped out, switch back to gathering
+                   if (aiCombatUnits.length < 2) {
+                       aiStateRef.current.state = 'GATHERING';
+                       actionQueueRef.current.push({ type: 'CHANGE_COMMAND', side: 'enemy', command: GameCommand.DEFEND });
+                   }
+              }
+              // Initial State catch
+              else {
+                  aiStateRef.current.state = 'GATHERING';
+              }
+
+              aiStateRef.current.lastDecisionTime = now;
+          }
       }
 
       const nextStatus: GameState['gameStatus'] = pStatueHP <= 0 ? 'DEFEAT' : (eStatueHP <= 0 ? 'VICTORY' : 'PLAYING');
@@ -949,7 +1024,7 @@ export const App: React.FC = () => {
           });
           setSelectedUnitId(null);
           actionQueueRef.current = [];
-          aiStateRef.current = { lastDecisionTime: 0 };
+          aiStateRef.current = { lastDecisionTime: 0, state: 'GATHERING' };
           setAppMode('GAME'); 
       }} 
       onBack={() => setAppMode('LANDING')} 
@@ -965,7 +1040,7 @@ export const App: React.FC = () => {
     <div className="h-[100dvh] w-screen bg-black overflow-hidden relative">
       <div 
         ref={scrollContainerRef}
-        className={`absolute inset-0 flex flex-col bg-inamorta select-none overflow-x-auto overflow-y-hidden touch-pan-x ${shakeTrigger > Date.now() ? 'animate-shake' : ''}`}
+        className={`absolute inset-0 flex flex-col bg-inamorta select-none overflow-x-auto overflow-y-hidden touch-pan-x`}
         onMouseDown={(e) => { setIsDragging(true); setStartX(e.pageX); setScrollLeft(scrollContainerRef.current!.scrollLeft); }}
         onMouseMove={(e) => { if (!isDragging) return; scrollContainerRef.current!.scrollLeft = scrollLeft - (e.pageX - startX) * 1.5; }}
         onMouseUp={() => setIsDragging(false)}

@@ -7,12 +7,12 @@ let sfxGain: GainNode | null = null;
 let isMusicPlaying = false;
 let sequencerInterval: any = null;
 let currentStep = 0;
-let tempo = 110;
+let tempo = 100; // Slightly slower for that "Adventure" feel
 
 // Volume State
 const volumes = {
     master: 0.5,
-    music: 0.6,
+    music: 0.4, // Lower music volume as requested
     sfx: 0.7
 };
 
@@ -67,23 +67,25 @@ const playSynth = (freq: number, type: OscillatorType, start: number, duration: 
 };
 
 // --- DRUM SYNTHS ---
-// Fix: removed default value for vol because targetNode is required and follows it.
 const playKick = (time: number, vol: number, targetNode: GainNode | null) => {
   const ctx = getCtx();
   if (!ctx || !targetNode) return;
   const osc = ctx.createOscillator();
   const g = ctx.createGain();
-  osc.frequency.setValueAtTime(150, time);
-  osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.5);
+  
+  // Softer Kick for Forest Theme
+  osc.frequency.setValueAtTime(120, time);
+  osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.4);
+  
   g.gain.setValueAtTime(vol, time);
-  g.gain.exponentialRampToValueAtTime(0.01, time + 0.5);
+  g.gain.exponentialRampToValueAtTime(0.01, time + 0.4);
+  
   osc.connect(g);
   g.connect(targetNode);
   osc.start(time);
-  osc.stop(time + 0.5);
+  osc.stop(time + 0.4);
 };
 
-// Fix: removed default value for vol because targetNode is required and follows it.
 const playSnare = (time: number, vol: number, targetNode: GainNode | null) => {
   const ctx = getCtx();
   if (!ctx || !targetNode) return;
@@ -92,51 +94,169 @@ const playSnare = (time: number, vol: number, targetNode: GainNode | null) => {
   const data = buffer.getChannelData(0);
   for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
   noise.buffer = buffer;
+  
   const g = ctx.createGain();
   g.gain.setValueAtTime(vol, time);
-  g.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+  g.gain.exponentialRampToValueAtTime(0.01, time + 0.15); // Slightly longer tail
+  
   const filter = ctx.createBiquadFilter();
-  filter.type = 'highpass';
-  filter.frequency.setValueAtTime(1000, time);
+  filter.type = 'bandpass';
+  filter.frequency.setValueAtTime(1500, time); // Softer tone
+  
   noise.connect(filter);
   filter.connect(g);
   g.connect(targetNode);
   noise.start(time);
 };
 
-const playPluck = (freq: number, time: number, vol = 0.2) => {
-  playSynth(freq, 'triangle', time, 0.05, vol, 0.15, musicGain);
+const playHiHat = (time: number, vol: number, targetNode: GainNode | null) => {
+  const ctx = getCtx();
+  if (!ctx || !targetNode) return;
+  const bufferSize = ctx.sampleRate * 0.05;
+  const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+  const noise = ctx.createBufferSource();
+  noise.buffer = buffer;
+
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'highpass';
+  filter.frequency.value = 8000;
+
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(vol * 0.5, time);
+  g.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+
+  noise.connect(filter);
+  filter.connect(g);
+  g.connect(targetNode);
+  noise.start(time);
 };
 
-const playBrass = (freq: number, time: number, vol = 0.15) => {
-  playSynth(freq, 'sawtooth', time, 0.15, vol, 0.3, musicGain);
+// --- INSTRUMENTS ---
+
+// Flute: Sine wave, soft attack, smooth sustain
+const playFlute = (freq: number, time: number, vol: number, targetNode: GainNode | null) => {
+  const ctx = getCtx();
+  if (!ctx || !targetNode) return;
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
+  
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(freq, time);
+  
+  // Envelope: Soft attack, sustain, soft release
+  const attack = 0.05;
+  const sustain = 0.1;
+  const release = 0.1;
+  
+  g.gain.setValueAtTime(0, time);
+  g.gain.linearRampToValueAtTime(vol, time + attack); 
+  g.gain.setValueAtTime(vol * 0.8, time + attack + sustain);
+  g.gain.exponentialRampToValueAtTime(0.001, time + attack + sustain + release);
+
+  // Subtle Vibrato
+  const vibrato = ctx.createOscillator();
+  vibrato.frequency.value = 5; // 5Hz
+  const vibratoGain = ctx.createGain();
+  vibratoGain.gain.value = 2; // Depth
+  vibrato.connect(vibratoGain);
+  vibratoGain.connect(osc.frequency);
+  vibrato.start(time);
+  vibrato.stop(time + attack + sustain + release);
+
+  osc.connect(g);
+  g.connect(targetNode);
+  osc.start(time);
+  osc.stop(time + attack + sustain + release);
+};
+
+// Strings/Pad: Sawtooth + Lowpass, slow attack
+const playStrings = (freq: number, time: number, vol: number, duration: number, targetNode: GainNode | null) => {
+  const ctx = getCtx();
+  if (!ctx || !targetNode) return;
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
+  const filter = ctx.createBiquadFilter();
+
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(freq, time);
+
+  // Filter to soften the buzz
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(freq * 2, time);
+
+  // Envelope: Slow attack, long release
+  g.gain.setValueAtTime(0, time);
+  g.gain.linearRampToValueAtTime(vol, time + 0.3);
+  g.gain.setValueAtTime(vol * 0.8, time + duration - 0.5);
+  g.gain.exponentialRampToValueAtTime(0.001, time + duration);
+
+  osc.connect(filter);
+  filter.connect(g);
+  g.connect(targetNode);
+  osc.start(time);
+  osc.stop(time + duration);
 };
 
 // --- SEQUENCER SCALES ---
-const HEROIC_SCALE = [130.81, 164.81, 196.00, 220.00, 261.63]; // C Major Pen
+// A Minor / C Major Scale (Fantasy Feel)
+const SCALE = {
+    A2: 110.00, C3: 130.81, D3: 146.83, E3: 164.81, G3: 196.00,
+    A3: 220.00, C4: 261.63, D4: 293.66, E4: 329.63, G4: 392.00,
+    A4: 440.00, C5: 523.25, E5: 659.25
+};
 
 const step = () => {
   const ctx = getCtx();
   if (!ctx || !isMusicPlaying) return;
 
-  const secondsPerStep = 60 / (tempo * 4);
+  const secondsPerStep = 60 / (tempo * 4); // 16th notes
   const time = ctx.currentTime + 0.1;
-
-  const isKick = currentStep % 8 === 0 || (currentStep % 8 === 4 && Math.random() > 0.7);
-  const isSnare = currentStep % 8 === 4;
-  const isPluck = currentStep % 2 === 0;
-
-  if (isKick) playKick(time, 0.4, musicGain);
-  if (isSnare) playSnare(time, 0.2, musicGain);
   
-  if (isPluck) {
-    const note = HEROIC_SCALE[Math.floor(Math.random() * HEROIC_SCALE.length)] * 2;
-    playPluck(note, time, 0.1);
+  // --- DRUMS (Light, Steady) ---
+  const barStep = currentStep % 16;
+  
+  // Kick on 1, 9 (and soft syncopation)
+  if (barStep === 0) playKick(time, 0.4, musicGain);
+  if (barStep === 8) playKick(time, 0.3, musicGain);
+  if (barStep === 10 && Math.random() > 0.5) playKick(time, 0.2, musicGain);
+
+  // Snare on 5, 13 (Soft backbeat)
+  if (barStep === 4 || barStep === 12) playSnare(time, 0.15, musicGain);
+
+  // HiHats (Steady 8ths, with random 16ths)
+  if (barStep % 2 === 0) playHiHat(time, 0.1, musicGain);
+  if (barStep % 2 !== 0 && Math.random() > 0.7) playHiHat(time, 0.05, musicGain);
+
+  // --- HARMONY (Strings/Pads) ---
+  // Change chord every 16 steps (1 bar)
+  // Progression: Am -> C -> G -> Am
+  if (barStep === 0) {
+      const barIndex = Math.floor(currentStep / 16) % 4;
+      let root, third;
+      if (barIndex === 0) { root = SCALE.A2; third = SCALE.C3; } // Am
+      else if (barIndex === 1) { root = SCALE.C3; third = SCALE.E3; } // C
+      else if (barIndex === 2) { root = SCALE.G3; third = SCALE.D3; } // G (using D as 5th for open sound)
+      else { root = SCALE.A2; third = SCALE.E3; } // Am
+      
+      playStrings(root, time, 0.15, secondsPerStep * 16, musicGain);
+      playStrings(third, time, 0.12, secondsPerStep * 16, musicGain);
   }
 
-  if (currentStep % 16 === 0) {
-    playBrass(HEROIC_SCALE[0] * 2, time, 0.1);
-    playBrass(HEROIC_SCALE[2] * 2, time + secondsPerStep * 2, 0.1);
+  // --- MELODY (Flute) ---
+  // Playful, sparse melody on top
+  const isMelodyStep = barStep % 2 === 0; // Quantize to 8th notes
+  if (isMelodyStep && Math.random() > 0.6) {
+      // Pick a note from the pentatonic scale
+      const notes = [SCALE.A3, SCALE.C4, SCALE.D4, SCALE.E4, SCALE.G4, SCALE.A4, SCALE.C5];
+      const note = notes[Math.floor(Math.random() * notes.length)];
+      
+      // Chance for a higher octave flourish
+      const finalNote = Math.random() > 0.8 ? note * 2 : note;
+      
+      playFlute(finalNote, time, 0.12, musicGain);
   }
 
   currentStep = (currentStep + 1) % 64;
@@ -154,6 +274,8 @@ export const AudioService = {
     if (!ctx) return;
     isMusicPlaying = true;
     currentStep = 0;
+    // Clear any existing interval just in case
+    if (sequencerInterval) clearInterval(sequencerInterval);
     sequencerInterval = setInterval(step, (60 / (tempo * 4)) * 1000);
   },
 
@@ -227,10 +349,8 @@ export const AudioService = {
 
   playFanfare: (isVictory: boolean) => {
     const ctx = getCtx();
-    if (!ctx || !musicGain) return; // Fanfare uses music gain usually as it's musical
+    if (!ctx || !sfxGain) return; 
     const time = ctx.currentTime;
-    // We use musicGain for fanfare to ensure it's controlled by music volume, or maybe SFX? 
-    // Let's use SFX for fanfare as it's an event sound.
     if (isVictory) {
       [523, 659, 783, 1046].forEach((f, i) => playSynth(f, 'sawtooth', time + i * 0.15, 0.15, 0.3, 0.3, sfxGain));
     } else {
