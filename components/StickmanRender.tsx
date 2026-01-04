@@ -424,25 +424,23 @@ export const StickmanRender: React.FC<StickmanProps> = ({
      }
      
      if (type === UnitType.ARCHER) {
-         // Imperial Archer: Sharp Eyes + Brow Guard + Mark
+         // Imperial Archer: Tactical Headband + Combat Eyes (Fixed "Penguin" look)
          return (
              <g>
-                 {/* Imperial Marking (Forehead) */}
-                 <path d="M50 40 L 53 45 L 50 48 L 47 45 Z" fill={hoodColor} />
+                 {/* Imperial Headband (Fabric/Metal band) */}
+                 <path d="M22 45 Q 50 35 78 45" stroke={hoodColor} strokeWidth="5" strokeLinecap="round" fill="none" />
+                 <path d="M22 45 Q 50 35 78 45" stroke="#b45309" strokeWidth="1" fill="none" opacity="0.5" />
 
-                 {/* Sharp Oval Eyes */}
-                 <ellipse cx="35" cy="55" rx="3.5" ry="5" fill="white" />
-                 <ellipse cx="35" cy="55" rx="1.5" ry="3" fill="black" />
+                 {/* Center Insignia */}
+                 <circle cx="50" cy="41" r="3" fill={secondaryColor} stroke="#fcd34d" strokeWidth="1" />
+
+                 {/* Eyes: Sharp Horizontal Slits (Combat Focus) */}
+                 <path d="M30 58 L 42 58 L 40 62 L 32 62 Z" fill="white" />
+                 <path d="M70 58 L 58 58 L 60 62 L 68 62 Z" fill="white" />
                  
-                 <ellipse cx="65" cy="55" rx="3.5" ry="5" fill="white" />
-                 <ellipse cx="65" cy="55" rx="1.5" ry="3" fill="black" />
-                 
-                 {/* Focused Eyebrows */}
-                 <path d="M28 50 L 42 52" stroke="#1f2937" strokeWidth="1.5" strokeLinecap="round" />
-                 <path d="M72 50 L 58 52" stroke="#1f2937" strokeWidth="1.5" strokeLinecap="round" />
-                 
-                 {/* Brow Guard */}
-                 <path d="M25 45 Q 50 38 75 45" fill="none" stroke={hoodColor} strokeWidth="2.5" />
+                 {/* Eye Mask / War Paint (Subtle) */}
+                 <path d="M28 64 Q 36 66 44 64" stroke={secondaryColor} strokeWidth="1" opacity="0.3" fill="none" />
+                 <path d="M56 64 Q 64 66 72 64" stroke={secondaryColor} strokeWidth="1" opacity="0.3" fill="none" />
              </g>
          );
      }
