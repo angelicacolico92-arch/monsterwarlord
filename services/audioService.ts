@@ -185,7 +185,7 @@ export const AudioService = {
     if (!ctx || !sfxGain) return;
     const time = ctx.currentTime;
     playSynth(440, 'sine', time, 0.05, 0.2, 0.05, sfxGain);
-    playSynth(880, 'sine', time + 0.05, 0.15, 0.05, sfxGain);
+    playSynth(880, 'sine', time + 0.05, 0.15, 0.05, 0.05, sfxGain);
   },
 
   playRecruit: () => {

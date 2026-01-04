@@ -641,26 +641,29 @@ export const StickmanRender: React.FC<StickmanProps> = ({
           <g className="pointer-events-none" style={{ transformOrigin: '50px 90px' }}>
               <defs>
                   <radialGradient id="bossExplosionGrad" cx="0.5" cy="0.5" r="0.5">
-                      <stop offset="0%" stopColor="#fff" stopOpacity="1" />
-                      <stop offset="30%" stopColor="#fbbf24" stopOpacity="0.9" />
-                      <stop offset="60%" stopColor="#f97316" stopOpacity="0.8" />
-                      <stop offset="90%" stopColor="#dc2626" stopOpacity="0.6" />
+                      <stop offset="0%" stopColor="#ffffff" stopOpacity="1" />
+                      <stop offset="30%" stopColor="#fcd34d" stopOpacity="0.95" />
+                      <stop offset="60%" stopColor="#f97316" stopOpacity="0.85" />
+                      <stop offset="85%" stopColor="#dc2626" stopOpacity="0.7" />
                       <stop offset="100%" stopColor="#7f1d1d" stopOpacity="0" />
                   </radialGradient>
               </defs>
               
-              {/* Shockwave Ring */}
+              {/* Flash */}
+              <circle cx="50" cy="90" r="0" fill="white" className="animate-boss-flash" />
+
+              {/* Shockwave Ring - Larger */}
               <circle cx="50" cy="90" r="10" fill="none" stroke="#fbbf24" strokeWidth="4" className="animate-boss-shockwave" />
               
-              {/* Inner Fireball */}
+              {/* Inner Fireball - Much Larger */}
               <circle cx="50" cy="90" r="0" fill="url(#bossExplosionGrad)" className="animate-boss-explosion" />
               
-              {/* Embers */}
-              {[...Array(8)].map((_, i) => (
-                  <circle key={i} cx="50" cy="90" r="3" fill="#fca5a5" className="animate-ember" style={{ 
-                      '--angle': `${i * 45}deg`,
-                      '--dist': '80px',
-                      animationDelay: `${Math.random() * 0.2}s`
+              {/* Embers - More particles flying further */}
+              {[...Array(12)].map((_, i) => (
+                  <circle key={i} cx="50" cy="90" r={3 + Math.random() * 3} fill={Math.random() > 0.5 ? "#fbbf24" : "#ef4444"} className="animate-ember" style={{ 
+                      '--angle': `${i * 30}deg`, // Spread evenly
+                      '--dist': `${100 + Math.random() * 60}px`, // Further distance
+                      animationDelay: `${Math.random() * 0.1}s`
                   } as any} />
               ))}
               
@@ -705,17 +708,23 @@ export const StickmanRender: React.FC<StickmanProps> = ({
             .animate-sword-swing { animation: sword-swing 0.4s ease-in-out; transform-origin: 0 0; }
 
             @keyframes boss-shockwave {
-                0% { r: 10; opacity: 1; stroke-width: 4; }
-                100% { r: 80; opacity: 0; stroke-width: 0; }
+                0% { r: 10; opacity: 1; stroke-width: 6; }
+                100% { r: 200; opacity: 0; stroke-width: 0; }
             }
             .animate-boss-shockwave { animation: boss-shockwave 0.8s ease-out forwards; }
 
             @keyframes boss-explosion {
                 0% { r: 0; opacity: 1; }
-                20% { r: 60; opacity: 0.9; }
-                100% { r: 70; opacity: 0; }
+                20% { r: 120; opacity: 0.95; }
+                100% { r: 140; opacity: 0; }
             }
             .animate-boss-explosion { animation: boss-explosion 0.8s ease-out forwards; }
+
+            @keyframes boss-flash {
+                0% { opacity: 1; r: 10; }
+                100% { opacity: 0; r: 200; }
+            }
+            .animate-boss-flash { animation: boss-flash 0.3s ease-out forwards; }
 
             @keyframes ember-fly {
                 0% { transform: translate(0, 0) scale(1); opacity: 1; }
