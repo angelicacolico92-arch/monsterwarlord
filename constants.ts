@@ -43,10 +43,10 @@ export const UNIT_CONFIGS: Record<UnitType, UnitConfig> = {
   },
   [UnitType.TOXIC]: {
     type: UnitType.TOXIC,
-    name: 'Warrior Slime',
+    name: 'Imperial Slime',
     cost: 120,
     stats: { hp: 450, maxHp: 450, damage: 45, range: 1.5, speed: 3.5, attackSpeed: 1400 },
-    description: 'Balanced frontline fighter with hardened slime armor.'
+    description: 'Disciplined frontline unit. Defense bonus near other Imperial Slimes.'
   },
   [UnitType.PALADIN]: {
     type: UnitType.PALADIN,

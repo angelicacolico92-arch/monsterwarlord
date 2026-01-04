@@ -77,10 +77,10 @@ export const StickmanRender: React.FC<StickmanProps> = ({
           secondaryColor = isPlayer ? "#713f12" : "#450a0a";
           break;
       case UnitType.TOXIC:
-          // Warrior Slime: Deep Teal (Player) vs Dark Rose (Enemy)
-          baseColor = isPlayer ? "#0d9488" : "#be123c"; 
-          secondaryColor = isPlayer ? "#115e59" : "#881337"; 
-          hoodColor = isPlayer ? "#5eead4" : "#fda4af"; // Headband Highlight
+          // Imperial Army Slime: Royal Blue / Deep Red with Gold Accents
+          baseColor = isPlayer ? "#2563eb" : "#9f1239"; 
+          secondaryColor = isPlayer ? "#1e3a8a" : "#881337"; 
+          hoodColor = "#fbbf24"; // Gold Accents for both
           break;
       case UnitType.ARCHER:
           // Archer Warrior: Deep Emerald (Player) vs Dark Red (Enemy)
@@ -104,8 +104,15 @@ export const StickmanRender: React.FC<StickmanProps> = ({
   }
 
   const renderBackAccessories = () => {
-      // Moved accessories into main body render for better layering in this version,
-      // but keeping this for legacy if needed or for cape layer
+      // Cape for Imperial Slime
+      if (type === UnitType.TOXIC) {
+          return (
+              <g transform="translate(0, 0)">
+                  <path d="M25 50 Q 15 80 10 95 L 90 95 Q 85 80 75 50" fill={isPlayer ? "#1e40af" : "#7f1d1d"} />
+                  <path d="M30 50 L 70 50" stroke={hoodColor} strokeWidth="2" />
+              </g>
+          );
+      }
       return null;
   };
 
@@ -126,28 +133,18 @@ export const StickmanRender: React.FC<StickmanProps> = ({
     }
 
     if (type === UnitType.ARCHER) {
-        // Redesigned Archer Warrior Body
         return (
             <g>
-                {/* Cape/Sash Back Layer */}
                 <path d="M35 50 Q 20 80 15 95 L 85 95 Q 80 80 65 50" fill={hoodColor} opacity="0.8" />
-
-                {/* Athletic Body */}
                 <path 
                     d="M20 100 L 22 80 Q 20 50 35 40 Q 50 30 65 40 Q 80 50 78 80 L 80 100 Z" 
                     fill={baseColor} 
                     stroke={secondaryColor} 
                     strokeWidth="2" 
                 />
-
-                {/* Light Armor: Chest Strap & Shoulder */}
                 <path d="M25 80 L 75 45" stroke="#4b5563" strokeWidth="3" opacity="0.8" />
                 <circle cx="70" cy="45" r="6" fill={hoodColor} stroke={secondaryColor} strokeWidth="1" />
-                
-                {/* Arm Bracer (Implied) */}
                 <rect x="72" y="65" width="6" height="8" rx="2" fill="#4b5563" transform="rotate(-10 75 69)" />
-
-                {/* Hood/Cowl */}
                 <path d="M25 45 Q 50 25 75 45 L 75 55 Q 50 40 25 55 Z" fill={hoodColor} stroke={secondaryColor} strokeWidth="1" />
             </g>
         );
@@ -173,28 +170,27 @@ export const StickmanRender: React.FC<StickmanProps> = ({
         );
     }
 
-    // WARRIOR SLIME REDESIGN (Previously Toxic)
+    // IMPERIAL SLIME REDESIGN (Disciplined, Uniform)
     if (type === UnitType.TOXIC) {
         return (
             <g>
-                {/* Muscular Body: Wider base, flatter top for 'shoulders' */}
+                {/* Body: Sturdy, smooth curve */}
                 <path 
-                    d="M10 100 L 12 85 Q 5 50 20 40 Q 50 30 80 40 Q 95 50 88 85 L 90 100 Z" 
+                    d="M15 100 L 15 90 Q 15 45 50 45 Q 85 45 85 90 L 85 100 Z" 
                     fill={baseColor} 
                     stroke={secondaryColor} 
                     strokeWidth="3"
                 />
 
-                {/* Hardened Slime Armor Plates (Shoulder/Arm guards) */}
-                <path d="M12 60 Q 8 70 15 80 L 22 75 Q 18 65 15 60 Z" fill={secondaryColor} stroke="#000" strokeWidth="1" opacity="0.6" />
-                <path d="M88 60 Q 92 70 85 80 L 78 75 Q 82 65 85 60 Z" fill={secondaryColor} stroke="#000" strokeWidth="1" opacity="0.6" />
+                {/* Imperial Armor: Chest Plate */}
+                <path d="M30 85 L 30 65 Q 50 55 70 65 L 70 85 Q 50 95 30 85 Z" fill="#e2e8f0" stroke="#475569" strokeWidth="1" />
+                {/* Emblem */}
+                <circle cx="50" cy="72" r="4" fill={hoodColor} stroke="#b45309" strokeWidth="1" />
+                <path d="M30 65 L 70 65" stroke={hoodColor} strokeWidth="2" opacity="0.8" />
 
-                {/* Leather Chest Strap */}
-                <path d="M25 85 L 75 45" stroke="#4a2c0f" strokeWidth="4" opacity="0.9" />
-                <path d="M25 85 L 75 45" stroke="#78350f" strokeWidth="1" opacity="0.5" strokeDasharray="2 2" />
-
-                {/* Battle Scars */}
-                <path d="M40 70 L 50 75" stroke={secondaryColor} strokeWidth="2" opacity="0.5" />
+                {/* Shoulder Guards */}
+                <path d="M12 65 Q 15 50 28 60" fill={hoodColor} stroke="#b45309" strokeWidth="1" />
+                <path d="M88 65 Q 85 50 72 60" fill={hoodColor} stroke="#b45309" strokeWidth="1" />
             </g>
         );
     }
@@ -242,10 +238,10 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       }
 
       if (type === UnitType.TOXIC) {
+          // Clean minimal dust for disciplined march
           return (
               <g className="pointer-events-none">
-                  {isMoving && <circle cx="20" cy="95" r="2" fill="#334155" opacity="0.4" className="animate-dust" />}
-                  {isMoving && <circle cx="80" cy="95" r="1.5" fill="#334155" opacity="0.3" className="animate-dust" style={{ animationDelay: '0.4s' }} />}
+                  {isMoving && <circle cx="30" cy="98" r="2" fill="#9ca3af" opacity="0.4" className="animate-dust" />}
               </g>
           );
       }
@@ -289,31 +285,19 @@ export const StickmanRender: React.FC<StickmanProps> = ({
      if (type === UnitType.PALADIN) return null;
 
      if (type === UnitType.TOXIC) { 
-         // Cute Determined Warrior Eyes
+         // Cute Dash Eyes (— —)
          return (
              <g>
-                {/* War Paint Blush (Cute but tough) */}
-                <path d="M22 68 L 30 65 M 22 65 L 30 68" stroke={isPlayer ? "#5eead4" : "#fda4af"} strokeWidth="1.5" opacity="0.7" strokeLinecap="round" />
-                <path d="M70 68 L 78 65 M 70 65 L 78 68" stroke={isPlayer ? "#5eead4" : "#fda4af"} strokeWidth="1.5" opacity="0.7" strokeLinecap="round" />
-
-                {/* Large Determined Eyes */}
-                <circle cx="36" cy="60" r="7" fill="white" />
-                <ellipse cx="36" cy="60" rx="4.5" ry="5.5" fill="#0f172a" />
-                <circle cx="34" cy="57" r="2.5" fill="white" /> {/* Shine */}
-                
-                <circle cx="64" cy="60" r="7" fill="white" />
-                <ellipse cx="64" cy="60" rx="4.5" ry="5.5" fill="#0f172a" />
-                <circle cx="62" cy="57" r="2.5" fill="white" /> {/* Shine */}
-
-                {/* Angled Eyebrows (Determination) */}
-                <path d="M28 50 L 42 55" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
-                <path d="M72 50 L 58 55" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+                <path d="M36 60 H 44" stroke="#0f172a" strokeWidth="2.5" strokeLinecap="round" />
+                <path d="M56 60 H 64" stroke="#0f172a" strokeWidth="2.5" strokeLinecap="round" />
+                {/* Minimal blush */}
+                <circle cx="34" cy="66" r="2" fill={isPlayer ? "#93c5fd" : "#fca5a5"} opacity="0.6" />
+                <circle cx="66" cy="66" r="2" fill={isPlayer ? "#93c5fd" : "#fca5a5"} opacity="0.6" />
              </g>
          );
      }
      
      if (type === UnitType.ARCHER) {
-         // Focused Archer Eyes
          return (
              <g transform="translate(0, 2)">
                  <path d="M32 55 L 45 58" stroke="white" strokeWidth="2" strokeLinecap="round" />
@@ -391,41 +375,24 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       if (type === UnitType.TOXIC) {
           return (
               <g>
-                  {/* Warrior Headband with Knot */}
-                  <path d="M22 42 Q 50 35 78 42" stroke={hoodColor} strokeWidth="5" fill="none" strokeLinecap="round" />
-                  {/* Trailing Knot */}
-                  <g transform="translate(78, 42)">
-                     <path d="M0 0 L 8 4 L 4 15" stroke={hoodColor} strokeWidth="3" fill="none" />
-                     <path d="M0 0 L 10 -2" stroke={hoodColor} strokeWidth="3" fill="none" />
-                  </g>
+                  {/* Imperial Helmet / Headband */}
+                  <path d="M22 42 Q 50 35 78 42" stroke={hoodColor} strokeWidth="4" fill="none" strokeLinecap="round" />
                   
-                  {/* Weapon: Heavy Slime Gladius */}
+                  {/* Weapon: Imperial Short Sword */}
                   <g 
                     transform={isAttacking ? "translate(75, 65) rotate(60)" : "translate(75, 60) rotate(-10)"}
                     className={isAttacking ? "animate-sword-swing" : (isMoving ? "animate-slime-bounce" : "")}
                     style={{ transformOrigin: '0 0' }}
                   >
-                      {/* Weapon Trail - Only visible when attacking */}
-                      {isAttacking && (
-                          <path d="M5 -45 Q 30 -30 20 0" stroke="white" strokeWidth="15" fill="none" opacity="0.2" className="animate-pulse" />
-                      )}
-
-                      {/* Hilt */}
-                      <rect x="-3" y="-5" width="6" height="15" rx="1" fill="#4a2c0f" stroke="black" strokeWidth="0.5" />
-                      <rect x="-8" y="-5" width="16" height="4" rx="1" fill="#9ca3af" stroke="black" strokeWidth="0.5" />
-                      
-                      {/* Blade (Heavy, leaf-shaped) */}
+                      {/* Clean blade */}
                       <path 
-                        d="M-5 -5 L -6 -35 L 0 -45 L 6 -35 L 5 -5 Z" 
+                        d="M0 0 L 0 -35 L 5 -40 L 10 -35 L 10 0 Z" 
                         fill="#cbd5e1" 
                         stroke="#475569" 
                         strokeWidth="1" 
                       />
-                      {/* Fuller (groove) */}
-                      <path d="M0 -35 L 0 -10" stroke="#94a3b8" strokeWidth="1.5" />
-                      
-                      {/* Shine */}
-                      <path d="M2 -30 L 3 -15" stroke="white" strokeWidth="1" opacity="0.6" />
+                      <rect x="-4" y="0" width="18" height="4" fill={hoodColor} stroke="#b45309" strokeWidth="0.5" />
+                      <rect x="2" y="4" width="6" height="10" rx="2" fill="#4a2c0f" />
                   </g>
               </g>
           );
@@ -434,18 +401,11 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       if (type === UnitType.ARCHER) {
           return (
              <g>
-                  {/* Weapon: Reinforced Slime Bow */}
                   <g transform="translate(60, 60)">
                       <g className={isAttacking ? "animate-archer-bow" : ""} style={{ transformOrigin: 'center' }}>
-                          {/* Bow Limb */}
                           <path d="M0 -35 Q 25 0 0 35" stroke="#3f2e18" strokeWidth="4" fill="none" strokeLinecap="round" />
-                          {/* Slime Reinforcement */}
                           <path d="M0 -35 Q 25 0 0 35" stroke={hoodColor} strokeWidth="1.5" fill="none" strokeLinecap="round" opacity="0.6" strokeDasharray="5 3" />
-                          
-                          {/* String */}
                           <line x1="0" y1="-33" x2="0" y2="33" stroke="white" strokeWidth="0.5" opacity="0.5" />
-
-                          {/* Hardened Slime Arrow (Visible on reload/attack) */}
                           {isAttacking && (
                               <g className="animate-archer-reload">
                                   <line x1="-20" y1="0" x2="15" y2="0" stroke="#ecfccb" strokeWidth="2" />

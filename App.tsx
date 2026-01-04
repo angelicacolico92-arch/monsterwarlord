@@ -212,7 +212,7 @@ const DEATH_DURATION = 1500;
 const UNIT_AGILITY: Record<string, number> = {
   [UnitType.WORKER]: 5.0,
   [UnitType.SMALL]: 6.0,
-  [UnitType.TOXIC]: 4.0,
+  [UnitType.TOXIC]: 10.0, // Increased for disciplined, sharp movement
   [UnitType.ARCHER]: 3.5,
   [UnitType.MAGE]: 2.5,
   [UnitType.PALADIN]: 2.0,
@@ -279,7 +279,7 @@ export const App: React.FC = () => {
   };
 
   // Helper function for damage calculation
-  const applyDamage = (target: GameUnit, rawDamage: number, now: number, isBossAttack: boolean) => {
+  const applyDamage = (target: GameUnit, rawDamage: number, now: number, isBossAttack: boolean, allUnits: GameUnit[]) => {
       let damageDealt = rawDamage;
 
       // PALADIN DAMAGE REDUCTION (Existing)
@@ -287,12 +287,29 @@ export const App: React.FC = () => {
           damageDealt *= 0.7; 
       }
       
-      // BOSS GELATIN ARMOR (New Passive)
+      // BOSS GELATIN ARMOR (Passive)
       if (target.type === UnitType.BOSS) {
-          // Reduces damage by 15-20%. Increases when HP < 40%.
           const lowHp = target.hp < target.maxHp * 0.4;
           const reduction = lowHp ? 0.20 : 0.15;
           damageDealt *= (1 - reduction);
+      }
+
+      // IMPERIAL SLIME PHALANX BONUS (New)
+      if (target.type === UnitType.TOXIC) {
+          // Count nearby allies of same type
+          const nearbyAllies = allUnits.filter(u => 
+              u.side === target.side && 
+              u.type === UnitType.TOXIC && 
+              u.id !== target.id &&
+              u.state !== 'DYING' &&
+              Math.abs(u.x - target.x) < 5 // Nearby range
+          ).length;
+          
+          // 10% reduction per ally, max 30%
+          const bonus = Math.min(nearbyAllies * 0.1, 0.3);
+          if (bonus > 0) {
+              damageDealt *= (1 - bonus);
+          }
       }
 
       target.hp -= damageDealt;
@@ -384,7 +401,7 @@ export const App: React.FC = () => {
               }
 
               if (targetUnit) {
-                  applyDamage(targetUnit, p.damage, now, false);
+                  applyDamage(targetUnit, p.damage, now, false, processedUnits);
               } else {
                  // Hit Statue?
                  const isPlayerProjectile = p.side === 'player';
@@ -651,7 +668,7 @@ export const App: React.FC = () => {
                         unit.lastAbility1Time = now;
                         AudioService.playAttack(UnitType.MAGE); // Reuse existing sound
                         burstTargets.forEach(target => {
-                            applyDamage(target, 60, now, false);
+                            applyDamage(target, 60, now, false, processedUnits);
                             target.slowedUntil = now + 3000; // 3s Slow
                         });
                         abilityTriggered = true;
@@ -703,7 +720,7 @@ export const App: React.FC = () => {
                             const finalDamage = currentDamage + splashBonus;
 
                             meleeTargets.forEach(target => {
-                                applyDamage(target, finalDamage, now, unit.type === UnitType.BOSS);
+                                applyDamage(target, finalDamage, now, unit.type === UnitType.BOSS, processedUnits);
                                 // Knockback
                                 target.x += dir * 2;
                             });
@@ -725,11 +742,13 @@ export const App: React.FC = () => {
 
                         } else {
                             // Standard Unit Attack (Melee & Mage)
-                            applyDamage(primaryTarget, currentDamage, now, false);
+                            applyDamage(primaryTarget, currentDamage, now, false, processedUnits);
                             
                             if (unit.type === UnitType.TOXIC) {
-                                primaryTarget.poisonTicks = 3;
-                                primaryTarget.lastPoisonTickTime = now;
+                                // Keep generic visual tick but reduce effectiveness as it's not "toxic" anymore
+                                // Or remove poison entirely for Imperial Slime?
+                                // Let's keep a small bleed effect for now or remove it.
+                                // Removing poison logic for Imperial Slime as it wasn't requested in redesign
                             }
                         }
                     } else if (canSiege) {
