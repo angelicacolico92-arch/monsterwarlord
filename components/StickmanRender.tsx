@@ -224,13 +224,13 @@ export const StickmanRender: React.FC<StickmanProps> = ({
     }
 
     if (type === UnitType.ARCHER) {
-        // Imperial Archer Body - Full Plate Armor (No Helmet)
+        // Imperial Archer Body - Full Plate Armor (Exposed Face)
         return (
             <g>
-                {/* Short Imperial Cape */}
-                <path d="M25 55 Q 15 75 20 85 L 80 85 Q 85 75 75 55" fill={secondaryColor} />
+                {/* Short Imperial Cape - Attached at shoulders */}
+                <path d="M20 65 Q 10 80 15 92 L 85 92 Q 90 80 80 65" fill={secondaryColor} />
 
-                {/* Base Slime Body (Visible at head/joints) */}
+                {/* Base Slime Body (Visible head and bottom) */}
                 <path 
                     d="M20 100 L 22 75 Q 20 45 50 40 Q 80 45 78 75 L 80 100 Z" 
                     fill={baseColor} 
@@ -238,34 +238,35 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                     strokeWidth="2" 
                 />
 
-                {/* --- FULL PLATE ARMOR --- */}
+                {/* --- FULL PLATE ARMOR (Fitted) --- */}
                 
                 {/* Faulds (Armored Skirt/Base) */}
-                <path d="M22 80 L 20 95 L 35 90 L 35 78 Z" fill="#cbd5e1" stroke="#334155" strokeWidth="1" />
-                <path d="M35 78 L 35 92 L 50 95 L 65 92 L 65 78 Z" fill="#e2e8f0" stroke="#334155" strokeWidth="1" />
-                <path d="M65 78 L 65 90 L 80 95 L 78 80 Z" fill="#cbd5e1" stroke="#334155" strokeWidth="1" />
+                <path d="M22 82 L 20 95 L 35 90 L 35 80 Z" fill="#cbd5e1" stroke="#334155" strokeWidth="1" />
+                <path d="M35 80 L 35 92 L 50 95 L 65 92 L 65 80 Z" fill="#e2e8f0" stroke="#334155" strokeWidth="1" />
+                <path d="M65 80 L 65 90 L 80 95 L 78 82 Z" fill="#cbd5e1" stroke="#334155" strokeWidth="1" />
 
-                {/* Breastplate (Cuirass) */}
+                {/* Breastplate (Cuirass) - Adjusted to fit body width and sit below eyes */}
                 <path 
-                    d="M25 78 Q 20 50 30 48 Q 50 40 70 48 Q 80 50 75 78 Q 50 85 25 78" 
+                    d="M23 82 Q 21 72 23 65 Q 50 70 77 65 Q 79 72 77 82 Q 50 88 23 82 Z" 
                     fill="url(#plateGradient)" 
                     stroke="#334155" 
                     strokeWidth="1.5" 
                 />
                 
-                {/* Gorget (Neck Collar) */}
-                <path d="M32 48 Q 50 55 68 48 L 70 45 Q 50 50 30 45 Z" fill="#94a3b8" stroke="#334155" strokeWidth="1" />
+                {/* Gorget (Neck Guard) - Sits on top of breastplate, below eyes (y=55) */}
+                <path d="M35 65 Q 50 67 65 65 L 65 62 Q 50 65 35 62 Z" fill="#94a3b8" stroke="#334155" strokeWidth="1" />
 
-                {/* Armor Trim/Details */}
-                <path d="M50 48 L 50 78" stroke={hoodColor} strokeWidth="1.5" opacity="0.8" />
-                <path d="M30 55 Q 50 65 70 55" fill="none" stroke={hoodColor} strokeWidth="1.5" opacity="0.6" />
+                {/* Armor Detail: Vertical Line */}
+                <path d="M50 68 L 50 80" stroke={hoodColor} strokeWidth="1.5" opacity="0.8" />
                 
-                {/* Chest Emblem */}
-                <path d="M50 55 L 54 60 L 50 65 L 46 60 Z" fill={hoodColor} stroke="#b45309" strokeWidth="0.5" />
+                {/* Armor Detail: Emblem */}
+                <path d="M50 72 L 54 75 L 50 78 L 46 75 Z" fill={hoodColor} stroke="#b45309" strokeWidth="0.5" />
 
-                {/* Heavy Pauldrons (Shoulders) */}
-                <path d="M15 65 Q 10 50 28 50 L 32 60 Z" fill="#cbd5e1" stroke="#334155" strokeWidth="1" />
-                <path d="M85 65 Q 90 50 72 50 L 68 60 Z" fill="#cbd5e1" stroke="#334155" strokeWidth="1" />
+                {/* Heavy Pauldrons (Shoulders) - Fitted to sides */}
+                {/* Left */}
+                <path d="M12 68 Q 10 58 28 62 L 30 68 Z" fill="#cbd5e1" stroke="#334155" strokeWidth="1" />
+                {/* Right */}
+                <path d="M88 68 Q 90 58 72 62 L 70 68 Z" fill="#cbd5e1" stroke="#334155" strokeWidth="1" />
             </g>
         );
     }
@@ -434,6 +435,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
      
      if (type === UnitType.ARCHER) {
          // Imperial Archer: Exposed Face, Combat Eyes (No Helmet)
+         // Eyes are at cy=55. Armor now starts at y=65, leaving 10px clear.
          return (
              <g>
                  {/* Eyes: Sharp/Focused */}
