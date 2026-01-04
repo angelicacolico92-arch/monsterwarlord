@@ -16,6 +16,7 @@ interface StickmanProps {
   isSummoning?: boolean;
   isFirebursting?: boolean; // New prop for Mage Ability 1
   isRooted?: boolean; // New prop for Mage Ability 2 (on victim)
+  isBossAbility?: boolean; // New prop for Boss Ability (Explosion)
 }
 
 export const StickmanRender: React.FC<StickmanProps> = ({ 
@@ -32,7 +33,8 @@ export const StickmanRender: React.FC<StickmanProps> = ({
   hasGold = false,
   isSummoning = false,
   isFirebursting = false,
-  isRooted = false
+  isRooted = false,
+  isBossAbility = false
 }) => {
   const animationDelay = useMemo(() => Math.random() * 1, []);
   
@@ -633,6 +635,45 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       );
   };
 
+  const renderBossAbilityVisuals = () => {
+      if (!isBossAbility) return null;
+      return (
+          <g className="pointer-events-none" style={{ transformOrigin: '50px 90px' }}>
+              <defs>
+                  <radialGradient id="bossExplosionGrad" cx="0.5" cy="0.5" r="0.5">
+                      <stop offset="0%" stopColor="#fff" stopOpacity="1" />
+                      <stop offset="30%" stopColor="#fbbf24" stopOpacity="0.9" />
+                      <stop offset="60%" stopColor="#f97316" stopOpacity="0.8" />
+                      <stop offset="90%" stopColor="#dc2626" stopOpacity="0.6" />
+                      <stop offset="100%" stopColor="#7f1d1d" stopOpacity="0" />
+                  </radialGradient>
+              </defs>
+              
+              {/* Shockwave Ring */}
+              <circle cx="50" cy="90" r="10" fill="none" stroke="#fbbf24" strokeWidth="4" className="animate-boss-shockwave" />
+              
+              {/* Inner Fireball */}
+              <circle cx="50" cy="90" r="0" fill="url(#bossExplosionGrad)" className="animate-boss-explosion" />
+              
+              {/* Embers */}
+              {[...Array(8)].map((_, i) => (
+                  <circle key={i} cx="50" cy="90" r="3" fill="#fca5a5" className="animate-ember" style={{ 
+                      '--angle': `${i * 45}deg`,
+                      '--dist': '80px',
+                      animationDelay: `${Math.random() * 0.2}s`
+                  } as any} />
+              ))}
+              
+              {/* Ground Cracks */}
+              <g opacity="0.6">
+                  <path d="M50 90 L 30 100" stroke="#78350f" strokeWidth="2" className="animate-pulse" />
+                  <path d="M50 90 L 70 100" stroke="#78350f" strokeWidth="2" className="animate-pulse" />
+                  <path d="M50 90 L 50 110" stroke="#78350f" strokeWidth="2" className="animate-pulse" />
+              </g>
+          </g>
+      );
+  };
+
   return (
     <svg 
       width={100 * scale} 
@@ -662,6 +703,25 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                 100% { transform: translate(75px, 65px) rotate(-20deg); } /* Return */
             }
             .animate-sword-swing { animation: sword-swing 0.4s ease-in-out; transform-origin: 0 0; }
+
+            @keyframes boss-shockwave {
+                0% { r: 10; opacity: 1; stroke-width: 4; }
+                100% { r: 80; opacity: 0; stroke-width: 0; }
+            }
+            .animate-boss-shockwave { animation: boss-shockwave 0.8s ease-out forwards; }
+
+            @keyframes boss-explosion {
+                0% { r: 0; opacity: 1; }
+                20% { r: 60; opacity: 0.9; }
+                100% { r: 70; opacity: 0; }
+            }
+            .animate-boss-explosion { animation: boss-explosion 0.8s ease-out forwards; }
+
+            @keyframes ember-fly {
+                0% { transform: translate(0, 0) scale(1); opacity: 1; }
+                100% { transform: rotate(var(--angle)) translate(var(--dist)) scale(0); opacity: 0; }
+            }
+            .animate-ember { animation: ember-fly 0.8s ease-out forwards; transform-origin: 50px 90px; }
           `}</style>
       </defs>
 
@@ -688,8 +748,11 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       {/* Root Visuals - MOVED TO FRONT FOR VISIBILITY */}
       {renderRootVisuals()}
 
-      {/* Boss Shockwave Effect */}
-      {isAttacking && !isDying && type === UnitType.BOSS && (
+      {/* Boss Ability Explosions */}
+      {renderBossAbilityVisuals()}
+
+      {/* Boss Shockwave Effect (Standard attack) */}
+      {isAttacking && !isDying && type === UnitType.BOSS && !isBossAbility && (
          <circle cx="50" cy="50" r="25" fill="none" stroke="white" strokeWidth="2" className="animate-shockwave" />
       )}
       

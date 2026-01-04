@@ -91,6 +91,7 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({
         const isDepositing = unit.state === 'DEPOSITING';
         const isSummoning = unit.type === UnitType.MAGE && (Date.now() - (unit.lastSummonTime || 0) < 1000);
         const isFirebursting = unit.type === UnitType.MAGE && (Date.now() - (unit.lastAbility1Time || 0) < 1000);
+        const isBossAbility = unit.type === UnitType.BOSS && (Date.now() - (unit.lastAbility2Time || 0) < 1000);
         const isRooted = !!unit.rootedUntil && unit.rootedUntil > Date.now();
         
         // Hide if retreating and at base
@@ -189,6 +190,7 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({
                 hasGold={unit.hasGold}
                 isSummoning={isSummoning}
                 isFirebursting={isFirebursting}
+                isBossAbility={isBossAbility}
                 isRooted={isRooted}
             />
           </div>
