@@ -52,7 +52,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       else if (type === UnitType.ARCHER) animClass = "animate-archer-body"; 
       else if (type === UnitType.BOSS) animClass = "animate-boss-stomp";
       else if (type === UnitType.WORKER && isMining) animClass = "animate-miner-work";
-      else if (type === UnitType.PALADIN) animClass = "animate-paladin-attack"; // New Paladin Attack
+      else if (type === UnitType.PALADIN) animClass = "animate-paladin-attack"; 
       else animClass = "animate-slime-attack";
   } else if (isMoving || isDepositing) {
       if (type === UnitType.MAGE || type === UnitType.SMALL) animClass = "animate-mage-float";
@@ -85,9 +85,8 @@ export const StickmanRender: React.FC<StickmanProps> = ({
           secondaryColor = "#365314"; 
           break;
       case UnitType.PALADIN:
-          // Paladin Redesign: Silver/Gold vs Dark Steel/Red
-          baseColor = isPlayer ? "#f8fafc" : "#475569"; // Lightest Silver vs Slate
-          secondaryColor = isPlayer ? "#94a3b8" : "#1e293b"; // Silver Shadow vs Dark
+          baseColor = isPlayer ? "#f8fafc" : "#475569"; 
+          secondaryColor = isPlayer ? "#94a3b8" : "#1e293b"; 
           break;
       case UnitType.MAGE:
       case UnitType.SMALL:
@@ -158,7 +157,6 @@ export const StickmanRender: React.FC<StickmanProps> = ({
         );
     }
 
-    // PALADIN BODY (Stouter base)
     if (type === UnitType.PALADIN) {
         return (
             <path 
@@ -192,7 +190,6 @@ export const StickmanRender: React.FC<StickmanProps> = ({
           );
       }
       
-      // Paladin has holy sparkles instead of bubbles
       if (type === UnitType.PALADIN) {
           return (
               <g className="pointer-events-none">
@@ -238,8 +235,6 @@ export const StickmanRender: React.FC<StickmanProps> = ({
          );
      }
      
-     // PALADIN EYES (Glowing Slits inside helmet)
-     // Rendered inside accessories for proper layering, this is fallback/unused
      if (type === UnitType.PALADIN) return null;
 
      if (type === UnitType.TOXIC) { 
@@ -289,7 +284,6 @@ export const StickmanRender: React.FC<StickmanProps> = ({
   };
 
   const renderAccessories = () => {
-      // MINER
       if (type === UnitType.WORKER) {
           return (
               <g>
@@ -381,71 +375,51 @@ export const StickmanRender: React.FC<StickmanProps> = ({
           );
       }
 
-      // PALADIN REDESIGN
       if (type === UnitType.PALADIN) {
-          const accentColor = isPlayer ? "#fbbf24" : "#dc2626"; // Gold vs Red
+          const accentColor = isPlayer ? "#fbbf24" : "#dc2626"; 
           const isIdle = !isAttacking && !isMoving && !isDying;
           
           return (
               <g>
-                  {/* Holy Aura (Background) */}
                   <circle cx="50" cy="70" r="35" fill={isPlayer ? "#fef08a" : "#7f1d1d"} opacity="0.2" filter="blur(5px)" className="animate-pulse" />
 
-                  {/* SWORD (Rendered at side/back) */}
                   <g 
                      transform={isAttacking ? "translate(25, 60) rotate(-45)" : "translate(20, 70) rotate(-10)"} 
                      className={isAttacking ? "animate-sword-swing" : ""} 
                      style={{ transformOrigin: '25px 80px' }}
                   >
-                      {/* Blade */}
                       <path d="M0 0 L 0 -30 L 4 -35 L 8 -30 L 8 0 Z" fill="#e2e8f0" stroke="#475569" strokeWidth="1" />
                       <line x1="4" y1="-30" x2="4" y2="0" stroke="#cbd5e1" strokeWidth="1" />
-                      {/* Hilt */}
                       <rect x="-4" y="0" width="16" height="3" fill={accentColor} stroke="#000" strokeWidth="0.5" />
                       <circle cx="4" cy="5" r="2.5" fill={accentColor} stroke="#000" strokeWidth="0.5" />
-                      
-                      {/* Swing Trail (Only when attacking) */}
                       {isAttacking && (
                           <path d="M-10 -40 Q 20 -60 50 -40" stroke="#fff" strokeWidth="2" fill="none" opacity="0.6" className="animate-sparkle" />
                       )}
                   </g>
 
-                  {/* HELMET (Back part - Plume) */}
                   <path d="M40 25 Q 50 15 60 25" stroke={accentColor} strokeWidth="4" fill="none" />
 
-                  {/* CHEST ARMOR OVERLAY (On top of body) */}
                   <g transform="translate(0, 0)">
                       <path d="M25 60 Q 50 70 75 60 L 75 85 Q 50 95 25 85 Z" fill={baseColor} stroke={secondaryColor} strokeWidth="2" />
-                      {/* Cross/Emblem */}
                       <path d="M50 65 L 50 85 M 40 70 L 60 70" stroke={accentColor} strokeWidth="2" opacity="0.8" />
                   </g>
 
-                  {/* HELMET (Front) */}
                   <g transform="translate(0, -5)">
-                      {/* Main Helm */}
                       <path d="M25 45 Q 50 20 75 45 L 75 60 L 25 60 Z" fill={baseColor} stroke={secondaryColor} strokeWidth="2" />
-                      {/* Visor Slit */}
                       <rect x="25" y="45" width="50" height="6" fill="#1e293b" />
-                      {/* Glowing Eyes inside Visor */}
                       <circle cx="35" cy="48" r="1.5" fill={isPlayer ? "#38bdf8" : "#ef4444"} className="animate-pulse" />
                       <circle cx="65" cy="48" r="1.5" fill={isPlayer ? "#38bdf8" : "#ef4444"} className="animate-pulse" />
                   </g>
 
-                  {/* SHIELD (Front Layer - Right Hand) */}
                   <g 
                     transform={isAttacking ? "translate(75, 75) rotate(10)" : "translate(75, 70)"}
                     className={isIdle ? "animate-paladin-shield" : ""}
                     style={{ transformOrigin: '75px 75px' }}
                   >
-                     {/* Shield Body (Tower Shield) */}
                      <path d="M-15 -15 L 15 -15 L 15 15 Q 0 35 -15 15 Z" fill={baseColor} stroke={secondaryColor} strokeWidth="2" />
-                     {/* Border */}
                      <path d="M-12 -12 L 12 -12 L 12 12 Q 0 28 -12 12 Z" stroke={accentColor} strokeWidth="2" fill="none" />
-                     {/* Central Gem/Cross */}
                      <circle cx="0" cy="0" r="4" fill={accentColor} />
                      <path d="M-8 0 L 8 0 M 0 -8 L 0 8" stroke={secondaryColor} strokeWidth="1" opacity="0.5" />
-                     
-                     {/* Block Glow (Simulated by pulse) */}
                      <circle cx="0" cy="0" r="15" fill={isPlayer ? "#e0f2fe" : "#fecaca"} opacity="0.0" className="animate-pulse">
                          <animate attributeName="opacity" values="0;0.3;0" dur="2s" repeatCount="indefinite" />
                      </circle>
@@ -543,7 +517,6 @@ export const StickmanRender: React.FC<StickmanProps> = ({
      }
 
      if (type === UnitType.TOXIC || type === UnitType.PALADIN) {
-         // Paladin & Soldier share impact style
          const isPaladin = type === UnitType.PALADIN;
          return (
              <g className="animate-impact-pop" style={{ animationDelay: `${animationDelay}s` }}>
@@ -766,6 +739,11 @@ export const StickmanRender: React.FC<StickmanProps> = ({
               <stop offset="100%" stopColor="#fef08a" stopOpacity="0" />
           </linearGradient>
       </defs>
+
+      {/* -- SHADOW -- Added for grounding effect */}
+      {!isDying && (
+         <ellipse cx="50" cy="100" rx="25" ry="6" fill="black" opacity="0.3" filter="blur(2px)" />
+      )}
 
       {isSelected && !isDying && (
           <ellipse cx="50" cy="95" rx="25" ry="8" fill="none" stroke="#fbbf24" strokeWidth="2" className="animate-pulse" />
