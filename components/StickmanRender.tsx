@@ -1,4 +1,5 @@
 
+
 import React, { useMemo } from 'react';
 import { UnitType } from '../types';
 
@@ -49,7 +50,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
   } else if (isSummoning && type === UnitType.MAGE) {
       animClass = "animate-mage-float"; 
   } else if (isAttacking || isMining) {
-      if (type === UnitType.TOXIC) animClass = "animate-slime-attack"; // Base lunge, weapon anim handles swing
+      if (type === UnitType.TOXIC) animClass = "animate-slime-attack"; 
       else if (type === UnitType.ARCHER) animClass = "animate-archer-body"; 
       else if (type === UnitType.BOSS) animClass = "animate-boss-stomp";
       else if (type === UnitType.WORKER && isMining) animClass = "animate-miner-work";
@@ -65,9 +66,11 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       else animClass = "animate-idle-breathe";
   }
 
-  // Animation overrides for Archer speed (Sync to ~2s to match attack rate better)
+  // Animation overrides for Archer sync
+  // Duration set to 2.5s to match UNIT_CONFIG attackSpeed exactly.
+  // Delay is 0s when attacking to ensure the "Fire" frame happens immediately upon state change.
   const animStyle = type === UnitType.ARCHER && isAttacking 
-      ? { animationDuration: '2s', animationDelay: isDying ? '0s' : `${animationDelay}s` } 
+      ? { animationDuration: '2.5s', animationDelay: '0s' } 
       : { animationDelay: isDying ? '0s' : `${animationDelay}s` };
   
   // -- COLORS --
@@ -81,26 +84,23 @@ export const StickmanRender: React.FC<StickmanProps> = ({
           secondaryColor = isPlayer ? "#713f12" : "#450a0a";
           break;
       case UnitType.TOXIC:
-          // Imperial Army Slime: Royal Blue / Deep Red with Gold Accents
           baseColor = isPlayer ? "#2563eb" : "#9f1239"; 
           secondaryColor = isPlayer ? "#1e3a8a" : "#881337"; 
-          hoodColor = "#fbbf24"; // Gold Accents for both
+          hoodColor = "#fbbf24"; 
           break;
       case UnitType.ARCHER:
-          // Imperial Knight Archer: Royal Green (Player) vs Dark Crimson (Enemy)
           baseColor = isPlayer ? "#047857" : "#7f1d1d"; 
           secondaryColor = isPlayer ? "#064e3b" : "#450a0a"; 
-          hoodColor = "#fbbf24"; // Gold Accents
+          hoodColor = "#fbbf24"; 
           break;
       case UnitType.PALADIN:
           baseColor = isPlayer ? "#f8fafc" : "#475569"; 
           secondaryColor = isPlayer ? "#94a3b8" : "#1e293b"; 
           break;
       case UnitType.MAGE:
-          // Imperial Mage: Royal Purple robes, gold trim
           baseColor = isPlayer ? "#7e22ce" : "#831843"; 
           secondaryColor = isPlayer ? "#581c87" : "#881337";
-          hoodColor = "#fbbf24"; // Gold Accents
+          hoodColor = "#fbbf24"; 
           break;
       case UnitType.SMALL:
           baseColor = isPlayer ? "#8b5cf6" : "#7c3aed"; 
@@ -113,7 +113,6 @@ export const StickmanRender: React.FC<StickmanProps> = ({
   }
 
   const renderBackAccessories = () => {
-      // Cape for Imperial Slime
       if (type === UnitType.TOXIC) {
           return (
               <g transform="translate(0, 0)">
@@ -122,26 +121,21 @@ export const StickmanRender: React.FC<StickmanProps> = ({
               </g>
           );
       }
-      // Compact Quiver for Imperial Archer (No Cape)
       if (type === UnitType.ARCHER) {
           return (
               <g transform="translate(0,0)">
                   <path d="M68 55 L 75 80 L 65 85 L 58 60 Z" fill="#4a2c0f" stroke="#271c19" strokeWidth="1" />
                   <path d="M60 58 L 72 58" stroke={hoodColor} strokeWidth="1.5" />
-                  {/* Fletchings visible */}
                   <path d="M68 50 L 70 40 L 66 40 Z" fill="#ecfccb" />
                   <path d="M72 52 L 74 42 L 70 42 Z" fill="#ecfccb" />
               </g>
           );
       }
-      // Imperial Mage Cape/Mantle with Enhanced Purple Aura
       if (type === UnitType.MAGE) {
-          const auraPrimary = isPlayer ? "#a855f7" : "#c026d3"; // Purple vs Fuchsia
+          const auraPrimary = isPlayer ? "#a855f7" : "#c026d3"; 
           const auraSecondary = isPlayer ? "#7e22ce" : "#be185d";
-
           return (
               <g>
-                  {/* Arcane Aura - Enhanced */}
                   <defs>
                       <radialGradient id={`aura-${isPlayer ? 'p' : 'e'}`} cx="0.5" cy="0.5" r="0.7">
                           <stop offset="0%" stopColor={auraPrimary} stopOpacity="0.6" />
@@ -149,23 +143,15 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                           <stop offset="100%" stopColor="transparent" stopOpacity="0" />
                       </radialGradient>
                   </defs>
-                  
-                  {/* Outer Rune Ring */}
                   <g className="animate-spin-slow" style={{ transformOrigin: '50px 65px', opacity: 0.8 }}>
                        <path d="M50 20 L 50 25 M 50 105 L 50 110 M 5 65 L 10 65 M 90 65 L 95 65" stroke={auraPrimary} strokeWidth="2" />
                        <circle cx="50" cy="65" r="45" stroke={auraPrimary} strokeWidth="1.5" strokeDasharray="10 30" fill="none" />
                   </g>
-
-                  {/* Inner Counter-Rotating Ring */}
                   <g className="animate-spin-slow" style={{ transformOrigin: '50px 65px', opacity: 0.6, animationDirection: 'reverse', animationDuration: '6s' }}>
                       <circle cx="50" cy="65" r="30" stroke={auraSecondary} strokeWidth="1" strokeDasharray="5 5" fill="none" />
                       <path d="M50 35 L 50 95 M 20 65 L 80 65" stroke={auraSecondary} strokeWidth="0.5" />
                   </g>
-
-                  {/* Pulsing Core Field */}
                   <circle cx="50" cy="65" r="50" fill={`url(#aura-${isPlayer ? 'p' : 'e'})`} className="animate-pulse" />
-                  
-                  {/* Heavy Royal Cape */}
                   <path 
                     d="M20 50 Q 10 90 15 98 L 85 98 Q 90 90 80 50" 
                     fill={secondaryColor} 
@@ -181,7 +167,6 @@ export const StickmanRender: React.FC<StickmanProps> = ({
 
   const renderSlimeBody = () => {
     if (type === UnitType.MAGE) {
-        // Imperial Mage Body (Robed)
         return (
             <g>
                 <defs>
@@ -190,28 +175,20 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                         <stop offset="100%" stopColor={baseColor} stopOpacity="1" />
                     </radialGradient>
                 </defs>
-                
-                {/* Main Body */}
                 <path 
                     d="M20 95 Q 15 50 30 40 Q 50 20 70 40 Q 85 50 80 95 L 20 95 Z" 
                     fill={`url(#mageGlow-${isPlayer ? 'p' : 'e'}-${type})`} 
                     stroke={secondaryColor} 
                     strokeWidth="2" 
                 />
-
-                {/* Imperial Cowl/Hood */}
                 <path 
                     d="M25 55 Q 50 25 75 55 L 75 65 Q 50 45 25 65 Z" 
                     fill={baseColor} 
                     stroke={hoodColor} 
                     strokeWidth="1.5" 
                 />
-
-                {/* Ceremonial Stole (Sash down front) */}
                 <path d="M42 55 L 40 90 L 45 95 L 50 90 L 48 55" fill={isPlayer ? "#4c1d95" : "#881337"} />
                 <path d="M52 55 L 50 90 L 55 95 L 60 90 L 58 55" fill={isPlayer ? "#4c1d95" : "#881337"} />
-                
-                {/* Runes on Stole */}
                 <path d="M45 65 L 45 68 M 43 66 L 47 66" stroke={hoodColor} strokeWidth="1" opacity="0.8" />
                 <path d="M55 75 L 55 78 M 53 76 L 57 76" stroke={hoodColor} strokeWidth="1" opacity="0.8" />
             </g>
@@ -227,52 +204,34 @@ export const StickmanRender: React.FC<StickmanProps> = ({
     }
 
     if (type === UnitType.ARCHER) {
-        // Imperial Knight Archer - Compact & Round
         return (
             <g>
-                {/* Compact Slime Body (Round) */}
                 <path 
                     d="M15 100 L 15 95 Q 15 45 50 45 Q 85 45 85 95 L 85 100 Z" 
                     fill={baseColor} 
                     stroke={secondaryColor} 
                     strokeWidth="2" 
                 />
-
-                {/* --- IMPERIAL KNIGHT ARMOR (Compact) --- */}
-                
-                {/* 1. Compact Chest Plate (Gold-Edged) */}
                 <path 
                     d="M30 75 Q 50 82 70 75 L 70 85 Q 50 95 30 85 Z" 
                     fill="#e2e8f0" 
                     stroke={hoodColor} 
                     strokeWidth="1" 
                 />
-                
-                {/* 2. Rounded Short Pauldrons (Shoulders) */}
                 <circle cx="20" cy="70" r="8" fill="#e2e8f0" stroke="#475569" strokeWidth="1" />
                 <circle cx="20" cy="70" r="4" fill={hoodColor} opacity="0.5" />
-                
                 <circle cx="80" cy="70" r="8" fill="#e2e8f0" stroke="#475569" strokeWidth="1" />
                 <circle cx="80" cy="70" r="4" fill={hoodColor} opacity="0.5" />
-
-                {/* 3. Open-Face Knight Helmet */}
-                {/* Helmet Dome covers top of slime */}
                 <path 
                     d="M20 60 Q 20 20 50 20 Q 80 20 80 60 L 80 65 Q 80 60 70 60 L 30 60 Q 20 60 20 65 Z" 
                     fill="#cbd5e1" 
                     stroke="#334155" 
                     strokeWidth="2" 
                 />
-                
-                {/* Cheek Guards (Framing the face) */}
                 <path d="M20 60 L 25 75 L 35 75 L 30 60 Z" fill="#cbd5e1" stroke="#334155" strokeWidth="1" />
                 <path d="M80 60 L 75 75 L 65 75 L 70 60 Z" fill="#cbd5e1" stroke="#334155" strokeWidth="1" />
-
-                {/* Small Crest on Top */}
                 <path d="M45 20 L 45 12 L 55 20" fill={hoodColor} stroke="#b45309" strokeWidth="1" />
                 <path d="M48 12 L 52 12" stroke={hoodColor} strokeWidth="2" />
-
-                {/* 4. Face is left fully exposed in the center (cy=55-60) */}
             </g>
         );
     }
@@ -297,19 +256,15 @@ export const StickmanRender: React.FC<StickmanProps> = ({
         );
     }
 
-    // IMPERIAL SLIME (Warrior)
     if (type === UnitType.TOXIC) {
         return (
             <g>
-                {/* Body: Sturdy, smooth curve */}
                 <path 
                     d="M15 100 L 15 90 Q 15 45 50 45 Q 85 45 85 90 L 85 100 Z" 
                     fill={baseColor} 
                     stroke={secondaryColor} 
                     strokeWidth="3"
                 />
-
-                {/* Imperial Armor: Diagonal Sash (Officer/Imperial Look) */}
                 <path 
                     d="M20 55 Q 35 60 45 70 L 80 95 Q 65 90 55 80 L 20 55 Z" 
                     fill="#e2e8f0" 
@@ -318,12 +273,8 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                     opacity="0.9"
                 />
                 <path d="M30 62 L 65 87" stroke={hoodColor} strokeWidth="2" strokeDasharray="3 2" opacity="0.8" />
-
-                {/* Shoulder Pauldrons (Rounded plates) */}
                 <path d="M10 65 Q 10 50 30 55 L 30 70 Q 15 65 10 65 Z" fill={hoodColor} stroke="#b45309" strokeWidth="1" />
                 <path d="M90 65 Q 90 50 70 55 L 70 70 Q 85 65 90 65 Z" fill={hoodColor} stroke="#b45309" strokeWidth="1" />
-                
-                {/* Central Medallion */}
                 <circle cx="48" cy="72" r="4" fill={hoodColor} stroke="#b45309" strokeWidth="1" />
             </g>
         );
@@ -361,7 +312,6 @@ export const StickmanRender: React.FC<StickmanProps> = ({
               </g>
           );
       }
-      
       if (type === UnitType.PALADIN) {
           return (
               <g className="pointer-events-none">
@@ -370,7 +320,6 @@ export const StickmanRender: React.FC<StickmanProps> = ({
               </g>
           );
       }
-
       if (type === UnitType.TOXIC || type === UnitType.ARCHER) {
           return (
               <g className="pointer-events-none">
@@ -378,7 +327,6 @@ export const StickmanRender: React.FC<StickmanProps> = ({
               </g>
           );
       }
-      
       if (type === UnitType.MAGE) {
           return (
               <g className="pointer-events-none">
@@ -387,7 +335,6 @@ export const StickmanRender: React.FC<StickmanProps> = ({
               </g>
           );
       }
-      
       return (
         <g opacity="0.4" className="pointer-events-none">
             <circle cx="40" cy="90" r="3" fill="white" className="animate-bubble-rise" style={{ animationDelay: `${bubbleDelays[0]}s` }} />
@@ -427,12 +374,10 @@ export const StickmanRender: React.FC<StickmanProps> = ({
      if (type === UnitType.PALADIN) return null;
 
      if (type === UnitType.TOXIC) { 
-         // Cute Dash Eyes (— —)
          return (
              <g>
                 <path d="M36 60 H 44" stroke="#0f172a" strokeWidth="2.5" strokeLinecap="round" />
                 <path d="M56 60 H 64" stroke="#0f172a" strokeWidth="2.5" strokeLinecap="round" />
-                {/* Minimal blush */}
                 <circle cx="34" cy="66" r="2" fill={isPlayer ? "#93c5fd" : "#fca5a5"} opacity="0.6" />
                 <circle cx="66" cy="66" r="2" fill={isPlayer ? "#93c5fd" : "#fca5a5"} opacity="0.6" />
              </g>
@@ -440,33 +385,28 @@ export const StickmanRender: React.FC<StickmanProps> = ({
      }
      
      if (type === UnitType.ARCHER) {
-         // Imperial Archer: Clear, Focused Eyes (Fully Visible under Open Helmet)
-         // Less scary version: Rounder eyes, no angry eyebrows.
+         // Imperial Archer: Lime Green Dash Eyes + Blush (Cute & Determined)
+         // Fully visible under the open-face helmet
          return (
              <g>
-                 {/* Eyes */}
-                 <ellipse cx="38" cy="58" rx="3.5" ry="4.5" fill="white" />
-                 <ellipse cx="38" cy="58" rx="2" ry="3" fill="black" /> {/* Larger pupil for cuteness */}
-                 <circle cx="39" cy="57" r="1" fill="white" opacity="0.8" /> {/* Highlight */}
+                 {/* Lime Green Dash Eyes */}
+                 <path d="M36 58 H 44" stroke="#bef264" strokeWidth="2.5" strokeLinecap="round" />
+                 <path d="M56 58 H 64" stroke="#bef264" strokeWidth="2.5" strokeLinecap="round" />
                  
-                 <ellipse cx="62" cy="58" rx="3.5" ry="4.5" fill="white" />
-                 <ellipse cx="62" cy="58" rx="2" ry="3" fill="black" />
-                 <circle cx="63" cy="57" r="1" fill="white" opacity="0.8" />
+                 {/* Soft Pink Blush */}
+                 <circle cx="34" cy="64" r="2.5" fill="#f472b6" opacity="0.7" />
+                 <circle cx="66" cy="64" r="2.5" fill="#f472b6" opacity="0.7" />
              </g>
          );
      }
 
      if (type === UnitType.MAGE) {
-         // Glowing Round Eyes (Wise) - Partially obscured by hood
          return (
              <g>
                  <circle cx="38" cy="62" r="3" fill="#ecfeff" />
                  <circle cx="38" cy="62" r="5" fill="#a5f3fc" opacity="0.3" filter="blur(1px)" className="animate-pulse" />
-                 
                  <circle cx="62" cy="62" r="3" fill="#ecfeff" />
                  <circle cx="62" cy="62" r="5" fill="#a5f3fc" opacity="0.3" filter="blur(1px)" className="animate-pulse" />
-                 
-                 {/* Hood Shadow over eyes */}
                  <path d="M25 55 Q 50 65 75 55" fill="none" stroke="black" strokeWidth="2" opacity="0.2" filter="blur(2px)" />
              </g>
          );
@@ -507,24 +447,16 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                           )}
                       </g>
                   </g>
-                  
-                  {/* Pickaxe: Anchored more naturally to prevent 'floating' */}
                   <g 
                     transform={isMining ? "translate(72, 70)" : "translate(72, 60)"} 
                     className={isMining ? "animate-mining-swing" : (isMoving ? "animate-slime-bounce" : "")}
                     style={{ transformOrigin: '0 0' }}
                   >
-                      {/* Handle */}
                       <path d="M0 0 L 0 -30" stroke="#78350f" strokeWidth="4" strokeLinecap="round" />
-                      
-                      {/* Metal Head */}
                       <path d="M-12 -30 Q 0 -35 12 -30 L 14 -27 L 0 -29 L -14 -27 Z" fill="#94a3b8" stroke="#475569" strokeWidth="1" />
-                      
-                      {/* Tips */}
                       <path d="M-14 -27 L -18 -23 L -12 -25 Z" fill="#cbd5e1" />
                       <path d="M14 -27 L 18 -23 L 12 -25 Z" fill="#cbd5e1" />
                   </g>
-
                   {(hasGold || isDepositing) && (
                       <g transform="translate(50, 25)" className="animate-bounce">
                           <path d="M0 -15 L 10 -5 L 0 5 L -10 -5 Z" fill="#22d3ee" stroke="#0891b2" strokeWidth="1.5" />
@@ -547,9 +479,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       if (type === UnitType.TOXIC) {
           return (
               <g>
-                  {/* Imperial Galea (Crest) - Plume style */}
                   <path d="M25 40 Q 50 20 75 40" fill="none" stroke={hoodColor} strokeWidth="4" strokeLinecap="round" />
-                  {/* Bristles */}
                   <g stroke={isPlayer ? "#fbbf24" : "#f87171"} strokeWidth="2">
                       <line x1="30" y1="38" x2="30" y2="25" />
                       <line x1="40" y1="34" x2="40" y2="22" />
@@ -557,26 +487,19 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                       <line x1="60" y1="34" x2="60" y2="22" />
                       <line x1="70" y1="38" x2="70" y2="25" />
                   </g>
-                  
-                  {/* Weapon: Imperial Short Sword */}
-                  {/* Anchor moved to (68, 72) to fix floating */}
                   <g 
                     transform={isAttacking ? "translate(68, 72) rotate(60)" : "translate(68, 72) rotate(-15)"}
                     className={isAttacking ? "animate-sword-swing" : ""}
                     style={{ transformOrigin: '0 0' }}
                   >
-                      {/* Clean blade */}
                       <path 
                         d="M0 0 L 0 -35 L 5 -40 L 10 -35 L 10 0 Z" 
                         fill="#cbd5e1" 
                         stroke="#475569" 
                         strokeWidth="1" 
                       />
-                      {/* Crossguard */}
                       <rect x="-6" y="0" width="22" height="4" rx="1" fill={hoodColor} stroke="#b45309" strokeWidth="0.5" />
-                      {/* Handle */}
                       <rect x="2" y="4" width="6" height="10" rx="2" fill="#4a2c0f" />
-                      {/* Pommel */}
                       <circle cx="5" cy="14" r="2.5" fill={hoodColor} />
                   </g>
               </g>
@@ -590,7 +513,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                   <g transform="translate(70, 70)">
                       <g 
                         className={isAttacking ? "animate-archer-bow" : ""} 
-                        style={{ transformOrigin: 'center', animationDuration: '2s' }}
+                        style={{ transformOrigin: 'center', animationDuration: '2.5s' }}
                       >
                           {/* Hand */}
                           <circle cx="0" cy="0" r="3" fill={baseColor} />
@@ -598,22 +521,19 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                           {/* Compact Bow Body */}
                           <path d="M-2 -20 Q 15 -30 10 -40" stroke="#78350f" strokeWidth="3" fill="none" strokeLinecap="round" />
                           <path d="M-2 20 Q 15 30 10 40" stroke="#78350f" strokeWidth="3" fill="none" strokeLinecap="round" />
-                          <path d="M-2 -20 L -2 20" stroke={hoodColor} strokeWidth="3" /> {/* Handle Grip */}
+                          <path d="M-2 -20 L -2 20" stroke={hoodColor} strokeWidth="3" /> 
                           
-                          {/* Gold Accents */}
                           <circle cx="10" cy="-40" r="2" fill={hoodColor} />
                           <circle cx="10" cy="40" r="2" fill={hoodColor} />
 
-                          {/* Energy String (Glowing) */}
                           <line x1="10" y1="-40" x2="10" y2="40" stroke="#bef264" strokeWidth="1" strokeOpacity="0.8" className="animate-pulse" />
                           
                           {isAttacking && (
-                              <g className="animate-archer-reload" style={{ animationDuration: '2s' }}>
-                                  {/* Crystal Slime Arrow */}
+                              <g className="animate-archer-reload" style={{ animationDuration: '2.5s' }}>
                                   <line x1="-15" y1="0" x2="15" y2="0" stroke="#bef264" strokeWidth="2" />
-                                  <path d="M15 0 L 10 -3 L 10 3 Z" fill="#ecfccb" /> {/* Tip */}
-                                  <path d="M-15 0 L -18 -3 L -18 3 Z" fill={hoodColor} /> {/* Fletch */}
-                                  <circle cx="15" cy="0" r="4" fill="#bef264" opacity="0.5" className="animate-ping" /> {/* Sparkle Impact */}
+                                  <path d="M15 0 L 10 -3 L 10 3 Z" fill="#ecfccb" />
+                                  <path d="M-15 0 L -18 -3 L -18 3 Z" fill={hoodColor} />
+                                  <circle cx="15" cy="0" r="4" fill="#bef264" opacity="0.5" className="animate-ping" />
                               </g>
                           )}
                       </g>
@@ -625,11 +545,9 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       if (type === UnitType.PALADIN) {
           const accentColor = isPlayer ? "#fbbf24" : "#dc2626"; 
           const isIdle = !isAttacking && !isMoving && !isDying;
-          
           return (
               <g>
                   <circle cx="50" cy="70" r="35" fill={isPlayer ? "#fef08a" : "#7f1d1d"} opacity="0.2" filter="blur(5px)" className="animate-pulse" />
-
                   <g 
                      transform={isAttacking ? "translate(25, 60) rotate(-45)" : "translate(20, 70) rotate(-10)"} 
                      className={isAttacking ? "animate-sword-swing" : ""} 
@@ -643,21 +561,17 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                           <path d="M-10 -40 Q 20 -60 50 -40" stroke="#fff" strokeWidth="2" fill="none" opacity="0.6" className="animate-sparkle" />
                       )}
                   </g>
-
                   <path d="M40 25 Q 50 15 60 25" stroke={accentColor} strokeWidth="4" fill="none" />
-
                   <g transform="translate(0, 0)">
                       <path d="M25 60 Q 50 70 75 60 L 75 85 Q 50 95 25 85 Z" fill={baseColor} stroke={secondaryColor} strokeWidth="2" />
                       <path d="M50 65 L 50 85 M 40 70 L 60 70" stroke={accentColor} strokeWidth="2" opacity="0.8" />
                   </g>
-
                   <g transform="translate(0, -5)">
                       <path d="M25 45 Q 50 20 75 45 L 75 60 L 25 60 Z" fill={baseColor} stroke={secondaryColor} strokeWidth="2" />
                       <rect x="25" y="45" width="50" height="6" fill="#1e293b" />
                       <circle cx="35" cy="48" r="1.5" fill={isPlayer ? "#38bdf8" : "#ef4444"} className="animate-pulse" />
                       <circle cx="65" cy="48" r="1.5" fill={isPlayer ? "#38bdf8" : "#ef4444"} className="animate-pulse" />
                   </g>
-
                   <g 
                     transform={isAttacking ? "translate(75, 75) rotate(10)" : "translate(75, 70)"}
                     className={isIdle ? "animate-paladin-shield" : ""}
@@ -676,28 +590,18 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       }
 
       if (type === UnitType.MAGE) {
-          // Imperial Mage: Imperial Staff
-          const staffAngle = isAttacking ? 30 : -10;
           return (
               <g>
-                  {/* Imperial Greatstaff */}
                   <g 
                     transform={isAttacking ? "translate(82, 60) rotate(20)" : "translate(82, 65) rotate(-5)"} 
                     className={isAttacking ? "" : "animate-mage-float"} 
                     style={{ transformOrigin: 'center' }}
                   >
-                      {/* Shaft */}
                       <rect x="-2" y="-35" width="4" height="60" fill="#4a2c0f" rx="1" />
-                      
-                      {/* Head Setting */}
                       <path d="M-6 -35 L 6 -35 L 8 -45 L -8 -45 Z" fill={hoodColor} stroke="#b45309" strokeWidth="1" />
                       <path d="M-8 -45 L 0 -55 L 8 -45" fill="none" stroke={hoodColor} strokeWidth="2" />
-                      
-                      {/* Floating Core */}
                       <circle cx="0" cy="-48" r="5" fill="white" className="animate-pulse" filter="blur(1px)" />
                       <circle cx="0" cy="-48" r="3" fill={isPlayer ? "#a855f7" : "#f43f5e"} />
-                      
-                      {/* Orbiting particles */}
                       {isAttacking && (
                           <g className="animate-spin" style={{ transformOrigin: '0px -48px', animationDuration: '1s' }}>
                               <circle cx="10" cy="-48" r="2" fill={hoodColor} />
@@ -705,7 +609,6 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                           </g>
                       )}
                   </g>
-                  
                   {isFirebursting && (
                       <g className="animate-fireburst" pointerEvents="none">
                           <circle cx="50" cy="75" r="45" fill={isPlayer ? "#9333ea" : "#9f1239"} opacity="0.3" filter="blur(5px)" className="animate-pulse" />
@@ -713,7 +616,6 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                       </g>
                   )}
                   {isSummoning && (
-                      // Imperial Summon Circle
                       <g className="animate-summon-circle" style={{ transformOrigin: '50px 95px' }}>
                           <ellipse cx="50" cy="95" rx="35" ry="10" fill="none" stroke={hoodColor} strokeWidth="1.5" />
                           <rect x="35" y="90" width="30" height="10" fill="none" stroke={hoodColor} strokeWidth="0.5" transform="rotate(45 50 95)" />
@@ -902,7 +804,6 @@ export const StickmanRender: React.FC<StickmanProps> = ({
             @keyframes energy-rise { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-40px); opacity: 0; } }
             .animate-energy-rise { animation: energy-rise 0.8s ease-out; }
 
-            /* Updated Sword Swing for Imperial Slime - Closer to body */
             @keyframes sword-swing {
                 0% { transform: translate(68px, 72px) rotate(-15deg); } /* Closer to body */
                 30% { transform: translate(65px, 65px) rotate(-50deg); } /* Windup back */
@@ -975,6 +876,38 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                 100% { transform: translateX(0); }
             }
             .animate-paladin-attack { animation: paladin-attack 0.4s ease-in-out infinite; }
+
+            /* UPDATED ARCHER ANIMATIONS - Start with RECOIL/FIRE for instant feedback */
+            /* Cycle: Fire (0) -> Rest (10) -> Load (30) -> Draw (80) -> Hold (95) -> Fire (100) */
+            
+            @keyframes archer-draw-cycle {
+                0% { transform: translateX(4px) scale(1.05, 0.95); } /* RECOIL/FIRE */
+                10% { transform: translateX(0) scale(1, 1); } /* Rest */
+                30% { transform: translateX(-2px) scale(1, 1); } /* Start Draw */
+                80% { transform: translateX(-6px) scale(0.95, 1.05); } /* Full Draw */
+                95% { transform: translateX(-6px) scale(0.95, 1.05); } /* Hold */
+                100% { transform: translateX(4px) scale(1.05, 0.95); } /* Snap to Fire */
+            }
+            .animate-archer-bow { animation: archer-draw-cycle 2.5s ease-in-out infinite; }
+
+            @keyframes arrow-reload-cycle {
+                0% { opacity: 0; transform: translateX(0); } /* Just Fired - Gone */
+                10% { opacity: 0; transform: translateX(0); }
+                15% { opacity: 1; transform: translateX(0); } /* Reappear */
+                80% { opacity: 1; transform: translateX(-8px); } /* Drawn Back */
+                95% { opacity: 1; transform: translateX(-8px); } /* Hold */
+                100% { opacity: 0; transform: translateX(0); } /* Vanish (Fire) */
+            }
+            .animate-archer-reload { animation: arrow-reload-cycle 2.5s linear infinite; }
+
+            @keyframes archer-body-sway-cycle {
+                0% { transform: rotate(5deg); } /* Recoil Forward */
+                10% { transform: rotate(0deg); }
+                80% { transform: rotate(-10deg); } /* Lean Back */
+                95% { transform: rotate(-10deg); }
+                100% { transform: rotate(5deg); }
+            }
+            .animate-archer-body { transform-origin: bottom center; animation: archer-body-sway-cycle 2.5s ease-in-out infinite; }
           `}</style>
           
           <linearGradient id="lampBeam" x1="0" y1="0" x2="0" y2="1">
