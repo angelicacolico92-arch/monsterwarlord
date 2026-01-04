@@ -28,7 +28,7 @@ export const UnitCard: React.FC<UnitCardProps> = ({ unit, count, canAfford, onRe
         <div className={`
             h-12 w-12 sm:h-16 sm:w-16 flex-shrink-0 rounded border-2 
             ${isRed ? 'bg-gradient-to-br from-red-300 to-red-500' : 'bg-gradient-to-br from-blue-200 to-blue-400'}
-            ${canAfford ? 'border-yellow-500' : 'border-gray-700'} 
+            ${canAfford ? 'border-cyan-500' : 'border-gray-700'} 
             flex items-center justify-center overflow-hidden
         `}>
              <StickmanRender type={unit.type} scale={0.7} color="#000" isPlayer={!isRed} />
@@ -37,7 +37,7 @@ export const UnitCard: React.FC<UnitCardProps> = ({ unit, count, canAfford, onRe
         {/* Info */}
         <div className="flex-1 min-w-0">
             <div className="flex justify-between items-start">
-                <h3 className="text-xs sm:text-sm font-bold font-epic text-yellow-100 truncate">{unit.name}</h3>
+                <h3 className="text-xs sm:text-sm font-bold font-epic text-cyan-100 truncate">{unit.name}</h3>
                 <span className="text-[10px] sm:text-xs font-mono bg-black/40 px-1 rounded text-white">{count}</span>
             </div>
             
@@ -51,10 +51,10 @@ export const UnitCard: React.FC<UnitCardProps> = ({ unit, count, canAfford, onRe
         
         {/* Cost Button Area */}
         <div className="flex flex-col items-end justify-center pl-2 border-l border-white/10">
-            <div className={`text-xs sm:text-sm font-bold ${canAfford ? 'text-yellow-400' : 'text-gray-500'}`}>
+            <div className={`text-xs sm:text-sm font-bold ${canAfford ? 'text-cyan-400' : 'text-gray-500'}`}>
                 {unit.cost} 
             </div>
-            <div className="text-[8px] sm:text-[10px] text-gray-400 uppercase tracking-wider">Gold</div>
+            <div className="text-[8px] sm:text-[10px] text-gray-400 uppercase tracking-wider">Crystals</div>
         </div>
       </div>
     </div>

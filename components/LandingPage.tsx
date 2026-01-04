@@ -108,7 +108,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartHost, onStartCl
                                  </div>
                                  <div>
                                      <div className={`text-sm font-bold ${surgeMode ? 'text-purple-300' : 'text-stone-400'}`}>SLIME SURGE MODE</div>
-                                     <div className="text-[10px] text-stone-500">Start with 2,000 Gold</div>
+                                     <div className="text-[10px] text-stone-500">Start with 2,000 Crystals</div>
                                  </div>
                              </div>
                              <div className={`w-10 h-5 rounded-full relative transition-colors ${surgeMode ? 'bg-purple-500' : 'bg-stone-600'}`}>

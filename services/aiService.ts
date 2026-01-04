@@ -31,7 +31,7 @@ export const generateEnemyArmy = async (playerPower: number): Promise<EnemyArmy>
     - description: A one-sentence flavor text describing them.
     - units: A map of unit types to counts.
     - difficultyRating: A number 1-10.
-    - reward: Gold reward amount (generous).
+    - reward: Crystal reward amount (generous).
   `;
 
   try {

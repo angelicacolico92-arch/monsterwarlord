@@ -288,15 +288,18 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                           <path d="M-5 5 Q 0 -5 5 5" stroke="#94a3b8" strokeWidth="3" fill="none" />
                       </g>
                   )}
-                  {/* Gold Sack */}
+                  {/* Crystal Shard (was Gold Sack) */}
                   {(hasGold || isDepositing) && (
-                      <circle cx="20" cy="80" r="8" fill="#fbbf24" stroke="#b45309" />
+                      <g transform="translate(20, 80)">
+                          <path d="M0 -8 L 6 -2 L 0 8 L -6 -2 Z" fill="#22d3ee" stroke="#0891b2" strokeWidth="1" /> {/* Cyan Crystal */}
+                          <path d="M0 -8 L 0 8" stroke="#a5f3fc" strokeWidth="0.5" opacity="0.5" />
+                      </g>
                   )}
-                  {/* Sparkles */}
+                  {/* Cyan Sparkles */}
                   {(hasGold || isMining) && (
                      <g>
-                       <path d="M10 20 L 15 10 L 20 20 L 30 25 L 20 30 L 15 40 L 10 30 L 0 25 Z" fill="#fef08a" className="animate-sparkle" />
-                       <path d="M70 10 L 73 0 L 76 10 L 86 13 L 76 16 L 73 26 L 70 16 L 60 13 Z" fill="#fef08a" className="animate-sparkle" style={{animationDelay: '0.7s'}} />
+                       <path d="M10 20 L 15 10 L 20 20 L 30 25 L 20 30 L 15 40 L 10 30 L 0 25 Z" fill="#a5f3fc" className="animate-sparkle" />
+                       <path d="M70 10 L 73 0 L 76 10 L 86 13 L 76 16 L 73 26 L 70 16 L 60 13 Z" fill="#a5f3fc" className="animate-sparkle" style={{animationDelay: '0.7s'}} />
                      </g>
                   )}
               </g>

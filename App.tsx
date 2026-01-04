@@ -23,7 +23,7 @@ import { MapSelection } from './components/MapSelection';
 import { BattlefieldBackground } from './components/BattlefieldBackground';
 import { AudioService } from './services/audioService';
 import { mpService } from './services/multiplayerService';
-import { Coins, Shield, Swords, CornerDownLeft, Users, Settings } from 'lucide-react';
+import { Gem, Shield, Swords, CornerDownLeft, Users, Settings } from 'lucide-react';
 import { SettingsModal } from './components/SettingsModal';
 
 const CrystalRock: React.FC<{ x: number; isFlipped?: boolean }> = ({ x, isFlipped }) => (
@@ -35,9 +35,9 @@ const CrystalRock: React.FC<{ x: number; isFlipped?: boolean }> = ({ x, isFlippe
         <svg viewBox="0 0 100 100" className="overflow-visible">
            <defs>
              <linearGradient id="miniCrystalGrad" x1="0%" y1="100%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#4c1d95" /> {/* Deep Purple Base */}
-                <stop offset="60%" stopColor="#7c3aed" /> {/* Mid Violet */}
-                <stop offset="100%" stopColor="#e9d5ff" stopOpacity="0.9" /> {/* Highlight */}
+                <stop offset="0%" stopColor="#0891b2" /> {/* Cyan Dark */}
+                <stop offset="60%" stopColor="#06b6d4" /> {/* Cyan Mid */}
+                <stop offset="100%" stopColor="#cffafe" stopOpacity="0.9" /> {/* Highlight */}
              </linearGradient>
              <filter id="miniGlow" x="-50%" y="-50%" width="200%" height="200%">
                <feGaussianBlur stdDeviation="2" result="coloredBlur" />
@@ -49,26 +49,26 @@ const CrystalRock: React.FC<{ x: number; isFlipped?: boolean }> = ({ x, isFlippe
            </defs>
 
            {/* Small Aura */}
-           <ellipse cx="50" cy="90" rx="25" ry="6" fill="#7c3aed" opacity="0.3" filter="blur(4px)" className="animate-pulse" />
+           <ellipse cx="50" cy="90" rx="25" ry="6" fill="#06b6d4" opacity="0.3" filter="blur(4px)" className="animate-pulse" />
 
            {/* Crystal Cluster - Simplified for Mobile/Mini */}
            <g filter="url(#miniGlow)">
                {/* Left Shard */}
-               <path d="M30 90 L 20 60 L 35 45 L 45 85 Z" fill="url(#miniCrystalGrad)" stroke="#e9d5ff" strokeWidth="0.5" />
+               <path d="M30 90 L 20 60 L 35 45 L 45 85 Z" fill="url(#miniCrystalGrad)" stroke="#cffafe" strokeWidth="0.5" />
                
                {/* Right Shard */}
-               <path d="M70 90 L 80 65 L 65 50 L 55 85 Z" fill="url(#miniCrystalGrad)" stroke="#e9d5ff" strokeWidth="0.5" />
+               <path d="M70 90 L 80 65 L 65 50 L 55 85 Z" fill="url(#miniCrystalGrad)" stroke="#cffafe" strokeWidth="0.5" />
 
                {/* Center Main Shard */}
-               <path d="M50 95 L 35 55 L 50 20 L 65 55 Z" fill="url(#miniCrystalGrad)" stroke="#e9d5ff" strokeWidth="1" className="animate-idle-breathe" style={{ transformOrigin: '50% 95px' }} />
+               <path d="M50 95 L 35 55 L 50 20 L 65 55 Z" fill="url(#miniCrystalGrad)" stroke="#cffafe" strokeWidth="1" className="animate-idle-breathe" style={{ transformOrigin: '50% 95px' }} />
                
                {/* Facet Detail on Main Shard */}
-               <path d="M50 20 L 50 95" stroke="#e9d5ff" strokeWidth="0.5" opacity="0.5" />
+               <path d="M50 20 L 50 95" stroke="#cffafe" strokeWidth="0.5" opacity="0.5" />
            </g>
 
            {/* Subtle Sparkles */}
            <circle cx="50" cy="20" r="1" fill="white" className="animate-pulse" />
-           <path d="M35 45 L 37 42 L 39 45 L 37 48 Z" fill="#e9d5ff" className="animate-bounce" style={{ animationDuration: '3s' }} opacity="0.8" />
+           <path d="M35 45 L 37 42 L 39 45 L 37 48 Z" fill="#cffafe" className="animate-bounce" style={{ animationDuration: '3s' }} opacity="0.8" />
         </svg>
      </div>
   </div>
@@ -1089,7 +1089,7 @@ export const App: React.FC = () => {
 
       {/* TOP RIGHT: Resources & Population */}
       <div className="fixed top-4 right-4 z-40 bg-black/70 px-4 py-2 rounded-full border border-white/10 flex gap-4 items-center">
-         <div className="flex items-center gap-2"><Coins className="text-yellow-400" size={18} /><span className="text-yellow-100 font-bold">{Math.floor(currentGold)}</span></div>
+         <div className="flex items-center gap-2"><Gem className="text-cyan-400" size={18} /><span className="text-cyan-100 font-bold">{Math.floor(currentGold)}</span></div>
          <div className="flex items-center gap-2"><Users className={myUnitsCount >= MAX_UNITS ? "text-red-500" : "text-stone-400"} size={18} /><span className={myUnitsCount >= MAX_UNITS ? "text-red-400 font-bold" : "text-stone-100 font-bold"}>{myUnitsCount}/{MAX_UNITS}</span></div>
       </div>
 
@@ -1118,7 +1118,7 @@ export const App: React.FC = () => {
                   <div className="scale-50 h-8 w-8 flex items-center justify-center">
                     <StickmanRender type={u.type} isPlayer={amIHost} />
                   </div>
-                  <span className="text-[10px] text-yellow-500 font-bold">{u.cost}</span>
+                  <span className="text-[10px] text-cyan-400 font-bold">{u.cost}</span>
               </button>
           ))}
       </div>
