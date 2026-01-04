@@ -57,17 +57,17 @@ export const UNIT_CONFIGS: Record<UnitType, UnitConfig> = {
   },
   [UnitType.ARCHER]: {
     type: UnitType.ARCHER,
-    name: 'Archer Warrior',
+    name: 'Imperial Archer',
     cost: 140,
     stats: { hp: 250, maxHp: 250, damage: 85, range: ATTACK_RANGE_RANGED, speed: 3, attackSpeed: 2500 },
-    description: 'Ranged warrior. High damage, prioritizes front targets.'
+    description: 'Elite ranged support. High accuracy.'
   },
   [UnitType.MAGE]: {
     type: UnitType.MAGE,
-    name: 'Mage Slime',
+    name: 'Imperial Mage',
     cost: 140,
     stats: { hp: 170, maxHp: 170, damage: 100, range: ATTACK_RANGE_MAGIC, speed: 2, attackSpeed: 3000 },
-    description: 'Magic damage. Summons minions every 10s'
+    description: 'Royal caster. Summons minions and controls the battlefield.'
   },
   [UnitType.BOSS]: {
     type: UnitType.BOSS,
