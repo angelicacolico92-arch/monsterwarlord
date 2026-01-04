@@ -94,10 +94,10 @@ export const StickmanRender: React.FC<StickmanProps> = ({
           secondaryColor = isPlayer ? "#94a3b8" : "#1e293b"; 
           break;
       case UnitType.MAGE:
-          // Imperial Mage: Deep Purple / Royal Blue
-          baseColor = isPlayer ? "#7e22ce" : "#831843"; // Purple vs Pink/Red
+          // Imperial Mage: Royal Purple robes, gold trim
+          baseColor = isPlayer ? "#7e22ce" : "#831843"; 
           secondaryColor = isPlayer ? "#581c87" : "#881337";
-          hoodColor = isPlayer ? "#3b82f6" : "#fb7185"; // Blue Glow vs Pink Glow
+          hoodColor = "#fbbf24"; // Gold Accents
           break;
       case UnitType.SMALL:
           baseColor = isPlayer ? "#8b5cf6" : "#7c3aed"; 
@@ -131,36 +131,62 @@ export const StickmanRender: React.FC<StickmanProps> = ({
               </g>
           );
       }
+      // Imperial Mage Cape/Mantle
+      if (type === UnitType.MAGE) {
+          return (
+              <g>
+                  {/* Arcane Halo */}
+                  <circle cx="50" cy="50" r="35" fill="none" stroke={hoodColor} strokeWidth="1" opacity="0.4" strokeDasharray="4 4" className="animate-spin-slow" />
+                  
+                  {/* Heavy Royal Cape */}
+                  <path 
+                    d="M20 50 Q 10 90 15 98 L 85 98 Q 90 90 80 50" 
+                    fill={secondaryColor} 
+                    stroke={hoodColor}
+                    strokeWidth="0.5"
+                  />
+                  <path d="M20 50 L 80 50" stroke={hoodColor} strokeWidth="1" />
+              </g>
+          );
+      }
       return null;
   };
 
   const renderSlimeBody = () => {
     if (type === UnitType.MAGE) {
-        // Imperial Mage Body (Floating, Taller)
+        // Imperial Mage Body (Robed)
         return (
             <g>
                 <defs>
                     <radialGradient id={`mageGlow-${isPlayer ? 'p' : 'e'}-${type}`} cx="0.5" cy="0.5" r="0.5">
-                        <stop offset="0%" stopColor={hoodColor} stopOpacity="0.6" />
-                        <stop offset="60%" stopColor={baseColor} stopOpacity="0.8" />
-                        <stop offset="100%" stopColor={secondaryColor} stopOpacity="0.9" />
+                        <stop offset="0%" stopColor={isPlayer ? "#a855f7" : "#be123c"} stopOpacity="0.8" />
+                        <stop offset="100%" stopColor={baseColor} stopOpacity="1" />
                     </radialGradient>
                 </defs>
-                {/* Main Body - Slightly pear shaped/floating */}
+                
+                {/* Main Body */}
                 <path 
-                    d="M20 90 Q 15 50 30 40 Q 50 20 70 40 Q 85 50 80 90 Q 50 100 20 90 Z" 
+                    d="M20 95 Q 15 50 30 40 Q 50 20 70 40 Q 85 50 80 95 L 20 95 Z" 
                     fill={`url(#mageGlow-${isPlayer ? 'p' : 'e'}-${type})`} 
                     stroke={secondaryColor} 
                     strokeWidth="2" 
                 />
+
+                {/* Imperial Cowl/Hood */}
+                <path 
+                    d="M25 55 Q 50 25 75 55 L 75 65 Q 50 45 25 65 Z" 
+                    fill={baseColor} 
+                    stroke={hoodColor} 
+                    strokeWidth="1.5" 
+                />
+
+                {/* Ceremonial Stole (Sash down front) */}
+                <path d="M42 55 L 40 90 L 45 95 L 50 90 L 48 55" fill={isPlayer ? "#4c1d95" : "#881337"} />
+                <path d="M52 55 L 50 90 L 55 95 L 60 90 L 58 55" fill={isPlayer ? "#4c1d95" : "#881337"} />
                 
-                {/* Floating Crystal Core */}
-                <circle cx="50" cy="60" r="10" fill={hoodColor} opacity="0.4" className="animate-pulse" filter="blur(2px)" />
-                <path d="M50 50 L 56 60 L 50 70 L 44 60 Z" fill="#fff" opacity="0.8" className="animate-spin-slow" style={{ transformOrigin: '50px 60px' }} />
-                
-                {/* Runes on body */}
-                <circle cx="30" cy="70" r="1" fill={hoodColor} className="animate-pulse" />
-                <circle cx="70" cy="70" r="1" fill={hoodColor} className="animate-pulse" style={{ animationDelay: '0.5s' }} />
+                {/* Runes on Stole */}
+                <path d="M45 65 L 45 68 M 43 66 L 47 66" stroke={hoodColor} strokeWidth="1" opacity="0.8" />
+                <path d="M55 75 L 55 78 M 53 76 L 57 76" stroke={hoodColor} strokeWidth="1" opacity="0.8" />
             </g>
         );
     }
@@ -185,12 +211,25 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                     strokeWidth="2" 
                 />
 
-                {/* Light Chest Guard */}
-                <path d="M25 80 L 28 55 Q 50 50 72 55 L 75 80" fill="none" stroke="#e5e7eb" strokeWidth="6" opacity="0.9" />
-                <path d="M25 80 L 28 55 Q 50 50 72 55 L 75 80" fill="none" stroke={hoodColor} strokeWidth="1" strokeDasharray="4 2" />
+                {/* Imperial Chest Guard (Redesigned - Solid Armor Plate) */}
+                <path 
+                    d="M25 75 Q 25 55 35 50 Q 50 45 65 50 Q 75 55 75 75 Q 50 85 25 75 Z" 
+                    fill="#e2e8f0" 
+                    stroke="#475569" 
+                    strokeWidth="1" 
+                />
+                {/* Gold Trim */}
+                <path 
+                    d="M25 75 Q 25 55 35 50 Q 50 45 65 50 Q 75 55 75 75" 
+                    fill="none" 
+                    stroke={hoodColor} 
+                    strokeWidth="2" 
+                />
+                {/* Central Diamond/Emblem */}
+                <path d="M50 50 L 56 60 L 50 70 L 44 60 Z" fill={hoodColor} stroke="#b45309" strokeWidth="0.5" />
 
-                {/* Sash/Belt */}
-                <path d="M20 80 Q 50 85 80 75" stroke={hoodColor} strokeWidth="3" fill="none" />
+                {/* Sash/Belt under armor */}
+                <path d="M20 80 Q 50 85 80 75" stroke={secondaryColor} strokeWidth="3" fill="none" opacity="0.8" />
 
                 {/* Arm Bracers (Implied on sides) */}
                 <rect x="75" y="60" width="4" height="12" rx="1" fill="#4b5563" transform="rotate(-5 77 66)" />
@@ -374,14 +413,17 @@ export const StickmanRender: React.FC<StickmanProps> = ({
      }
 
      if (type === UnitType.MAGE) {
-         // Glowing Round Eyes (Wise)
+         // Glowing Round Eyes (Wise) - Partially obscured by hood
          return (
              <g>
-                 <circle cx="35" cy="58" r="3" fill="#fff" />
-                 <circle cx="35" cy="58" r="5" fill={hoodColor} opacity="0.3" filter="blur(1px)" className="animate-pulse" />
+                 <circle cx="38" cy="62" r="3" fill="#ecfeff" />
+                 <circle cx="38" cy="62" r="5" fill="#a5f3fc" opacity="0.3" filter="blur(1px)" className="animate-pulse" />
                  
-                 <circle cx="65" cy="58" r="3" fill="#fff" />
-                 <circle cx="65" cy="58" r="5" fill={hoodColor} opacity="0.3" filter="blur(1px)" className="animate-pulse" />
+                 <circle cx="62" cy="62" r="3" fill="#ecfeff" />
+                 <circle cx="62" cy="62" r="5" fill="#a5f3fc" opacity="0.3" filter="blur(1px)" className="animate-pulse" />
+                 
+                 {/* Hood Shadow over eyes */}
+                 <path d="M25 55 Q 50 65 75 55" fill="none" stroke="black" strokeWidth="2" opacity="0.2" filter="blur(2px)" />
              </g>
          );
      }
@@ -421,16 +463,24 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                           )}
                       </g>
                   </g>
+                  
+                  {/* Pickaxe: Anchored more naturally to prevent 'floating' */}
                   <g 
-                    transform={isMining ? "translate(75, 75)" : "translate(75, 65)"} 
+                    transform={isMining ? "translate(72, 70)" : "translate(72, 60)"} 
                     className={isMining ? "animate-mining-swing" : (isMoving ? "animate-slime-bounce" : "")}
-                    style={{ transformOrigin: isMining ? '0 0' : 'center' }}
+                    style={{ transformOrigin: '0 0' }}
                   >
-                      <path d="M0 0 L 0 -25" stroke="#78350f" strokeWidth="4" strokeLinecap="round" />
-                      <path d="M-12 -25 Q 0 -30 12 -25 L 14 -22 L 0 -24 L -14 -22 Z" fill="#94a3b8" stroke="#475569" strokeWidth="1" />
-                      <path d="M-14 -22 L -18 -18 L -12 -20 Z" fill="#cbd5e1" />
-                      <path d="M14 -22 L 18 -18 L 12 -20 Z" fill="#cbd5e1" />
+                      {/* Handle */}
+                      <path d="M0 0 L 0 -30" stroke="#78350f" strokeWidth="4" strokeLinecap="round" />
+                      
+                      {/* Metal Head */}
+                      <path d="M-12 -30 Q 0 -35 12 -30 L 14 -27 L 0 -29 L -14 -27 Z" fill="#94a3b8" stroke="#475569" strokeWidth="1" />
+                      
+                      {/* Tips */}
+                      <path d="M-14 -27 L -18 -23 L -12 -25 Z" fill="#cbd5e1" />
+                      <path d="M14 -27 L 18 -23 L 12 -25 Z" fill="#cbd5e1" />
                   </g>
+
                   {(hasGold || isDepositing) && (
                       <g transform="translate(50, 25)" className="animate-bounce">
                           <path d="M0 -15 L 10 -5 L 0 5 L -10 -5 Z" fill="#22d3ee" stroke="#0891b2" strokeWidth="1.5" />
@@ -579,20 +629,39 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       }
 
       if (type === UnitType.MAGE) {
-          // Imperial Mage: Floating Rune Shard instead of staff
+          // Imperial Mage: Imperial Staff
+          const staffAngle = isAttacking ? 30 : -10;
           return (
               <g>
-                  {/* Floating Shard Weapon */}
-                  <g transform={isAttacking ? "translate(80, 50)" : "translate(80, 50)"} className={isAttacking ? "animate-pulse" : "animate-bounce"} style={{ animationDuration: '3s' }}>
-                      <path d="M0 -20 L 5 0 L 0 20 L -5 0 Z" fill={hoodColor} stroke="white" strokeWidth="1" opacity="0.9" />
-                      <path d="M0 -25 L 0 25" stroke="white" strokeWidth="0.5" opacity="0.5" />
-                      {/* Orbiting particles around shard */}
-                      <circle cx="10" cy="0" r="1" fill="white" className="animate-spin" style={{ transformOrigin: '-10px 0' }} />
+                  {/* Imperial Greatstaff */}
+                  <g 
+                    transform={isAttacking ? "translate(82, 60) rotate(20)" : "translate(82, 65) rotate(-5)"} 
+                    className={isAttacking ? "" : "animate-mage-float"} 
+                    style={{ transformOrigin: 'center' }}
+                  >
+                      {/* Shaft */}
+                      <rect x="-2" y="-35" width="4" height="60" fill="#4a2c0f" rx="1" />
+                      
+                      {/* Head Setting */}
+                      <path d="M-6 -35 L 6 -35 L 8 -45 L -8 -45 Z" fill={hoodColor} stroke="#b45309" strokeWidth="1" />
+                      <path d="M-8 -45 L 0 -55 L 8 -45" fill="none" stroke={hoodColor} strokeWidth="2" />
+                      
+                      {/* Floating Core */}
+                      <circle cx="0" cy="-48" r="5" fill="white" className="animate-pulse" filter="blur(1px)" />
+                      <circle cx="0" cy="-48" r="3" fill={isPlayer ? "#a855f7" : "#f43f5e"} />
+                      
+                      {/* Orbiting particles */}
+                      {isAttacking && (
+                          <g className="animate-spin" style={{ transformOrigin: '0px -48px', animationDuration: '1s' }}>
+                              <circle cx="10" cy="-48" r="2" fill={hoodColor} />
+                              <circle cx="-10" cy="-48" r="2" fill={hoodColor} />
+                          </g>
+                      )}
                   </g>
                   
                   {isFirebursting && (
                       <g className="animate-fireburst" pointerEvents="none">
-                          <circle cx="50" cy="75" r="45" fill={hoodColor} opacity="0.3" filter="blur(5px)" className="animate-pulse" />
+                          <circle cx="50" cy="75" r="45" fill={isPlayer ? "#9333ea" : "#9f1239"} opacity="0.3" filter="blur(5px)" className="animate-pulse" />
                           <path d="M50 75 L 60 40 L 40 40 Z" fill={hoodColor} opacity="0.5" className="animate-ping" />
                       </g>
                   )}
@@ -668,7 +737,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                     <animate attributeName="opacity" values="1;0" dur="0.8s" repeatCount="indefinite" />
                     <animate attributeName="stroke-width" values="3;0" dur="0.8s" repeatCount="indefinite" />
                 </circle>
-                <path d="M100 35 L105 45 L115 45 L108 52 L110 62 L100 55 L90 62 L92 52 L85 45 L95 45 Z" fill="#e9d5ff" opacity="0.8">
+                <path d="M100 35 L105 45 L115 45 L108 52 L110 62 L100 55 L90 62 L92 52 L85 45 L95 45 Z" fill={isPlayer ? "#e9d5ff" : "#fda4af"} opacity="0.8">
                      <animateTransform attributeName="transform" type="scale" values="0.8;1.2;0.8" dur="0.8s" repeatCount="indefinite" additive="sum" />
                      <animateTransform attributeName="transform" type="rotate" from="0 100 50" to="360 100 50" dur="3s" repeatCount="indefinite" additive="sum" />
                 </path>
@@ -821,11 +890,11 @@ export const StickmanRender: React.FC<StickmanProps> = ({
             .animate-ember { animation: ember-fly 0.8s ease-out forwards; transform-origin: 50px 90px; }
 
             @keyframes mining-swing {
-                0% { transform: translate(75px, 65px) rotate(0deg); }
-                30% { transform: translate(75px, 60px) rotate(-45deg); } 
-                60% { transform: translate(75px, 75px) rotate(60deg); } 
-                70% { transform: translate(75px, 70px) rotate(55deg); } 
-                100% { transform: translate(75px, 65px) rotate(0deg); }
+                0% { transform: translate(72px, 70px) rotate(0deg); }
+                30% { transform: translate(72px, 65px) rotate(-45deg); } 
+                60% { transform: translate(72px, 80px) rotate(60deg); } 
+                70% { transform: translate(72px, 75px) rotate(55deg); } 
+                100% { transform: translate(72px, 70px) rotate(0deg); }
             }
             .animate-mining-swing { animation: mining-swing 0.8s ease-in-out infinite; }
 
