@@ -65,9 +65,9 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       else animClass = "animate-idle-breathe";
   }
 
-  // Animation overrides for Archer speed (0.7s)
+  // Animation overrides for Archer speed (Sync to ~2s to match attack rate better)
   const animStyle = type === UnitType.ARCHER && isAttacking 
-      ? { animationDuration: '0.7s', animationDelay: isDying ? '0s' : `${animationDelay}s` } 
+      ? { animationDuration: '2s', animationDelay: isDying ? '0s' : `${animationDelay}s` } 
       : { animationDelay: isDying ? '0s' : `${animationDelay}s` };
   
   // -- COLORS --
@@ -441,19 +441,17 @@ export const StickmanRender: React.FC<StickmanProps> = ({
      
      if (type === UnitType.ARCHER) {
          // Imperial Archer: Clear, Focused Eyes (Fully Visible under Open Helmet)
-         // Face Center is roughly 50, 60. Helmet frames it.
+         // Less scary version: Rounder eyes, no angry eyebrows.
          return (
              <g>
                  {/* Eyes */}
                  <ellipse cx="38" cy="58" rx="3.5" ry="4.5" fill="white" />
-                 <ellipse cx="38" cy="58" rx="1.5" ry="2.5" fill="black" />
+                 <ellipse cx="38" cy="58" rx="2" ry="3" fill="black" /> {/* Larger pupil for cuteness */}
+                 <circle cx="39" cy="57" r="1" fill="white" opacity="0.8" /> {/* Highlight */}
                  
                  <ellipse cx="62" cy="58" rx="3.5" ry="4.5" fill="white" />
-                 <ellipse cx="62" cy="58" rx="1.5" ry="2.5" fill="black" />
-                 
-                 {/* Serious Eyebrows */}
-                 <path d="M32 52 L 44 55" stroke="#1f2937" strokeWidth="1.5" strokeLinecap="round" />
-                 <path d="M68 52 L 56 55" stroke="#1f2937" strokeWidth="1.5" strokeLinecap="round" />
+                 <ellipse cx="62" cy="58" rx="2" ry="3" fill="black" />
+                 <circle cx="63" cy="57" r="1" fill="white" opacity="0.8" />
              </g>
          );
      }
@@ -592,7 +590,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                   <g transform="translate(70, 70)">
                       <g 
                         className={isAttacking ? "animate-archer-bow" : ""} 
-                        style={{ transformOrigin: 'center', animationDuration: '0.7s' }}
+                        style={{ transformOrigin: 'center', animationDuration: '2s' }}
                       >
                           {/* Hand */}
                           <circle cx="0" cy="0" r="3" fill={baseColor} />
@@ -610,7 +608,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                           <line x1="10" y1="-40" x2="10" y2="40" stroke="#bef264" strokeWidth="1" strokeOpacity="0.8" className="animate-pulse" />
                           
                           {isAttacking && (
-                              <g className="animate-archer-reload" style={{ animationDuration: '0.7s' }}>
+                              <g className="animate-archer-reload" style={{ animationDuration: '2s' }}>
                                   {/* Crystal Slime Arrow */}
                                   <line x1="-15" y1="0" x2="15" y2="0" stroke="#bef264" strokeWidth="2" />
                                   <path d="M15 0 L 10 -3 L 10 3 Z" fill="#ecfccb" /> {/* Tip */}

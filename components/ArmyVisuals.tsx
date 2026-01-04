@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { GameUnit, GameProjectile, UnitType, GameCommand } from '../types';
 import { StickmanRender } from './StickmanRender';
@@ -60,13 +61,41 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({
           const moveDir = p.targetX > p.x ? 1 : -1;
           const facingScale = moveDir * (isMirrored ? -1 : 1);
           
+          // Arc Calculation
+          // Base height: -20px. Max arc height depends on distance.
+          let yOffset = -20;
+          let rotation = 0;
+
+          if (p.visualType === 'ARROW') {
+              const totalDist = Math.abs(p.targetX - p.startX);
+              const currentDist = Math.abs(p.x - p.startX);
+              
+              if (totalDist > 0) {
+                  const progress = Math.min(1, Math.max(0, currentDist / totalDist));
+                  
+                  // Parabolic height: 4 * h * x * (1 - x)
+                  // Max height proportional to total distance (e.g., 20% of screen width distance -> ~100px height)
+                  const maxArcHeight = Math.min(150, totalDist * 8); 
+                  const arcY = 4 * maxArcHeight * progress * (1 - progress);
+                  
+                  yOffset = -20 - arcY;
+
+                  // Calculate rotation based on derivative: 4h(1 - 2x)
+                  // Slope is height change per progress unit.
+                  // This is a rough visual rotation.
+                  const slope = 4 * maxArcHeight * (1 - 2 * progress);
+                  // Clamp rotation to avoid spinning wildy
+                  rotation = -Math.atan(slope / 50) * (180 / Math.PI) * (isMirrored ? -1 : 1) * (moveDir);
+              }
+          }
+          
           return (
              <div 
                key={p.id}
                className="absolute bottom-16 w-10 h-3 transition-transform duration-100 will-change-transform z-[110]"
                style={{
                    left: `${visualX}%`,
-                   transform: `translate3d(-50%, -20px, 0) scaleX(${facingScale})`,
+                   transform: `translate3d(-50%, ${yOffset}px, 0) scaleX(${facingScale}) rotate(${rotation}deg)`,
                }}
              >
                  {/* High-Contrast Imperial Slime Arrow */}
@@ -95,7 +124,6 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({
 
         const isPlayer = unit.side === 'player';
         const command = isPlayer ? p1Command : p2Command;
-        const isRetreating = command === GameCommand.RETREAT;
         
         const isDying = unit.state === 'DYING';
         const isMining = unit.state === 'MINING' || unit.state === 'ATTACKING'; 

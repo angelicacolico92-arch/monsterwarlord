@@ -735,6 +735,7 @@ export const App: React.FC = () => {
                             const proj: GameProjectile = {
                                 id: `proj-${unit.id}-${now}`,
                                 x: unit.x,
+                                startX: unit.x, // Store startX for Arc Calculation
                                 targetX: primaryTarget.x,
                                 targetId: primaryTarget.id,
                                 damage: currentDamage,
@@ -766,6 +767,7 @@ export const App: React.FC = () => {
                              const proj: GameProjectile = {
                                 id: `proj-${unit.id}-${now}`,
                                 x: unit.x,
+                                startX: unit.x, // Store startX for Arc
                                 targetX: targetStatueX,
                                 damage: currentDamage,
                                 speed: 25,

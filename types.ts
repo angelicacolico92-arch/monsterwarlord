@@ -62,6 +62,7 @@ export interface GameUnit {
 export interface GameProjectile {
   id: string;
   x: number;
+  startX: number; // Added for Arc calculation
   targetX: number;
   targetId?: string; // If the target unit moves, we might still want to hit them or hit position? For now, simple position checking.
   damage: number;
