@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import { UnitType } from '../types';
 
@@ -131,12 +132,30 @@ export const StickmanRender: React.FC<StickmanProps> = ({
               </g>
           );
       }
-      // Imperial Mage Cape/Mantle
+      // Imperial Mage Cape/Mantle with Enhanced Purple Aura
       if (type === UnitType.MAGE) {
+          const auraPrimary = isPlayer ? "#a855f7" : "#c026d3"; // Purple vs Fuchsia
+          const auraSecondary = isPlayer ? "#7e22ce" : "#be185d";
+
           return (
               <g>
-                  {/* Arcane Halo */}
-                  <circle cx="50" cy="50" r="35" fill="none" stroke={hoodColor} strokeWidth="1" opacity="0.4" strokeDasharray="4 4" className="animate-spin-slow" />
+                  {/* Arcane Aura */}
+                  <defs>
+                      <radialGradient id={`aura-${isPlayer ? 'p' : 'e'}`} cx="0.5" cy="0.5" r="0.65">
+                          <stop offset="0%" stopColor={auraPrimary} stopOpacity="0.5" />
+                          <stop offset="60%" stopColor={auraSecondary} stopOpacity="0.1" />
+                          <stop offset="100%" stopColor="transparent" stopOpacity="0" />
+                      </radialGradient>
+                  </defs>
+                  
+                  {/* Rotating Rune Rings (The "Aura" effect) */}
+                  <g className="animate-spin-slow" style={{ transformOrigin: '50px 65px', opacity: 0.6 }}>
+                      <circle cx="50" cy="65" r="42" stroke={auraPrimary} strokeWidth="1" strokeDasharray="10 20" fill="none" />
+                      <circle cx="50" cy="65" r="35" stroke={auraPrimary} strokeWidth="0.5" strokeDasharray="5 5" fill="none" opacity="0.5" />
+                  </g>
+
+                  {/* Pulsing Aura Field */}
+                  <circle cx="50" cy="65" r="50" fill={`url(#aura-${isPlayer ? 'p' : 'e'})`} className="animate-pulse" style={{ animationDuration: '3s' }} />
                   
                   {/* Heavy Royal Cape */}
                   <path 
@@ -401,13 +420,23 @@ export const StickmanRender: React.FC<StickmanProps> = ({
      }
      
      if (type === UnitType.ARCHER) {
-         // Sharp Oval Eyes (Focused)
+         // Imperial Archer: Imperial Helm Design
          return (
-             <g transform="translate(0, 2)">
-                 <ellipse cx="40" cy="60" rx="2.5" ry="3.5" fill="white" />
-                 <ellipse cx="60" cy="60" rx="2.5" ry="3.5" fill="white" />
-                 <path d="M36 55 L 44 57" stroke="white" strokeWidth="1.5" strokeLinecap="round" opacity="0.8" />
-                 <path d="M64 55 L 56 57" stroke="white" strokeWidth="1.5" strokeLinecap="round" opacity="0.8" />
+             <g>
+                 {/* Imperial Helmet Brow & Nose Guard */}
+                 <path d="M22 50 Q 50 38 78 50" fill="none" stroke={hoodColor} strokeWidth="2.5" strokeLinecap="round" />
+                 <path d="M50 44 L 50 62" stroke={hoodColor} strokeWidth="2" strokeLinecap="round" />
+                 
+                 {/* Helmet Side Plates */}
+                 <path d="M22 50 L 22 65 Q 30 72 38 68" fill="none" stroke={hoodColor} strokeWidth="1.5" />
+                 <path d="M78 50 L 78 65 Q 70 72 62 68" fill="none" stroke={hoodColor} strokeWidth="1.5" />
+
+                 {/* Sharp Eyes */}
+                 <path d="M32 58 L 44 58 L 42 62 L 34 63 Z" fill="white" />
+                 <path d="M68 58 L 56 58 L 58 62 L 66 63 Z" fill="white" />
+                 
+                 {/* Emerald Emblem on Forehead */}
+                 <path d="M50 38 L 54 44 L 50 50 L 46 44 Z" fill="#10b981" />
              </g>
          );
      }
