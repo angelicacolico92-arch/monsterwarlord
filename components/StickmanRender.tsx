@@ -14,14 +14,14 @@ interface StickmanProps {
   isDepositing?: boolean;
   hasGold?: boolean;
   isSummoning?: boolean;
-  isFirebursting?: boolean; // New prop for Mage Ability 1
-  isRooted?: boolean; // New prop for Mage Ability 2 (on victim)
-  isBossAbility?: boolean; // New prop for Boss Ability (Explosion)
+  isFirebursting?: boolean;
+  isRooted?: boolean;
+  isBossAbility?: boolean;
 }
 
 export const StickmanRender: React.FC<StickmanProps> = ({ 
   type, 
-  color: propColor, // Unused, we determine color by type
+  color: propColor,
   scale = 1, 
   isPlayer = true,
   isAttacking = false, 
@@ -37,8 +37,6 @@ export const StickmanRender: React.FC<StickmanProps> = ({
   isBossAbility = false
 }) => {
   const animationDelay = useMemo(() => Math.random() * 1, []);
-  
-  // Memoize random delays for the bubbles so they don't look uniform across all units
   const bubbleDelays = useMemo(() => [Math.random() * 2, Math.random() * 2, Math.random() * 2], []);
   
   // -- ANIMATION CLASS SELECTOR --
@@ -46,19 +44,18 @@ export const StickmanRender: React.FC<StickmanProps> = ({
   if (isDying) {
       animClass = "animate-death-puddle";
   } else if (isRooted) {
-      animClass = "animate-idle-breathe"; // Struggle anim? Just use idle for now
+      animClass = "animate-idle-breathe"; 
   } else if (isSummoning && type === UnitType.MAGE) {
-      // Mage summon pose (stationary but possibly levitating/channeling)
       animClass = "animate-mage-float"; 
   } else if (isAttacking || isMining) {
-      if (type === UnitType.TOXIC) animClass = "animate-slime-attack"; // Lunge
+      if (type === UnitType.TOXIC) animClass = "animate-slime-attack";
       else if (type === UnitType.ARCHER) animClass = "animate-archer-body"; 
       else if (type === UnitType.BOSS) animClass = "animate-boss-stomp";
-      else if (type === UnitType.WORKER && isMining) animClass = "animate-mining";
+      else if (type === UnitType.WORKER && isMining) animClass = "animate-miner-work"; // Custom Mining Anim
       else animClass = "animate-slime-attack";
   } else if (isMoving || isDepositing) {
       if (type === UnitType.MAGE || type === UnitType.SMALL) animClass = "animate-mage-float";
-      else if (type === UnitType.ARCHER) animClass = "animate-slime-bounce"; // Bouncy side-to-side
+      else if (type === UnitType.ARCHER) animClass = "animate-slime-bounce"; 
       else animClass = "animate-slime-bounce";
   } else {
       if (type === UnitType.MAGE || type === UnitType.SMALL) animClass = "animate-mage-float";
@@ -69,67 +66,46 @@ export const StickmanRender: React.FC<StickmanProps> = ({
   const style = { animationDelay: isDying ? '0s' : `${animationDelay}s` };
   
   // -- COLORS --
-  // Player: Blue/Teal themes
-  // Enemy: Red/Purple themes
-  let baseColor = isPlayer ? "#3b82f6" : "#ef4444"; // Default Blue / Red
-  let secondaryColor = isPlayer ? "#1e40af" : "#991b1b"; // Darker rim
-  let hoodColor = isPlayer ? "#2563eb" : "#dc2626"; // For Archer Hood
+  let baseColor = isPlayer ? "#3b82f6" : "#ef4444"; 
+  let secondaryColor = isPlayer ? "#1e40af" : "#991b1b"; 
+  let hoodColor = isPlayer ? "#2563eb" : "#dc2626";
 
   switch(type) {
       case UnitType.WORKER:
-          baseColor = isPlayer ? "#fbbf24" : "#b45309"; // Yellow / Brownish
-          secondaryColor = isPlayer ? "#d97706" : "#78350f";
+          // Earthy Tones for Miner
+          // Player: Warm Bronze/Brown | Enemy: Darker Rust/Soot
+          baseColor = isPlayer ? "#a16207" : "#7f1d1d"; 
+          secondaryColor = isPlayer ? "#713f12" : "#450a0a";
           break;
       case UnitType.TOXIC:
-          // SOLDIER DESIGN
-          // Player: Steel Blue/Slate | Enemy: Dark Crimson/Rust
           baseColor = isPlayer ? "#334155" : "#7f1d1d"; 
           secondaryColor = isPlayer ? "#0f172a" : "#450a0a";
           break;
       case UnitType.ARCHER:
-          // Redesign: Bright Green Body with Leaf-like texture
-          // We use Team Color for the Hood/Cape to maintain readability
-          baseColor = "#65a30d"; // Forest Green (Base)
-          secondaryColor = "#365314"; // Dark Green (Outline)
+          baseColor = "#65a30d"; 
+          secondaryColor = "#365314"; 
           break;
       case UnitType.PALADIN:
-          baseColor = isPlayer ? "#e2e8f0" : "#9ca3af"; // White/Silver / Grey
+          baseColor = isPlayer ? "#e2e8f0" : "#9ca3af";
           secondaryColor = isPlayer ? "#94a3b8" : "#4b5563";
           break;
       case UnitType.MAGE:
       case UnitType.SMALL:
-          // New Mage Colors: Purple-Blue Glow (as per design)
-          // Player: Stronger Blue-Purple, Enemy: Darker Red-Purple
           baseColor = isPlayer ? "#8b5cf6" : "#7c3aed"; 
           secondaryColor = isPlayer ? "#6d28d9" : "#5b21b6";
           break;
       case UnitType.BOSS:
-          baseColor = isPlayer ? "#f43f5e" : "#881337"; // Pink/Red / Dark Red
+          baseColor = isPlayer ? "#f43f5e" : "#881337"; 
           secondaryColor = isPlayer ? "#9f1239" : "#4c0519";
           break;
   }
 
-  // --- COMPONENT PARTS (Defined as simple functions to avoid React component remounting) ---
-
   const renderBackAccessories = () => {
       if (type === UnitType.ARCHER) {
-          // Hood/Cape backdrop - frames the slime from behind
           return (
               <g>
-                  {/* Cape Body */}
-                   <path 
-                      d="M20 50 Q 50 15 80 50 L 85 95 L 50 90 L 15 95 Z" 
-                      fill={hoodColor} 
-                      stroke={secondaryColor}
-                      strokeWidth="2"
-                  />
-                  {/* Hood Top visible behind head */}
-                  <path 
-                      d="M25 45 Q 50 5 75 45" 
-                      fill={hoodColor}
-                      stroke={secondaryColor}
-                      strokeWidth="2"
-                  />
+                   <path d="M20 50 Q 50 15 80 50 L 85 95 L 50 90 L 15 95 Z" fill={hoodColor} stroke={secondaryColor} strokeWidth="2" />
+                   <path d="M25 45 Q 50 5 75 45" fill={hoodColor} stroke={secondaryColor} strokeWidth="2" />
               </g>
           );
       }
@@ -137,7 +113,6 @@ export const StickmanRender: React.FC<StickmanProps> = ({
   };
 
   const renderSlimeBody = () => {
-    // Mage has specific semi-transparent body design
     if (type === UnitType.MAGE || type === UnitType.SMALL) {
         return (
             <g>
@@ -148,31 +123,41 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                         <stop offset="100%" stopColor={secondaryColor} stopOpacity="0.6" />
                     </radialGradient>
                 </defs>
-                <path 
-                    d="M15 100 C 15 100 15 40 50 40 C 85 40 85 100 85 100 Z" 
-                    fill={`url(#mageGlow-${isPlayer ? 'p' : 'e'}-${type})`}
-                    stroke={secondaryColor} 
-                    strokeWidth="2"
-                    strokeOpacity="0.8"
-                />
+                <path d="M15 100 C 15 100 15 40 50 40 C 85 40 85 100 85 100 Z" fill={`url(#mageGlow-${isPlayer ? 'p' : 'e'}-${type})`} stroke={secondaryColor} strokeWidth="2" strokeOpacity="0.8" />
             </g>
         );
     }
 
-    // ARCHER REDESIGN: Slim, tall slime shape
     if (type === UnitType.ARCHER) {
         return (
             <g>
-                {/* Slimmer, taller body - smoothed out for cuteness */}
-                <path 
-                    d="M25 100 Q 15 60 35 40 Q 50 25 65 40 Q 85 60 75 100 Z" 
-                    fill="#a3e635" // Lighter, cuter green (Lime-400)
-                    stroke={secondaryColor} 
-                    strokeWidth="2"
-                />
-                {/* Armor Bands / Leaf Texture - Softened */}
+                <path d="M25 100 Q 15 60 35 40 Q 50 25 65 40 Q 85 60 75 100 Z" fill="#a3e635" stroke={secondaryColor} strokeWidth="2" />
                 <path d="M22 80 Q 50 88 78 80" stroke={secondaryColor} strokeWidth="2" fill="none" opacity="0.4" />
                 <path d="M28 60 Q 50 68 72 60" stroke={secondaryColor} strokeWidth="2" fill="none" opacity="0.4" />
+            </g>
+        );
+    }
+
+    // MINER REDESIGN: Stout body with texture
+    if (type === UnitType.WORKER) {
+        return (
+            <g>
+                {/* Stout, wider body */}
+                <path 
+                    d="M10 100 C 10 100 10 45 50 45 C 90 45 90 100 90 100 Z" 
+                    fill={baseColor} 
+                    stroke={secondaryColor} 
+                    strokeWidth="3"
+                />
+                {/* Crystal Veins (Overlay) */}
+                <g opacity="0.7">
+                    <path d="M30 90 Q 35 80 25 70" stroke="#06b6d4" strokeWidth="2" fill="none" strokeLinecap="round" />
+                    <path d="M65 95 Q 75 80 80 65" stroke="#06b6d4" strokeWidth="2" fill="none" strokeLinecap="round" />
+                    <path d="M45 55 L 55 60" stroke="#06b6d4" strokeWidth="2" fill="none" />
+                    {/* Small glowing specs */}
+                    <circle cx="30" cy="75" r="1.5" fill="#cffafe" className="animate-pulse" />
+                    <circle cx="70" cy="85" r="1.5" fill="#cffafe" className="animate-pulse" style={{ animationDelay: '0.5s' }} />
+                </g>
             </g>
         );
     }
@@ -188,18 +173,52 @@ export const StickmanRender: React.FC<StickmanProps> = ({
     );
   };
   
-  const renderSlimeBubbles = () => (
-      <g opacity="0.4" className="pointer-events-none">
-          {/* Bubbles positioned carefully within the body path safe zone */}
-          <circle cx="40" cy="90" r="3" fill="white" className="animate-bubble-rise" style={{ animationDelay: `${bubbleDelays[0]}s` }} />
-          <circle cx="60" cy="85" r="2" fill="white" className="animate-bubble-rise" style={{ animationDelay: `${bubbleDelays[1]}s`, animationDuration: '2.5s' }} />
-          <circle cx="50" cy="80" r="2.5" fill="white" className="animate-bubble-rise" style={{ animationDelay: `${bubbleDelays[2]}s`, animationDuration: '3s' }} />
-      </g>
-  );
+  const renderSlimeBubbles = () => {
+      // Miner has dust instead of bubbles
+      if (type === UnitType.WORKER) {
+          return (
+              <g className="pointer-events-none">
+                  <circle cx="20" cy="95" r="2" fill="#78350f" opacity="0.6" className="animate-dust" style={{ animationDelay: '0.2s', transformOrigin: '20px 95px' }} />
+                  <circle cx="80" cy="95" r="3" fill="#78350f" opacity="0.5" className="animate-dust" style={{ animationDelay: '0.7s', transformOrigin: '80px 95px' }} />
+                  {isMoving && <circle cx="50" cy="98" r="4" fill="#a16207" opacity="0.4" className="animate-dust" style={{ animationDelay: '0s', transformOrigin: '50px 98px' }} />}
+              </g>
+          );
+      }
+      
+      return (
+        <g opacity="0.4" className="pointer-events-none">
+            <circle cx="40" cy="90" r="3" fill="white" className="animate-bubble-rise" style={{ animationDelay: `${bubbleDelays[0]}s` }} />
+            <circle cx="60" cy="85" r="2" fill="white" className="animate-bubble-rise" style={{ animationDelay: `${bubbleDelays[1]}s`, animationDuration: '2.5s' }} />
+            <circle cx="50" cy="80" r="2.5" fill="white" className="animate-bubble-rise" style={{ animationDelay: `${bubbleDelays[2]}s`, animationDuration: '3s' }} />
+        </g>
+      );
+  };
 
   const renderEyes = () => {
+     // MINER GOGGLES
+     if (type === UnitType.WORKER) {
+         return (
+             <g>
+                 {/* Strap */}
+                 <path d="M10 60 H 90" stroke="#27272a" strokeWidth="4" opacity="0.9" />
+                 
+                 {/* Left Lens */}
+                 <circle cx="35" cy="62" r="7" fill="#0e7490" stroke="#3f3f46" strokeWidth="2.5" />
+                 <circle cx="35" cy="62" r="3" fill="#67e8f9" opacity="0.6" /> {/* Reflection */}
+                 <circle cx="37" cy="60" r="1.5" fill="white" opacity="0.9" /> {/* Shine */}
+
+                 {/* Right Lens */}
+                 <circle cx="65" cy="62" r="7" fill="#0e7490" stroke="#3f3f46" strokeWidth="2.5" />
+                 <circle cx="65" cy="62" r="3" fill="#67e8f9" opacity="0.6" />
+                 <circle cx="67" cy="60" r="1.5" fill="white" opacity="0.9" />
+                 
+                 {/* Bridge */}
+                 <path d="M42 62 L 58 62" stroke="#3f3f46" strokeWidth="2" />
+             </g>
+         );
+     }
+
      if (type === UnitType.BOSS) {
-         // Angry Eyes
          return (
              <g>
                  <path d="M35 55 L 45 60" stroke="white" strokeWidth="3" />
@@ -210,7 +229,6 @@ export const StickmanRender: React.FC<StickmanProps> = ({
          );
      }
      if (type === UnitType.PALADIN) {
-         // Serious lines / Narrow eyes
          return (
              <g>
                  <rect x="35" y="60" width="10" height="4" fill="black" opacity="0.6"/>
@@ -218,50 +236,42 @@ export const StickmanRender: React.FC<StickmanProps> = ({
              </g>
          );
      }
-     if (type === UnitType.TOXIC) { // Soldier Eyes
+     if (type === UnitType.TOXIC) { 
          return (
              <g>
-                {/* Determined Eyes under helmet */}
-                <path d="M32 60 L 42 63" stroke="black" strokeWidth="2" /> {/* Brow */}
-                <path d="M68 60 L 58 63" stroke="black" strokeWidth="2" /> {/* Brow */}
+                <path d="M32 60 L 42 63" stroke="black" strokeWidth="2" /> 
+                <path d="M68 60 L 58 63" stroke="black" strokeWidth="2" /> 
                 <circle cx="37" cy="65" r="2.5" fill="white" />
                 <circle cx="63" cy="65" r="2.5" fill="white" />
              </g>
          );
      }
      if (type === UnitType.ARCHER) {
-         // CUTE BLUSH EYES (Redesign)
          return (
              <g>
-                 {/* Large Cute Eyes */}
                  <ellipse cx="35" cy="58" rx="5" ry="6" fill="black" />
-                 <circle cx="33" cy="55" r="2.5" fill="white" /> {/* Big Shine */}
-                 <circle cx="37" cy="60" r="1" fill="white" opacity="0.5" /> {/* Small Shine */}
+                 <circle cx="33" cy="55" r="2.5" fill="white" /> 
+                 <circle cx="37" cy="60" r="1" fill="white" opacity="0.5" /> 
                  
                  <ellipse cx="65" cy="58" rx="5" ry="6" fill="black" />
-                 <circle cx="63" cy="55" r="2.5" fill="white" /> {/* Big Shine */}
-                 <circle cx="67" cy="60" r="1" fill="white" opacity="0.5" /> {/* Small Shine */}
+                 <circle cx="63" cy="55" r="2.5" fill="white" /> 
+                 <circle cx="67" cy="60" r="1" fill="white" opacity="0.5" /> 
 
-                 {/* Blush - Bright Pink */}
                  <ellipse cx="35" cy="68" rx="5" ry="2.5" fill="#ec4899" opacity="0.5" />
                  <ellipse cx="65" cy="68" rx="5" ry="2.5" fill="#ec4899" opacity="0.5" />
              </g>
          );
      }
      if (type === UnitType.MAGE || type === UnitType.SMALL) {
-         // Glowing Arcane Eyes
          return (
              <g>
-                 {/* Arcane Symbol / Vertical pupil hint */}
                  <path d="M35 58 L 35 62" stroke="white" strokeWidth="1.5" opacity="0.8" />
                  <path d="M65 58 L 65 62" stroke="white" strokeWidth="1.5" opacity="0.8" />
-                 
                  <circle cx="35" cy="60" r="3" fill="white" className="animate-pulse" />
                  <circle cx="65" cy="60" r="3" fill="white" className="animate-pulse" />
              </g>
          );
      }
-     // Standard Cute Eyes
      return (
          <g>
              <circle cx="35" cy="60" r="4" fill="white" />
@@ -273,109 +283,108 @@ export const StickmanRender: React.FC<StickmanProps> = ({
   };
 
   const renderAccessories = () => {
-      // Miner Hat
+      // MINER REDESIGN
       if (type === UnitType.WORKER) {
           return (
-              <g transform="translate(0, -5)">
-                  <path d="M30 45 Q 50 35 70 45" stroke="#fbbf24" strokeWidth="4" fill="none" /> 
-                  <path d="M35 45 L 35 35 Q 50 25 65 35 L 65 45 Z" fill="#4b5563" stroke="black" strokeWidth="1" />
-                  <rect x="45" y="30" width="10" height="8" fill="#fef08a" /> {/* Light */}
-                  
-                  {/* Pickaxe if mining */}
-                  {(isMining || isAttacking) && (
-                      <g transform="translate(75, 60) rotate(45)">
-                          <path d="M0 0 L 0 20" stroke="#78350f" strokeWidth="3" />
-                          <path d="M-5 5 Q 0 -5 5 5" stroke="#94a3b8" strokeWidth="3" fill="none" />
+              <g>
+                  {/* HELMET (Always visible) - Shifted up slightly for stout body */}
+                  <g transform="translate(0, -2)">
+                      {/* Dome */}
+                      <path d="M25 45 Q 50 25 75 45" fill="#facc15" stroke="#854d0e" strokeWidth="2" />
+                      {/* Rim */}
+                      <path d="M20 45 L 80 45 L 80 50 L 20 50 Z" fill="#eab308" stroke="#854d0e" strokeWidth="1.5" />
+                      {/* Mining Lamp */}
+                      <g transform="translate(42, 30)">
+                          <rect x="0" y="0" width="16" height="12" rx="2" fill="#4b5563" stroke="#1f2937" strokeWidth="1" />
+                          <circle cx="8" cy="6" r="4" fill="#fef08a" className="animate-pulse" />
+                          {/* Light Beam */}
+                          {(isMining || isMoving) && (
+                              <path d="M8 6 L -20 100 L 36 100 Z" fill="url(#lampBeam)" opacity="0.2" className="animate-pulse" style={{ pointerEvents: 'none' }} />
+                          )}
                       </g>
-                  )}
-                  {/* Crystal Shard (was Gold Sack) */}
+                  </g>
+
+                  {/* PICKAXE */}
+                  {/* Logic: If mining, use swing anim. If moving, bob. If idle, rest. */}
+                  <g 
+                    transform={isMining ? "translate(75, 75)" : "translate(75, 65)"} 
+                    className={isMining ? "animate-mining-swing" : (isMoving ? "animate-slime-bounce" : "")}
+                    style={{ transformOrigin: isMining ? '0 0' : 'center' }}
+                  >
+                      {/* Handle */}
+                      <path d="M0 0 L 0 -25" stroke="#78350f" strokeWidth="4" strokeLinecap="round" />
+                      {/* Head */}
+                      <path d="M-12 -25 Q 0 -30 12 -25 L 14 -22 L 0 -24 L -14 -22 Z" fill="#94a3b8" stroke="#475569" strokeWidth="1" />
+                      {/* Tips */}
+                      <path d="M-14 -22 L -18 -18 L -12 -20 Z" fill="#cbd5e1" />
+                      <path d="M14 -22 L 18 -18 L 12 -20 Z" fill="#cbd5e1" />
+                  </g>
+
+                  {/* CARRIED CRYSTAL (If hasGold or depositing) */}
                   {(hasGold || isDepositing) && (
-                      <g transform="translate(20, 80)">
-                          <path d="M0 -8 L 6 -2 L 0 8 L -6 -2 Z" fill="#22d3ee" stroke="#0891b2" strokeWidth="1" /> {/* Cyan Crystal */}
-                          <path d="M0 -8 L 0 8" stroke="#a5f3fc" strokeWidth="0.5" opacity="0.5" />
+                      <g transform="translate(50, 25)" className="animate-bounce">
+                          {/* Crystal Chunk on Head/Back */}
+                          <path d="M0 -15 L 10 -5 L 0 5 L -10 -5 Z" fill="#22d3ee" stroke="#0891b2" strokeWidth="1.5" />
+                          <path d="M0 -15 L 0 5" stroke="#ecfeff" strokeWidth="0.5" opacity="0.6" />
+                          <path d="M-10 -5 L 10 -5" stroke="#ecfeff" strokeWidth="0.5" opacity="0.6" />
+                          {/* Glow */}
+                          <circle cx="0" cy="-5" r="12" fill="#67e8f9" opacity="0.3" filter="blur(4px)" />
                       </g>
                   )}
-                  {/* Cyan Sparkles */}
-                  {(hasGold || isMining) && (
-                     <g>
-                       <path d="M10 20 L 15 10 L 20 20 L 30 25 L 20 30 L 15 40 L 10 30 L 0 25 Z" fill="#a5f3fc" className="animate-sparkle" />
-                       <path d="M70 10 L 73 0 L 76 10 L 86 13 L 76 16 L 73 26 L 70 16 L 60 13 Z" fill="#a5f3fc" className="animate-sparkle" style={{animationDelay: '0.7s'}} />
-                     </g>
+
+                  {/* MINING SPARKS (Only if mining) */}
+                  {isMining && (
+                      <g transform="translate(90, 90)">
+                          <circle cx="0" cy="0" r="2" fill="#fff" className="animate-sparkle" />
+                          <circle cx="5" cy="-5" r="1" fill="#cffafe" className="animate-sparkle" style={{ animationDelay: '0.1s' }} />
+                          <path d="M0 0 L 10 5" stroke="#fff" strokeWidth="1" opacity="0.8" className="animate-sparkle" />
+                      </g>
                   )}
               </g>
           );
       }
 
-      // Soldier - Helmet and Sword
       if (type === UnitType.TOXIC) {
           return (
               <g>
-                  {/* Combat Helmet */}
                   <g transform="translate(0, -5)">
                       <path d="M25 45 Q 50 25 75 45" fill={isPlayer ? "#1e293b" : "#450a0a"} stroke="black" strokeWidth="2" />
                       <path d="M22 45 L 78 45 L 78 50 L 22 50 Z" fill={isPlayer ? "#334155" : "#7f1d1d"} stroke="black" strokeWidth="1" />
-                      {/* Helmet Strap */}
                       <path d="M28 50 Q 50 65 72 50" fill="none" stroke="#1f2937" strokeWidth="1" opacity="0.6" />
                   </g>
-
-                  {/* Sword */}
                   <g 
                     transform={isAttacking ? "translate(75, 70) rotate(45)" : "translate(75, 65) rotate(-20)"}
                     className={isAttacking ? "animate-sword-swing" : ""}
                   >
-                      {/* Blade */}
                       <path d="M0 0 L 0 -35 L 3 -40 L 6 -35 L 6 0 Z" fill="#e2e8f0" stroke="#475569" strokeWidth="1" />
                       <line x1="3" y1="-35" x2="3" y2="0" stroke="#cbd5e1" strokeWidth="1" />
-                      
-                      {/* Crossguard */}
                       <rect x="-6" y="0" width="18" height="3" fill="#334155" stroke="black" strokeWidth="0.5" />
-                      
-                      {/* Grip */}
                       <rect x="1" y="3" width="4" height="10" fill="#475569" />
-                      
-                      {/* Pommel */}
                       <circle cx="3" cy="14" r="2.5" fill="#334155" />
                   </g>
               </g>
           );
       }
 
-      // Archer: Redesigned
       if (type === UnitType.ARCHER) {
           return (
               <g>
-                  {/* Scarf / Neck Wrap (Front) - Low enough to reveal face */}
                   <path d="M35 75 Q 50 85 65 75 L 65 80 Q 50 90 35 80 Z" fill={hoodColor} />
-                  
-                  {/* Quiver (Back - but rendered in front for visibility) */}
                   <g transform="translate(15, 55) rotate(-20)">
                        <rect x="0" y="0" width="10" height="25" rx="3" fill="#3f6212" stroke="#1a2e05" />
-                       {/* Arrow feathers sticking out */}
                        <path d="M2 0 L -2 -5 M5 0 L 5 -8 M8 0 L 12 -5" stroke="white" strokeWidth="2" />
                   </g>
-
-                  {/* Bow (Front) - Flipped to face Forward (Right) */}
                   <g transform="translate(55, 60)">
                       <g className={isAttacking ? "animate-archer-bow" : ""} style={{ transformOrigin: 'center' }}>
-                          {/* Wooden Bow - Curved forward */}
-                          {/* Tips at x=0, Belly at x=20 (bulging right) */}
                           <path d="M0 -25 Q 20 0 0 25" stroke="#78350f" strokeWidth="4" fill="none" strokeLinecap="round" />
-                          {/* Leaf details on bow tips */}
                           <path d="M0 -25 L -3 -20 L 3 -20 Z" fill="#84cc16" />
                           <path d="M0 25 L -3 20 L 3 20 Z" fill="#84cc16" />
-                          {/* String */}
                           <line x1="0" y1="-23" x2="0" y2="23" stroke="white" strokeWidth="1" opacity="0.7" />
                       </g>
-                      
-                      {/* Arrow RELOAD ANIMATION - Shows nocking a NEW arrow */}
                       <g className={isAttacking ? "animate-archer-reload" : ""} style={{ display: isAttacking ? 'block' : 'none' }}>
-                          {/* Slime Arrow - Nocked */}
-                          {/* Head at x=20, Shaft goes back to -5 */}
-                          <path d="M25 0 L 10 -6 L 10 6 Z" fill="#bef264" stroke="white" strokeWidth="1" /> {/* Head with glint */}
-                          <line x1="-10" y1="0" x2="10" y2="0" stroke="#bef264" strokeWidth="4" /> {/* Shaft */}
-                          {/* Slime Trail/Feathers */}
+                          <path d="M25 0 L 10 -6 L 10 6 Z" fill="#bef264" stroke="white" strokeWidth="1" />
+                          <line x1="-10" y1="0" x2="10" y2="0" stroke="#bef264" strokeWidth="4" />
                           <circle cx="-10" cy="0" r="4" fill="#bef264" opacity="0.8" />
-                          {/* Glow */}
                           <circle cx="20" cy="0" r="8" fill="#bef264" opacity="0.3" filter="blur(2px)" />
                       </g>
                   </g>
@@ -383,78 +392,53 @@ export const StickmanRender: React.FC<StickmanProps> = ({
           );
       }
 
-      // Paladin Shield & Helm
       if (type === UnitType.PALADIN) {
           const isIdle = !isAttacking && !isMoving && !isDying;
           const shieldAnim = isIdle ? "animate-paladin-shield" : "";
 
           return (
               <g>
-                  {/* HELMET */}
                   <g>
-                      {/* Plume/Crest */}
                       <path d="M50 25 Q 55 15 65 20" stroke="#ef4444" strokeWidth="3" fill="none" strokeLinecap="round" />
-                      
-                      {/* Main Dome */}
                       <path d="M30 48 Q 50 20 70 48" fill="#e2e8f0" stroke="#475569" strokeWidth="2" />
-                      
-                      {/* Visor Band */}
                       <rect x="30" y="48" width="40" height="8" rx="2" fill="#94a3b8" stroke="#475569" strokeWidth="1.5" />
-                      
-                      {/* Nose Guard */}
                       <path d="M50 48 L 50 68" stroke="#475569" strokeWidth="2.5" />
-                      
-                      {/* Side Wings (Decorative) */}
                       <path d="M30 42 L 20 32 L 32 38" fill="#f1f5f9" stroke="#64748b" strokeWidth="1" />
                       <path d="M70 42 L 80 32 L 68 38" fill="#f1f5f9" stroke="#64748b" strokeWidth="1" />
                   </g>
-                  
-                  {/* Shield */}
                   <g className={shieldAnim} style={{ transformOrigin: '70px 80px' }}>
                     <path d="M60 70 Q 60 90 70 95 Q 80 90 80 70 L 60 70" fill="#e2e8f0" stroke="#475569" strokeWidth="2" />
                     <path d="M65 75 L 75 85" stroke="#ef4444" strokeWidth="2" />
                     <path d="M75 75 L 65 85" stroke="#ef4444" strokeWidth="2" />
-                    {/* Glint */}
                     <circle cx="65" cy="75" r="1" fill="white" className="animate-pulse" />
                   </g>
               </g>
           );
       }
 
-      // Mage Redesign (Final) + Small (Mini-Mage)
       if (type === UnitType.MAGE || type === UnitType.SMALL) {
           return (
               <g>
-                  {/* Core: Floating Magic Crystal/Orb inside */}
                   <g className="animate-pulse">
                       <circle cx="50" cy="75" r="6" fill="#a78bfa" opacity="0.6" filter="blur(1px)" />
                       <path d="M50 68 L 54 75 L 50 82 L 46 75 Z" fill="#fff" opacity="0.9" />
                   </g>
-
-                  {/* Aura: Floating Runes */}
                   <g opacity="0.6" className="animate-spin-slow" style={{ transformBox: 'fill-box', transformOrigin: 'center' }}>
                       <path d="M25 50 L 28 45" stroke="#e9d5ff" strokeWidth="1" />
                       <path d="M75 50 L 72 55" stroke="#e9d5ff" strokeWidth="1" />
                       <circle cx="50" cy="30" r="1" fill="#e9d5ff" />
                   </g>
-
-                  {/* Accessory: Floating Crystal Staff (Rune Shard) */}
                   <g transform={isAttacking ? "translate(0, -5) rotate(5, 85, 70)" : "translate(0, 0)"}>
-                      {/* Staff Shaft - Crystal-like */}
                       <path d="M85 50 L 85 90" stroke="#a78bfa" strokeWidth="1.5" />
-                      {/* Top Crystal Shard */}
                       <path d="M85 50 L 90 40 L 85 30 L 80 40 Z" fill="#d8b4fe" stroke="#7c3aed" strokeWidth="1" className="animate-pulse" />
-                      {/* Small Orbiting particles around staff */}
                       <circle cx="85" cy="40" r="8" fill="none" stroke="#fff" strokeWidth="0.5" strokeDasharray="2 2" className="animate-spin" style={{ transformOrigin: '85px 40px' }} />
                   </g>
-
-                  {/* ABILITY 1: MYSTIC FIREBURST */}
                   {type === UnitType.MAGE && isFirebursting && (
                       <g className="animate-fireburst" pointerEvents="none">
                           <defs>
                               <radialGradient id="fireburstGrad" cx="0.5" cy="0.5" r="0.5">
-                                  <stop offset="0%" stopColor="#e9d5ff" stopOpacity="0.9" /> {/* Brighter center */}
-                                  <stop offset="70%" stopColor="#a855f7" stopOpacity="0.6" /> {/* Stronger purple */}
+                                  <stop offset="0%" stopColor="#e9d5ff" stopOpacity="0.9" /> 
+                                  <stop offset="70%" stopColor="#a855f7" stopOpacity="0.6" /> 
                                   <stop offset="100%" stopColor="#7e22ce" stopOpacity="0" />
                               </radialGradient>
                           </defs>
@@ -463,7 +447,6 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                               <animate attributeName="r" values="25;45" dur="0.8s" repeatCount="1" />
                               <animate attributeName="opacity" values="0.8;0" dur="0.8s" repeatCount="1" />
                           </circle>
-                          {/* Runes / Sparks */}
                           <g transform="translate(50,75)">
                               {[0, 60, 120, 180, 240, 300].map(deg => (
                                   <g key={deg} transform={`rotate(${deg}) translate(0, -30)`}>
@@ -473,20 +456,15 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                           </g>
                       </g>
                   )}
-
-                  {/* Summon Animation: Magic Circle (Only for actual Mage doing summoning) */}
                   {type === UnitType.MAGE && isSummoning && (
                       <g className="animate-summon-circle" style={{ transformOrigin: '50px 95px' }}>
                           <ellipse cx="50" cy="95" rx="30" ry="8" fill="none" stroke="#d8b4fe" strokeWidth="1.5" />
                           <path d="M50 87 L 50 103 M 35 95 L 65 95" stroke="#d8b4fe" strokeWidth="1" />
                           <path d="M40 90 L 60 100 M 60 90 L 40 100" stroke="#d8b4fe" strokeWidth="1" opacity="0.5" />
-                          {/* Runes on circle */}
                           <circle cx="20" cy="95" r="1" fill="#fff" />
                           <circle cx="80" cy="95" r="1" fill="#fff" />
                       </g>
                   )}
-                  
-                  {/* Summon Energy Gathering */}
                   {type === UnitType.MAGE && isSummoning && (
                       <g>
                           <circle cx="50" cy="95" r="2" fill="#fff" className="animate-energy-rise" />
@@ -498,12 +476,11 @@ export const StickmanRender: React.FC<StickmanProps> = ({
           );
       }
 
-      // Boss Crown
       if (type === UnitType.BOSS) {
           return (
               <g transform="translate(0, -10)">
                   <path d="M30 45 L 30 25 L 40 35 L 50 20 L 60 35 L 70 25 L 70 45 Z" fill="#fbbf24" stroke="#b45309" strokeWidth="2" />
-                  <circle cx="50" cy="50" r="6" fill="#ef4444" opacity="0.5" /> {/* Gem? */}
+                  <circle cx="50" cy="50" r="6" fill="#ef4444" opacity="0.5" /> 
               </g>
           );
       }
@@ -514,7 +491,6 @@ export const StickmanRender: React.FC<StickmanProps> = ({
   const renderImpactVisuals = () => {
      if (isDying || !isAttacking) return null;
 
-     // Archer Impact (Green Slime Splash)
      if (type === UnitType.ARCHER) {
          return (
              <g className="animate-impact-pop" style={{ animationDelay: `${animationDelay}s` }}>
@@ -528,11 +504,9 @@ export const StickmanRender: React.FC<StickmanProps> = ({
          );
      }
 
-     // Soldier Impact (Sword Slash)
      if (type === UnitType.TOXIC) {
          return (
              <g className="animate-impact-pop" style={{ animationDelay: `${animationDelay}s` }}>
-                 {/* Slash Effect - Arc */}
                  <path d="M85 30 Q 110 50 85 70" stroke="white" strokeWidth="3" fill="none" opacity="0.8">
                      <animate attributeName="opacity" values="1;0" dur="0.3s" fill="freeze" />
                      <animate attributeName="stroke-width" values="4;0" dur="0.3s" fill="freeze" />
@@ -540,15 +514,12 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                  <path d="M90 35 Q 115 55 90 75" stroke="#cbd5e1" strokeWidth="2" fill="none" opacity="0.6">
                      <animate attributeName="opacity" values="0.6;0" dur="0.3s" fill="freeze" />
                  </path>
-                 
-                 {/* Impact Spark */}
                  <circle cx="100" cy="50" r="4" fill="#ef4444" opacity="0.6" />
                  <path d="M100 50 L 110 40" stroke="#ef4444" strokeWidth="2" />
              </g>
          );
      }
 
-     // Mage Special Impact
      if (type === UnitType.MAGE || type === UnitType.SMALL) {
         return (
             <g style={{ animationDelay: `${animationDelay}s` }}>
@@ -557,18 +528,15 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                     <animate attributeName="opacity" values="1;0" dur="0.8s" repeatCount="indefinite" />
                     <animate attributeName="stroke-width" values="3;0" dur="0.8s" repeatCount="indefinite" />
                 </circle>
-                
                 <path d="M100 35 L105 45 L115 45 L108 52 L110 62 L100 55 L90 62 L92 52 L85 45 L95 45 Z" fill="#e9d5ff" opacity="0.8">
                      <animateTransform attributeName="transform" type="scale" values="0.8;1.2;0.8" dur="0.8s" repeatCount="indefinite" additive="sum" />
                      <animateTransform attributeName="transform" type="rotate" from="0 100 50" to="360 100 50" dur="3s" repeatCount="indefinite" additive="sum" />
                 </path>
-                
                 <circle cx="100" cy="50" r="15" fill="#d8b4fe" opacity="0.3" className="animate-pulse" />
             </g>
         );
      }
 
-     // Generic impact pop
      return (
           <path 
             d="M85 30 L95 45 L110 35 L100 50 L115 60 L95 60 L90 75 L85 55 Z" 
@@ -592,22 +560,16 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                      <stop offset="100%" stopColor="#a855f7" stopOpacity="0" />
                  </radialGradient>
              </defs>
-             
-             {/* Portal Ring expanding on ground */}
              <ellipse cx="50" cy="90" rx="0" ry="0" fill="none" stroke="#d8b4fe" strokeWidth="3" opacity="1">
                  <animate attributeName="rx" from="0" to="35" dur="0.6s" begin="0s" fill="freeze" calcMode="spline" keySplines="0.1 0.8 0.2 1" />
                  <animate attributeName="ry" from="0" to="12" dur="0.6s" begin="0s" fill="freeze" calcMode="spline" keySplines="0.1 0.8 0.2 1" />
                  <animate attributeName="opacity" values="1;0" dur="0.8s" begin="0s" fill="freeze" />
                  <animate attributeName="stroke-width" values="3;0" dur="0.8s" begin="0s" fill="freeze" />
              </ellipse>
-             
-             {/* Vertical Beam of Light */}
              <path d="M45 90 L 55 90 L 50 90 Z" fill="url(#summonGlow)" opacity="0">
                  <animate attributeName="d" values="M45 90 L 55 90 L 50 90 Z; M30 90 L 70 90 L 50 5 Z" dur="0.4s" begin="0s" fill="freeze" />
                  <animate attributeName="opacity" values="0;1;0" dur="0.7s" begin="0s" fill="freeze" />
              </path>
-             
-             {/* Burst Stars/Sparkles */}
              <g transform="translate(50, 50)">
                  <circle cx="0" cy="0" r="0" fill="white" opacity="0.8">
                       <animate attributeName="r" values="0;25" dur="0.5s" begin="0.1s" fill="freeze" />
@@ -619,19 +581,12 @@ export const StickmanRender: React.FC<StickmanProps> = ({
   };
   
   const renderRootVisuals = () => {
-      // Ability 2: Shadow Grasp Effect on the Victim
-      // RENDERING IN FRONT NOW - With brighter colors
       if (!isRooted) return null;
       return (
           <g className="animate-pulse" style={{ pointerEvents: 'none' }}>
-              {/* Dark Tendrils wrapping base - Brighter purple for visibility */}
-              <path d="M20 95 Q 35 70 50 85 Q 65 70 80 95" stroke="#a855f7" strokeWidth="4" fill="none" opacity="0.9" /> {/* neon purple */}
-              <path d="M30 100 Q 40 60 50 75 Q 60 60 70 100" stroke="#9333ea" strokeWidth="4" fill="none" opacity="0.9" /> {/* dark neon */}
-              
-              {/* Constricting rings */}
+              <path d="M20 95 Q 35 70 50 85 Q 65 70 80 95" stroke="#a855f7" strokeWidth="4" fill="none" opacity="0.9" /> 
+              <path d="M30 100 Q 40 60 50 75 Q 60 60 70 100" stroke="#9333ea" strokeWidth="4" fill="none" opacity="0.9" /> 
               <ellipse cx="50" cy="85" rx="30" ry="10" stroke="#d8b4fe" strokeWidth="2" fill="none" opacity="0.8" strokeDasharray="5 5" />
-              
-              {/* Glowing Particles */}
               <circle cx="30" cy="80" r="3" fill="#e9d5ff" className="animate-ping" style={{ animationDuration: '2s' }} />
               <circle cx="70" cy="80" r="3" fill="#e9d5ff" className="animate-ping" style={{ animationDuration: '1.5s' }} />
           </g>
@@ -651,26 +606,16 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                       <stop offset="100%" stopColor="#7f1d1d" stopOpacity="0" />
                   </radialGradient>
               </defs>
-              
-              {/* Flash */}
               <circle cx="50" cy="90" r="0" fill="white" className="animate-boss-flash" />
-
-              {/* Shockwave Ring - Larger */}
               <circle cx="50" cy="90" r="10" fill="none" stroke="#fbbf24" strokeWidth="4" className="animate-boss-shockwave" />
-              
-              {/* Inner Fireball - Much Larger */}
               <circle cx="50" cy="90" r="0" fill="url(#bossExplosionGrad)" className="animate-boss-explosion" />
-              
-              {/* Embers - More particles flying further */}
               {[...Array(12)].map((_, i) => (
                   <circle key={i} cx="50" cy="90" r={3 + Math.random() * 3} fill={Math.random() > 0.5 ? "#fbbf24" : "#ef4444"} className="animate-ember" style={{ 
-                      '--angle': `${i * 30}deg`, // Spread evenly
-                      '--dist': `${100 + Math.random() * 60}px`, // Further distance
+                      '--angle': `${i * 30}deg`, 
+                      '--dist': `${100 + Math.random() * 60}px`, 
                       animationDelay: `${Math.random() * 0.1}s`
                   } as any} />
               ))}
-              
-              {/* Ground Cracks */}
               <g opacity="0.6">
                   <path d="M50 90 L 30 100" stroke="#78350f" strokeWidth="2" className="animate-pulse" />
                   <path d="M50 90 L 70 100" stroke="#78350f" strokeWidth="2" className="animate-pulse" />
@@ -734,41 +679,62 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                 100% { transform: rotate(var(--angle)) translate(var(--dist)) scale(0); opacity: 0; }
             }
             .animate-ember { animation: ember-fly 0.8s ease-out forwards; transform-origin: 50px 90px; }
+
+            /* NEW MINER ANIMATIONS */
+            @keyframes mining-swing {
+                0% { transform: translate(75px, 65px) rotate(0deg); }
+                30% { transform: translate(75px, 60px) rotate(-45deg); } /* Wind up back */
+                60% { transform: translate(75px, 75px) rotate(60deg); } /* Smash forward */
+                70% { transform: translate(75px, 70px) rotate(55deg); } /* Recoil */
+                100% { transform: translate(75px, 65px) rotate(0deg); }
+            }
+            .animate-mining-swing { animation: mining-swing 0.8s ease-in-out infinite; }
+
+            @keyframes miner-work {
+                0%, 100% { transform: scale(1, 1); }
+                50% { transform: scale(1.1, 0.9) translateY(2px); } /* Squash */
+            }
+            .animate-miner-work { transform-origin: bottom center; animation: miner-work 0.8s ease-in-out infinite; }
+
+            @keyframes dust-rise {
+                0% { transform: translateY(0) scale(0.5); opacity: 0; }
+                50% { opacity: 0.6; }
+                100% { transform: translateY(-15px) scale(1.2); opacity: 0; }
+            }
+            .animate-dust { animation: dust-rise 2s linear infinite; }
+            
+            @keyframes lamp-beam {
+                0%, 100% { opacity: 0.2; }
+                50% { opacity: 0.3; }
+            }
           `}</style>
+          
+          <linearGradient id="lampBeam" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#fef08a" stopOpacity="0.8" />
+              <stop offset="100%" stopColor="#fef08a" stopOpacity="0" />
+          </linearGradient>
       </defs>
 
-      {/* Selected Indicator */}
       {isSelected && !isDying && (
           <ellipse cx="50" cy="95" rx="25" ry="8" fill="none" stroke="#fbbf24" strokeWidth="2" className="animate-pulse" />
       )}
       
-      {/* Main Slime Group - REMOVED FILTER FOR MOBILE PERFORMANCE */}
       <g>
-        {/* Render Background Accessories (Cape/Hood Back) before Body */}
         {renderBackAccessories()}
-        
         {renderSlimeBody()}
-        {/* Bubbles Rendered Inside Body */}
         {renderSlimeBubbles()}
         {renderEyes()}
         {renderAccessories()}
       </g>
       
-      {/* Render Summon Effect after body so the flash overlays the appearing unit */}
       {renderSummonEffect()}
-      
-      {/* Root Visuals - MOVED TO FRONT FOR VISIBILITY */}
       {renderRootVisuals()}
-
-      {/* Boss Ability Explosions */}
       {renderBossAbilityVisuals()}
 
-      {/* Boss Shockwave Effect (Standard attack) */}
       {isAttacking && !isDying && type === UnitType.BOSS && !isBossAbility && (
          <circle cx="50" cy="50" r="25" fill="none" stroke="white" strokeWidth="2" className="animate-shockwave" />
       )}
       
-      {/* Magic Effects */}
       {isAttacking && !isDying && (type === UnitType.MAGE || type === UnitType.SMALL) && (
          <circle cx="80" cy="50" r="8" fill="none" stroke={secondaryColor} strokeWidth="2" className="animate-magic-pulse" />
       )}
