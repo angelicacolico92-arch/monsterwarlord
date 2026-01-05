@@ -65,7 +65,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
   } else if (isMoving || isDepositing) {
       if (type === UnitType.MAGE || type === UnitType.SMALL) animClass = "animate-mage-float";
       else if (type === UnitType.TOXIC) animClass = "animate-idle-breathe"; // Noble march
-      else if (type === UnitType.ARCHER) animClass = "animate-idle-breathe"; // Calm march
+      else if (type === UnitType.ARCHER) animClass = "animate-slime-bounce"; // Round bouncy march
       else animClass = "animate-slime-bounce";
   } else {
       if (type === UnitType.MAGE || type === UnitType.SMALL) animClass = "animate-mage-float";
@@ -116,13 +116,16 @@ export const StickmanRender: React.FC<StickmanProps> = ({
 
   const renderStuckArrows = () => {
       if (!stuckArrows || stuckArrows.length === 0) return null;
+      // Centered on the body mass (approx 50, 70) so relative offsets work correctly
       return (
-          <g className="pointer-events-none">
+          <g className="pointer-events-none" transform="translate(50, 70)">
               {stuckArrows.map(arrow => (
                   <g key={arrow.id} transform={`translate(${arrow.x}, ${arrow.y}) rotate(${arrow.angle})`}>
-                      <line x1="0" y1="0" x2="-18" y2="0" stroke="white" strokeWidth="1.5" strokeLinecap="butt" />
-                      <path d="M-18 0 L -22 -3 L -22 3 Z" fill="#facc15" stroke="#a16207" strokeWidth="0.5" />
-                      <circle cx="0" cy="0" r="1.5" fill="#333" opacity="0.6" />
+                      <line x1="0" y1="0" x2="-22" y2="0" stroke="white" strokeWidth="1.5" strokeLinecap="butt" />
+                      <path d="M-22 0 L -26 -3 L -26 3 Z" fill="#facc15" stroke="#a16207" strokeWidth="0.5" />
+                      {/* Entry wound effect */}
+                      <circle cx="0" cy="0" r="2" fill="#333" opacity="0.6" />
+                      <circle cx="0" cy="0" r="1" fill="#ef4444" opacity="0.8" />
                   </g>
               ))}
           </g>
@@ -258,29 +261,29 @@ export const StickmanRender: React.FC<StickmanProps> = ({
         );
       }
 
-      // IMPERIAL KNIGHT ARCHER (Anime Style)
+      // IMPERIAL KNIGHT ARCHER (Anime Style - ROUND)
       if (type === UnitType.ARCHER) {
           return (
               <g>
                   {/* -- BASE ARMOR -- */}
                   
-                  {/* Small Cape/Hood (Back) */}
-                  <path d="M30 60 Q 50 65 70 60 L 75 90 Q 50 100 25 90 Z" fill={secondaryColor} opacity="0.6" />
+                  {/* Round Hood (Back) */}
+                  <path d="M25 50 Q 50 35 75 50 L 78 80 Q 50 90 22 80 Z" fill={secondaryColor} opacity="0.6" />
                   
-                  {/* Light Chest Plate (Slimmer than Knight) */}
+                  {/* Light Chest Plate (Curved for round body) */}
                   <path 
-                      d="M32 65 Q 50 60 68 65 L 64 85 Q 50 95 36 85 Z" 
+                      d="M30 60 Q 50 55 70 60 L 66 80 Q 50 85 34 80 Z" 
                       fill={armorColor} 
                       stroke={armorTrim} 
                       strokeWidth="1" 
                   />
                   
                   {/* Arm Bracer (Bow Arm - Right side for viewer) */}
-                  <rect x="70" y="65" width="8" height="15" rx="2" fill="#78350f" stroke={armorTrim} strokeWidth="1" transform="rotate(-5 74 72)" />
+                  <rect x="72" y="60" width="8" height="12" rx="2" fill="#78350f" stroke={armorTrim} strokeWidth="1" transform="rotate(-5 76 66)" />
 
                   {/* Quiver (Peeking from back) */}
-                  <g transform="translate(15, 55) rotate(-20)">
-                      <rect x="0" y="0" width="8" height="20" rx="2" fill="#5D4037" stroke="#3E2723" />
+                  <g transform="translate(18, 50) rotate(-20)">
+                      <rect x="0" y="0" width="8" height="18" rx="2" fill="#5D4037" stroke="#3E2723" />
                       {/* Feathers */}
                       <path d="M2 -5 L 4 0 L 6 -5" stroke="white" strokeWidth="1" fill="none" />
                       <path d="M0 -3 L 4 2 L 8 -3" stroke="white" strokeWidth="1" fill="none" />
@@ -290,25 +293,25 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                   <g 
                     className={isAttacking ? "animate-bow-draw" : "transition-transform duration-700"}
                     style={{ 
-                        transformOrigin: "75px 65px",
+                        transformOrigin: "75px 60px",
                         transform: isAttacking ? "rotate(0deg)" : "rotate(25deg) translate(0, 5px)"
                     }}
                   >
                       {/* Realistic Recurve Bow */}
                       <path 
-                        d="M60 30 C 50 40, 75 50, 75 65 C 75 80, 50 90, 60 100" 
+                        d="M60 25 C 50 35, 75 45, 75 60 C 75 75, 50 85, 60 95" 
                         fill="none" 
                         stroke="#8B4513" 
                         strokeWidth="3" 
                         strokeLinecap="round"
                       />
                       {/* Handle Grip */}
-                      <path d="M72 60 L 72 70" stroke="#facc15" strokeWidth="3.5" />
+                      <path d="M72 55 L 72 65" stroke="#facc15" strokeWidth="3.5" />
 
                       {/* Bow String - Dynamic Draw */}
                       <path 
                         className={isAttacking ? "animate-string-draw" : ""}
-                        d="M60 30 L 60 100" 
+                        d="M60 25 L 60 95" 
                         fill="none" 
                         stroke="#fff" 
                         strokeWidth="0.5" 
@@ -317,9 +320,9 @@ export const StickmanRender: React.FC<StickmanProps> = ({
 
                       {/* Arrow - Only visible during draw/attack */}
                       <g className={isAttacking ? "animate-arrow-appear" : "opacity-0"}>
-                          <line x1="40" y1="65" x2="80" y2="65" stroke="#e2e8f0" strokeWidth="1.5" />
-                          <path d="M80 65 L 75 62 L 75 68 Z" fill="#e2e8f0" /> {/* Single Head */}
-                          <path d="M40 65 L 35 62 L 35 68 Z" fill="white" /> {/* Feathers */}
+                          <line x1="40" y1="60" x2="80" y2="60" stroke="#e2e8f0" strokeWidth="1.5" />
+                          <path d="M80 60 L 75 57 L 75 63 Z" fill="#e2e8f0" /> {/* Single Head */}
+                          <path d="M40 60 L 35 57 L 35 63 Z" fill="white" /> {/* Feathers */}
                       </g>
                   </g>
 
@@ -331,11 +334,11 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                         100% { transform: rotate(0deg); } /* Recoil/Relax */
                     }
                     @keyframes stringDraw {
-                        0% { d: path("M60 30 L 60 100"); }
-                        40% { d: path("M60 30 L 35 65 L 60 100"); } /* Draw Back */
-                        90% { d: path("M60 30 L 35 65 L 60 100"); } /* Hold */
-                        95% { d: path("M60 30 L 65 65 L 60 100"); } /* Release Snap */
-                        100% { d: path("M60 30 L 60 100"); }
+                        0% { d: path("M60 25 L 60 95"); }
+                        40% { d: path("M60 25 L 35 60 L 60 95"); } /* Draw Back */
+                        90% { d: path("M60 25 L 35 60 L 60 95"); } /* Hold */
+                        95% { d: path("M60 25 L 65 60 L 60 95"); } /* Release Snap */
+                        100% { d: path("M60 25 L 60 95"); }
                     }
                     @keyframes arrowAppear {
                         0% { opacity: 0; transform: translate(10px, 0); }
@@ -388,11 +391,11 @@ export const StickmanRender: React.FC<StickmanProps> = ({
             />
         );
     }
-    // Imperial Archer - Slimmer, Elegant, Taller
+    // Imperial Archer - Round, Bulbous body (Anime Style)
     if (type === UnitType.ARCHER) {
         return (
             <path 
-                d="M30 100 L 30 65 Q 30 40 50 40 Q 70 40 70 65 L 70 100 Z" 
+                d="M 25 100 C 15 90 15 45 50 45 C 85 45 85 90 75 100 Z" 
                 fill={baseColor} 
                 stroke={secondaryColor} 
                 strokeWidth="3"
