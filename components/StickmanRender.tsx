@@ -391,11 +391,11 @@ export const StickmanRender: React.FC<StickmanProps> = ({
             />
         );
     }
-    // Imperial Archer - Round, Bulbous body (Anime Style)
+    // Imperial Archer - Round, Bulbous body (Perfect Slime Shape)
     if (type === UnitType.ARCHER) {
         return (
             <path 
-                d="M 25 100 C 15 90 15 45 50 45 C 85 45 85 90 75 100 Z" 
+                d="M 20 100 C 20 80 20 50 50 50 C 80 50 80 80 80 100 Z" 
                 fill={baseColor} 
                 stroke={secondaryColor} 
                 strokeWidth="3"

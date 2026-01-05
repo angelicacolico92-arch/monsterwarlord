@@ -1,4 +1,5 @@
 
+// ... existing imports
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { UnitType, GameUnit, GameState, GameCommand, PlayerRole, MapId, GameProjectile, StuckArrow } from './types';
 import { 
@@ -304,15 +305,25 @@ export const App: React.FC = () => {
                   if (targetUnit) {
                       hit = true;
                       applyDamage(targetUnit, p.damage, now, false, nextUnits);
-                      // Add Stuck Arrow to Unit
-                      // Safe mutation because nextUnits contains shallow copies and we are creating a new array for stuckArrows
+                      
+                      // Add Stuck Arrow to Unit with Side-Specific Placement
                       const currentArrows = targetUnit.stuckArrows || [];
                       if (currentArrows.length < 5) {
+                          // Ensure arrows visually stick to the correct side of impact
+                          // dir=1 (from Left): Hit Left Side (negative relative X)
+                          // dir=-1 (from Right): Hit Right Side (positive relative X)
+                          const impactX = dir === 1 
+                                ? -(10 + Math.random() * 12) // -22 to -10
+                                : (10 + Math.random() * 12); // 10 to 22
+                          
+                          const impactY = (Math.random() * 30) - 10; // -10 to 20
+                          const impactAngle = (dir === 1 ? 0 : 180) + (Math.random() * 20 - 10);
+
                           targetUnit.stuckArrows = [...currentArrows, {
                               id: Math.random().toString(36),
-                              x: Math.random() * 40 - 20,
-                              y: Math.random() * 60 - 30,
-                              angle: (dir === 1 ? -10 : 190) + (Math.random() * 20 - 10),
+                              x: impactX,
+                              y: impactY,
+                              angle: impactAngle,
                               variant: 'phys'
                           }];
                       }
