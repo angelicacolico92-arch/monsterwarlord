@@ -15,7 +15,6 @@ import {
   INITIAL_GOLD_SURGE,
   FORMATION_OFFSETS
 } from './constants';
-import { StickmanRender } from './components/StickmanRender';
 import { ArmyVisuals } from './components/ArmyVisuals';
 import { LandingPage } from './components/LandingPage';
 import { IntroSequence } from './components/IntroSequence';
@@ -193,8 +192,6 @@ export const App: React.FC = () => {
   const stateRef = useRef(gameState);
   const aiStateRef = useRef({ lastDecisionTime: 0, state: 'GATHERING' });
   const actionQueueRef = useRef<any[]>([]);
-  // Fix: Move useRef to top level to avoid conditional hook call error #310
-  const viewportRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => { stateRef.current = gameState; }, [gameState]);
 
@@ -554,132 +551,145 @@ export const App: React.FC = () => {
   }, [role, appMode]);
 
   // --- RENDER UI ---
-  if (appMode === 'INTRO') return <IntroSequence onComplete={() => setAppMode('LANDING')} />;
-  if (appMode === 'LANDING') return <LandingPage 
-      onStartHost={(s) => { setRole(PlayerRole.HOST); setIsSurgeMode(s); setAppMode('MAP_SELECT'); }} 
-      onStartClient={() => { setRole(PlayerRole.CLIENT); setAppMode('GAME'); }} 
-      onStartOffline={(s) => { setRole(PlayerRole.OFFLINE); setIsSurgeMode(s); setAppMode('MAP_SELECT'); }} 
-  />;
-  if (appMode === 'MAP_SELECT') return <MapSelection 
-      onSelectMap={(m) => { 
-          setGameState(prev => ({ ...prev, mapId: m, p1Gold: isSurgeMode ? INITIAL_GOLD_SURGE : INITIAL_GOLD, p2Gold: isSurgeMode ? INITIAL_GOLD_SURGE : INITIAL_GOLD }));
-          setAppMode('GAME'); 
-      }} 
-      onBack={() => setAppMode('LANDING')} 
-  />;
+  // Eliminate early returns by using a conditional variable for content
+  // This guarantees hook count consistency across renders
+  
+  let content = null;
+
+  if (appMode === 'INTRO') {
+      content = <IntroSequence onComplete={() => setAppMode('LANDING')} />;
+  } else if (appMode === 'LANDING') {
+      content = <LandingPage 
+          onStartHost={(s) => { setRole(PlayerRole.HOST); setIsSurgeMode(s); setAppMode('MAP_SELECT'); }} 
+          onStartClient={() => { setRole(PlayerRole.CLIENT); setAppMode('GAME'); }} 
+          onStartOffline={(s) => { setRole(PlayerRole.OFFLINE); setIsSurgeMode(s); setAppMode('MAP_SELECT'); }} 
+      />;
+  } else if (appMode === 'MAP_SELECT') {
+      content = <MapSelection 
+          onSelectMap={(m) => { 
+              setGameState(prev => ({ ...prev, mapId: m, p1Gold: isSurgeMode ? INITIAL_GOLD_SURGE : INITIAL_GOLD, p2Gold: isSurgeMode ? INITIAL_GOLD_SURGE : INITIAL_GOLD }));
+              setAppMode('GAME'); 
+          }} 
+          onBack={() => setAppMode('LANDING')} 
+      />;
+  } else {
+      // GAME Mode
+      content = (
+          <>
+            <div className="absolute inset-0 flex flex-col bg-inamorta select-none overflow-x-auto overflow-y-hidden touch-pan-x z-0 isolation-isolate">
+                <div className="relative h-full w-[200vw] overflow-hidden">
+                    <BattlefieldBackground mapId={gameState.mapId} />
+                    <BaseStatue 
+                        x={getVisualX(STATUE_PLAYER_POS)} 
+                        hp={gameState.playerStatueHP} 
+                        variant="BLUE" 
+                        isFlipped={isMirrored} 
+                        isRetreating={gameState.p1Command === GameCommand.RETREAT}
+                        stuckArrows={isMirrored ? gameState.enemyStatueStuckArrows : gameState.playerStatueStuckArrows}
+                    />
+                    <CrystalRock x={getVisualX(GOLD_MINE_PLAYER_X)} isFlipped={isMirrored} />
+                    <CrystalRock x={getVisualX(GOLD_MINE_ENEMY_X)} isFlipped={!isMirrored} />
+                    <BaseStatue 
+                        x={getVisualX(STATUE_ENEMY_POS)} 
+                        hp={gameState.enemyStatueHP} 
+                        variant="RED" 
+                        isFlipped={!isMirrored} 
+                        isRetreating={gameState.p2Command === GameCommand.RETREAT} 
+                        stuckArrows={!isMirrored ? gameState.enemyStatueStuckArrows : gameState.playerStatueStuckArrows}
+                    />
+                    <ArmyVisuals 
+                        units={gameState.units} 
+                        projectiles={gameState.projectiles}
+                        selectedUnitId={selectedUnitId} 
+                        onSelectUnit={(id) => setSelectedUnitId(id)} 
+                        isMirrored={isMirrored}
+                        p1Command={gameState.p1Command}
+                        p2Command={gameState.p2Command}
+                    />
+                </div>
+            </div>
+
+            {/* TOP LEFT: Player Info */}
+            <div className="fixed top-4 left-4 z-40 flex items-center gap-3 bg-black/40 backdrop-blur-md p-1.5 pr-4 rounded-full border border-white/10 shadow-lg select-none">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 border border-blue-300 flex items-center justify-center shadow-inner">
+                    <span className="font-epic text-xs text-white font-bold">P1</span>
+                </div>
+                <div className="flex flex-col leading-none">
+                    <span className="font-epic text-stone-200 text-xs tracking-wider">COMMANDER</span>
+                    <span className="text-[10px] text-blue-400 font-mono">ONLINE</span>
+                </div>
+            </div>
+
+            {/* TOP RIGHT: Resources */}
+            <div className="fixed top-4 right-4 z-40 bg-black/70 px-4 py-2 rounded-full border border-white/10 flex gap-4 items-center">
+                <div className="flex items-center gap-2"><Gem className="text-cyan-400" size={18} /><span className="text-cyan-100 font-bold">{Math.floor(currentGold)}</span></div>
+                <div className="flex items-center gap-2"><Users className={gameState.units.filter(u => u.side === (isMirrored ? 'enemy' : 'player') && u.state !== 'DYING').length >= MAX_UNITS ? "text-red-500" : "text-stone-400"} size={18} /><span className="text-stone-100 font-bold">{gameState.units.filter(u => u.side === (isMirrored ? 'enemy' : 'player') && u.state !== 'DYING').length}/{MAX_UNITS}</span></div>
+            </div>
+
+            <div className="fixed top-16 right-4 z-40 flex gap-2">
+                <button onClick={() => { AudioService.playSelect(); setShowSettings(true); }} className="p-2 bg-black/60 rounded-full border border-white/20 text-stone-300 hover:text-white shadow-lg active:scale-95"><Settings size={20} /></button>
+            </div>
+            {showSettings && <SettingsModal onClose={() => setShowSettings(false)} onLeaveGame={handleLeaveGame} />}
+
+            {/* RECRUITMENT BAR */}
+            <div className="fixed top-2 left-1/2 -translate-x-1/2 z-40 bg-black/80 p-2 rounded-xl flex gap-2 border border-white/10 max-w-[90vw] overflow-x-auto no-scrollbar">
+                {Object.values(UNIT_CONFIGS).filter(u => u.cost > 0).map(u => (
+                    <div key={u.type} className="transform scale-90 origin-top">
+                        <UnitCard
+                            unit={u}
+                            count={gameState.units.filter(unit => unit.side === (isMirrored ? 'enemy' : 'player') && unit.type === u.type).length}
+                            canAfford={currentGold >= u.cost}
+                            onRecruit={() => actionQueueRef.current.push({type: 'RECRUIT', unitType: u.type, side: isMirrored ? 'enemy' : 'player'})}
+                            variant={isMirrored ? "RED" : "BLUE"}
+                        />
+                    </div>
+                ))}
+            </div>
+
+            {/* COMMANDS */}
+            <div className="fixed bottom-4 right-4 z-40 flex flex-col gap-2">
+                {[GameCommand.ATTACK, GameCommand.DEFEND, GameCommand.RETREAT].map(cmd => (
+                    <button 
+                        key={cmd}
+                        onClick={() => actionQueueRef.current.push({type: 'CHANGE_COMMAND', side: isMirrored ? 'enemy' : 'player', command: cmd})} 
+                        className={`p-3 rounded-full border-2 shadow-lg active:scale-95 transition-all duration-200 ${gameState.p1Command === cmd ? 'bg-blue-600 border-white scale-110 ring-2 ring-blue-400' : 'bg-stone-900/40 border-white/10'}`}
+                    >
+                        {cmd === GameCommand.ATTACK && <Swords size={24} />}
+                        {cmd === GameCommand.DEFEND && <Shield size={24} />}
+                        {cmd === GameCommand.RETREAT && <CornerDownLeft size={24} />}
+                    </button>
+                ))}
+            </div>
+            
+            {showSurrenderConfirm && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-stone-900 p-8 rounded-2xl border-2 border-red-500/30 shadow-2xl text-center">
+                        <h2 className="text-2xl font-epic text-red-500 mb-4">SURRENDER?</h2>
+                        <div className="flex gap-4 justify-center">
+                            <button onClick={() => setShowSurrenderConfirm(false)} className="px-6 py-2 rounded bg-stone-700 font-bold hover:bg-stone-600">CANCEL</button>
+                            <button onClick={() => { setGameState(prev => ({ ...prev, playerStatueHP: 0 })); setShowSurrenderConfirm(false); }} className="px-6 py-2 rounded bg-red-900 font-bold text-red-100 hover:bg-red-700">SURRENDER</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {gameState.gameStatus !== 'PLAYING' && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-intro-fade">
+                    <div className="bg-stone-900 p-12 rounded-2xl border-4 text-center shadow-2xl animate-victory-modal">
+                        <h1 className={`text-6xl font-epic mb-4 animate-flourish ${gameState.gameStatus === 'VICTORY' ? 'text-yellow-400' : 'text-red-600'}`}>
+                            {gameState.gameStatus === 'VICTORY' ? 'VICTORY!' : 'DEFEAT'}
+                        </h1>
+                        <button onClick={handleReturnToMenu} className="px-8 py-3 rounded-lg font-bold text-lg bg-stone-700 hover:bg-stone-600 text-white border-stone-900 border-b-4 active:border-b-0 active:translate-y-1 transition-all">RETURN TO BASE</button>
+                    </div>
+                </div>
+            )}
+          </>
+      );
+  }
 
   return (
     <div className="h-[100dvh] w-screen bg-black overflow-hidden relative">
-      <div 
-        ref={viewportRef}
-        className={`absolute inset-0 flex flex-col bg-inamorta select-none overflow-x-auto overflow-y-hidden touch-pan-x z-0 isolation-isolate`}
-      >
-          <div className="relative h-full w-[200vw] overflow-hidden">
-            <BattlefieldBackground mapId={gameState.mapId} />
-            <BaseStatue 
-                x={getVisualX(STATUE_PLAYER_POS)} 
-                hp={gameState.playerStatueHP} 
-                variant="BLUE" 
-                isFlipped={isMirrored} 
-                isRetreating={gameState.p1Command === GameCommand.RETREAT}
-                stuckArrows={isMirrored ? gameState.enemyStatueStuckArrows : gameState.playerStatueStuckArrows}
-            />
-            <CrystalRock x={getVisualX(GOLD_MINE_PLAYER_X)} isFlipped={isMirrored} />
-            <CrystalRock x={getVisualX(GOLD_MINE_ENEMY_X)} isFlipped={!isMirrored} />
-            <BaseStatue 
-                x={getVisualX(STATUE_ENEMY_POS)} 
-                hp={gameState.enemyStatueHP} 
-                variant="RED" 
-                isFlipped={!isMirrored} 
-                isRetreating={gameState.p2Command === GameCommand.RETREAT} 
-                stuckArrows={!isMirrored ? gameState.enemyStatueStuckArrows : gameState.playerStatueStuckArrows}
-            />
-            <ArmyVisuals 
-                units={gameState.units} 
-                projectiles={gameState.projectiles}
-                selectedUnitId={selectedUnitId} 
-                onSelectUnit={(id) => setSelectedUnitId(id)} 
-                isMirrored={isMirrored}
-                p1Command={gameState.p1Command}
-                p2Command={gameState.p2Command}
-            />
-          </div>
-      </div>
-
-      {/* TOP LEFT: Player Info */}
-      <div className="fixed top-4 left-4 z-40 flex items-center gap-3 bg-black/40 backdrop-blur-md p-1.5 pr-4 rounded-full border border-white/10 shadow-lg select-none">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 border border-blue-300 flex items-center justify-center shadow-inner">
-              <span className="font-epic text-xs text-white font-bold">P1</span>
-          </div>
-          <div className="flex flex-col leading-none">
-              <span className="font-epic text-stone-200 text-xs tracking-wider">COMMANDER</span>
-              <span className="text-[10px] text-blue-400 font-mono">ONLINE</span>
-          </div>
-      </div>
-
-      {/* TOP RIGHT: Resources */}
-      <div className="fixed top-4 right-4 z-40 bg-black/70 px-4 py-2 rounded-full border border-white/10 flex gap-4 items-center">
-         <div className="flex items-center gap-2"><Gem className="text-cyan-400" size={18} /><span className="text-cyan-100 font-bold">{Math.floor(currentGold)}</span></div>
-         <div className="flex items-center gap-2"><Users className={gameState.units.filter(u => u.side === (isMirrored ? 'enemy' : 'player') && u.state !== 'DYING').length >= MAX_UNITS ? "text-red-500" : "text-stone-400"} size={18} /><span className="text-stone-100 font-bold">{gameState.units.filter(u => u.side === (isMirrored ? 'enemy' : 'player') && u.state !== 'DYING').length}/{MAX_UNITS}</span></div>
-      </div>
-
-      <div className="fixed top-16 right-4 z-40 flex gap-2">
-          <button onClick={() => { AudioService.playSelect(); setShowSettings(true); }} className="p-2 bg-black/60 rounded-full border border-white/20 text-stone-300 hover:text-white shadow-lg active:scale-95"><Settings size={20} /></button>
-      </div>
-      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} onLeaveGame={handleLeaveGame} />}
-
-      {/* RECRUITMENT BAR */}
-      <div className="fixed top-2 left-1/2 -translate-x-1/2 z-40 bg-black/80 p-2 rounded-xl flex gap-2 border border-white/10 max-w-[90vw] overflow-x-auto no-scrollbar">
-          {Object.values(UNIT_CONFIGS).filter(u => u.cost > 0).map(u => (
-              <div key={u.type} className="transform scale-90 origin-top">
-                <UnitCard
-                    unit={u}
-                    count={gameState.units.filter(unit => unit.side === (isMirrored ? 'enemy' : 'player') && unit.type === u.type).length}
-                    canAfford={currentGold >= u.cost}
-                    onRecruit={() => actionQueueRef.current.push({type: 'RECRUIT', unitType: u.type, side: isMirrored ? 'enemy' : 'player'})}
-                    variant={isMirrored ? "RED" : "BLUE"}
-                />
-              </div>
-          ))}
-      </div>
-
-      {/* COMMANDS */}
-      <div className="fixed bottom-4 right-4 z-40 flex flex-col gap-2">
-          {[GameCommand.ATTACK, GameCommand.DEFEND, GameCommand.RETREAT].map(cmd => (
-              <button 
-                key={cmd}
-                onClick={() => actionQueueRef.current.push({type: 'CHANGE_COMMAND', side: isMirrored ? 'enemy' : 'player', command: cmd})} 
-                className={`p-3 rounded-full border-2 shadow-lg active:scale-95 transition-all duration-200 ${gameState.p1Command === cmd ? 'bg-blue-600 border-white scale-110 ring-2 ring-blue-400' : 'bg-stone-900/40 border-white/10'}`}
-              >
-                {cmd === GameCommand.ATTACK && <Swords size={24} />}
-                {cmd === GameCommand.DEFEND && <Shield size={24} />}
-                {cmd === GameCommand.RETREAT && <CornerDownLeft size={24} />}
-              </button>
-          ))}
-      </div>
-      
-      {showSurrenderConfirm && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
-            <div className="bg-stone-900 p-8 rounded-2xl border-2 border-red-500/30 shadow-2xl text-center">
-                <h2 className="text-2xl font-epic text-red-500 mb-4">SURRENDER?</h2>
-                <div className="flex gap-4 justify-center">
-                    <button onClick={() => setShowSurrenderConfirm(false)} className="px-6 py-2 rounded bg-stone-700 font-bold hover:bg-stone-600">CANCEL</button>
-                    <button onClick={() => { setGameState(prev => ({ ...prev, playerStatueHP: 0 })); setShowSurrenderConfirm(false); }} className="px-6 py-2 rounded bg-red-900 font-bold text-red-100 hover:bg-red-700">SURRENDER</button>
-                </div>
-            </div>
-        </div>
-      )}
-
-      {gameState.gameStatus !== 'PLAYING' && (
-         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-intro-fade">
-             <div className="bg-stone-900 p-12 rounded-2xl border-4 text-center shadow-2xl animate-victory-modal">
-                 <h1 className={`text-6xl font-epic mb-4 animate-flourish ${gameState.gameStatus === 'VICTORY' ? 'text-yellow-400' : 'text-red-600'}`}>
-                     {gameState.gameStatus === 'VICTORY' ? 'VICTORY!' : 'DEFEAT'}
-                 </h1>
-                 <button onClick={handleReturnToMenu} className="px-8 py-3 rounded-lg font-bold text-lg bg-stone-700 hover:bg-stone-600 text-white border-stone-900 border-b-4 active:border-b-0 active:translate-y-1 transition-all">RETURN TO BASE</button>
-             </div>
-         </div>
-      )}
+        {content}
     </div>
   );
 };
