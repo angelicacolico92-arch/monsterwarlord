@@ -61,6 +61,14 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({
           const moveDir = p.targetX > p.x ? 1 : -1;
           const facingScale = moveDir * (isMirrored ? -1 : 1);
           
+          // Generate a deterministic jitter based on ID so projectiles don't stack perfectly visually
+          let hash = 0;
+          for (let i = 0; i < p.id.length; i++) {
+              hash = ((hash << 5) - hash) + p.id.charCodeAt(i);
+              hash |= 0;
+          }
+          const laneJitter = (Math.abs(hash) % 20) - 10; // +/- 10px vertical spread
+
           // Arc Calculation
           // Base height: -20px. Max arc height depends on distance.
           let yOffset = -20;
@@ -78,11 +86,10 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({
                   const maxArcHeight = Math.min(10, totalDist * 0.2); 
                   const arcY = 4 * maxArcHeight * progress * (1 - progress);
                   
-                  yOffset = -35 - arcY; // Higher base offset for headshot height
+                  yOffset = -35 - arcY + laneJitter; // Apply jitter here
 
                   // Calculate rotation based on derivative: 4h(1 - 2x)
                   // Slope is height change per progress unit.
-                  // This is a rough visual rotation.
                   const slope = 4 * maxArcHeight * (1 - 2 * progress);
                   // Clamp rotation to avoid spinning wildy
                   rotation = -Math.atan(slope / 50) * (180 / Math.PI) * (isMirrored ? -1 : 1) * (moveDir);
@@ -92,27 +99,25 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({
           return (
              <div 
                key={p.id}
-               className="absolute bottom-16 w-20 h-4 transition-transform duration-100 will-change-transform z-[110]"
+               className="absolute bottom-16 w-10 h-3 transition-transform duration-100 will-change-transform z-[110]"
                style={{
                    left: `${visualX}%`,
                    transform: `translate3d(-50%, ${yOffset}px, 0) scaleX(${facingScale}) rotate(${rotation}deg)`,
                }}
              >
-                 {/* High-Contrast Imperial Arrow - Larger, Brighter */}
-                 <svg viewBox="0 0 80 12" className="w-full h-full overflow-visible drop-shadow-md">
-                    {/* Glowing Trail (Speed lines) */}
-                    <line x1="-10" y1="6" x2="40" y2="6" stroke="#fff" strokeWidth="1" strokeOpacity="0.3" strokeDasharray="10 5" />
+                 {/* High-Contrast Imperial Arrow - Smaller & Sharper */}
+                 <svg viewBox="0 0 40 10" className="w-full h-full overflow-visible drop-shadow-sm">
+                    {/* Glowing Trail (Speed lines) - Reduced opacity */}
+                    <line x1="-5" y1="5" x2="20" y2="5" stroke="#fff" strokeWidth="0.5" strokeOpacity="0.4" strokeDasharray="4 2" />
                     
-                    {/* Shaft - Thick White Core */}
-                    <line x1="5" y1="6" x2="70" y2="6" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" />
+                    {/* Shaft - Thin White Core */}
+                    <line x1="2" y1="5" x2="35" y2="5" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
                     
                     {/* Emerald Head - Glowing */}
-                    <path d="M65 2 L 80 6 L 65 10 L 68 6 Z" fill="#34d399" stroke="#fff" strokeWidth="1" />
-                    <circle cx="75" cy="6" r="3" fill="#bef264" opacity="0.8" className="animate-pulse" />
+                    <path d="M32 3 L 40 5 L 32 7 L 34 5 Z" fill="#34d399" stroke="none" />
                     
-                    {/* Gold Fletching - Neon */}
-                    <path d="M15 6 L 5 1 L 5 11 Z" fill="#facc15" stroke="#a16207" strokeWidth="0.5" />
-                    <path d="M12 6 L 2 2 L 2 10 Z" fill="#facc15" stroke="#a16207" strokeWidth="0.5" />
+                    {/* Gold Fletching - Sharper */}
+                    <path d="M8 5 L 2 2 L 2 8 Z" fill="#facc15" stroke="#a16207" strokeWidth="0.2" />
                  </svg>
              </div>
           );

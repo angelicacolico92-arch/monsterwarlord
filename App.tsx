@@ -754,7 +754,8 @@ export const App: React.FC = () => {
                                 targetX: primaryTarget.x,
                                 targetId: primaryTarget.id,
                                 damage: currentDamage,
-                                speed: 45, // High speed arrow
+                                // Randomize speed slightly to prevent perfect visual overlap of arrows
+                                speed: 40 + Math.random() * 10, 
                                 side: unit.side,
                                 visualType: 'ARROW',
                                 createdAt: now
@@ -785,7 +786,7 @@ export const App: React.FC = () => {
                                 startX: unit.x, // Store startX for Arc
                                 targetX: targetStatueX,
                                 damage: currentDamage,
-                                speed: 45, // High speed arrow
+                                speed: 40 + Math.random() * 10, // Randomize speed
                                 side: unit.side,
                                 visualType: 'ARROW',
                                 createdAt: now
