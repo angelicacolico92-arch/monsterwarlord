@@ -192,6 +192,7 @@ export const App: React.FC = () => {
   const stateRef = useRef(gameState);
   const aiStateRef = useRef({ lastDecisionTime: 0, state: 'GATHERING' });
   const actionQueueRef = useRef<any[]>([]);
+  const viewportRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => { stateRef.current = gameState; }, [gameState]);
 
@@ -585,7 +586,7 @@ export const App: React.FC = () => {
                         variant="BLUE" 
                         isFlipped={isMirrored} 
                         isRetreating={gameState.p1Command === GameCommand.RETREAT}
-                        stuckArrows={isMirrored ? gameState.enemyStatueStuckArrows : gameState.playerStatueStuckArrows}
+                        stuckArrows={gameState.playerStatueStuckArrows}
                     />
                     <CrystalRock x={getVisualX(GOLD_MINE_PLAYER_X)} isFlipped={isMirrored} />
                     <CrystalRock x={getVisualX(GOLD_MINE_ENEMY_X)} isFlipped={!isMirrored} />
@@ -595,7 +596,7 @@ export const App: React.FC = () => {
                         variant="RED" 
                         isFlipped={!isMirrored} 
                         isRetreating={gameState.p2Command === GameCommand.RETREAT} 
-                        stuckArrows={!isMirrored ? gameState.enemyStatueStuckArrows : gameState.playerStatueStuckArrows}
+                        stuckArrows={gameState.enemyStatueStuckArrows}
                     />
                     <ArmyVisuals 
                         units={gameState.units} 
@@ -689,7 +690,9 @@ export const App: React.FC = () => {
 
   return (
     <div className="h-[100dvh] w-screen bg-black overflow-hidden relative">
-        {content}
+        <div ref={viewportRef} className="absolute inset-0">
+             {content}
+        </div>
     </div>
   );
 };
