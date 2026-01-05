@@ -121,7 +121,9 @@ export const StickmanRender: React.FC<StickmanProps> = ({
           <g className="pointer-events-none" transform="translate(50, 70)">
               {stuckArrows.map(arrow => (
                   <g key={arrow.id} transform={`translate(${arrow.x}, ${arrow.y}) rotate(${arrow.angle})`}>
+                      {/* Arrow Shaft - Points Left in local space (from 0 to -22) */}
                       <line x1="0" y1="0" x2="-22" y2="0" stroke="white" strokeWidth="1.5" strokeLinecap="butt" />
+                      {/* Fletching */}
                       <path d="M-22 0 L -26 -3 L -26 3 Z" fill="#facc15" stroke="#a16207" strokeWidth="0.5" />
                       {/* Entry wound effect */}
                       <circle cx="0" cy="0" r="2" fill="#333" opacity="0.6" />
@@ -261,14 +263,14 @@ export const StickmanRender: React.FC<StickmanProps> = ({
         );
       }
 
-      // IMPERIAL KNIGHT ARCHER (Anime Style - ROUND)
+      // IMPERIAL KNIGHT ARCHER (Anime Style - ROUND & HEAD FIXED)
       if (type === UnitType.ARCHER) {
           return (
               <g>
                   {/* -- BASE ARMOR -- */}
                   
-                  {/* Round Hood (Back) */}
-                  <path d="M25 50 Q 50 35 75 50 L 78 80 Q 50 90 22 80 Z" fill={secondaryColor} opacity="0.6" />
+                  {/* Round Hood (Back) - Adjusted for taller head */}
+                  <path d="M25 45 Q 50 25 75 45 L 78 80 Q 50 90 22 80 Z" fill={secondaryColor} opacity="0.6" />
                   
                   {/* Light Chest Plate (Curved for round body) */}
                   <path 
@@ -391,11 +393,11 @@ export const StickmanRender: React.FC<StickmanProps> = ({
             />
         );
     }
-    // Imperial Archer - Round, Bulbous body (Perfect Slime Shape)
+    // Imperial Archer - Round, Bulbous body (Fixed Head Height)
     if (type === UnitType.ARCHER) {
         return (
             <path 
-                d="M 20 100 C 20 80 20 50 50 50 C 80 50 80 80 80 100 Z" 
+                d="M 20 100 C 15 80 15 35 50 35 C 85 35 85 80 80 100 Z" 
                 fill={baseColor} 
                 stroke={secondaryColor} 
                 strokeWidth="3"
@@ -485,44 +487,4 @@ export const StickmanRender: React.FC<StickmanProps> = ({
         </g>
     );
   };
-
-  const renderBossEffect = () => {
-      if (!isBossAbility) return null;
-      return (
-         <g>
-            <circle cx="50" cy="90" r="10" fill="none" stroke="#f43f5e" strokeWidth="4" className="animate-boss-shockwave" />
-            <path d="M50 90 L 50 20" stroke="#f43f5e" strokeWidth="4" className="animate-energy-rise" />
-         </g>
-      );
-  }
-
-  return (
-    <svg 
-      width={100 * scale} 
-      height={100 * scale} 
-      viewBox="0 0 100 100" 
-      className="overflow-visible"
-    >
-      <defs>
-          <radialGradient id="mageGlow" cx="0.5" cy="0.5" r="0.5">
-              <stop offset="0%" stopColor="#a855f7" stopOpacity="0.8" />
-              <stop offset="100%" stopColor="transparent" stopOpacity="0" />
-          </radialGradient>
-      </defs>
-
-      {!isDying && <ellipse cx="50" cy="100" rx="30" ry="8" fill="rgba(0,0,0,0.3)" />}
-      {isSelected && !isDying && <ellipse cx="50" cy="95" rx="35" ry="10" fill="none" stroke="#fbbf24" strokeWidth="2" className="animate-pulse" />}
-      
-      <g className={animClass} style={Object.assign({}, style, animStyle)}>
-        {renderSlimeBody()}
-        {renderStuckArrows()} 
-        {renderEyes()}
-        {renderAccessories()}
-      </g>
-      
-      {/* Static/Ground Effects */}
-      {isBossAbility && renderBossEffect()}
-      {type === UnitType.SMALL && isSummoning && <circle cx="50" cy="100" r="20" stroke="#a855f7" strokeWidth="2" fill="none" className="animate-summon-circle" />}
-    </svg>
-  );
-};
+// ... rest of file unchanged
