@@ -71,6 +71,7 @@ const BaseStatue: React.FC<{ x: number; hp: number; variant: 'BLUE' | 'RED'; isF
     const lightColor = isRed ? '#fca5a5' : '#93c5fd';
     const portalCore = isRed ? '#4c0519' : '#1e1b4b'; 
     const portalSwirl1 = '#a855f7'; 
+    const portalSwirl2 = isRed ? '#f43f5e' : '#3b82f6';
 
     return (
         <div 
@@ -114,237 +115,556 @@ const BaseStatue: React.FC<{ x: number; hp: number; variant: 'BLUE' | 'RED'; isF
                        <path d="M160 5 L 180 -10 L 170 20 Z" fill="#57534e" opacity="0.6" />
                     </g>
                     
-                    <path d="M50 320 L 60 120 L 110 50 L 160 120 L 170 320 Z" fill={`url(#tower-body-${variant})`} stroke="rgba(255,255,255,0.2)" strokeWidth="2" />
-                    <ellipse cx="110" cy="180" rx="25" ry="40" fill="url(#portal-glow)" className="animate-pulse" />
+                    {/* Tower Body */}
+                    <path 
+                        d="M30 340 Q 10 340 10 300 Q 15 200 40 120 Q 80 20 110 20 Q 140 20 180 120 Q 205 200 210 300 Q 210 340 190 340 Q 110 360 30 340"
+                        fill={`url(#tower-body-${variant})`}
+                        stroke={lightColor}
+                        strokeWidth="2"
+                        className="animate-idle-breathe"
+                        style={{ transformOrigin: 'bottom center' }}
+                    />
+
+                    {/* Portal */}
+                    <g transform="translate(110, 180)">
+                        <circle cx="0" cy="0" r="55" fill="none" stroke={darkColor} strokeWidth="8" opacity="0.6" />
+                        <circle cx="0" cy="0" r="55" fill={portalCore} opacity="0.8" />
+                        <g className={isRetreating ? "animate-spin-fast" : "animate-portal-spin"} style={{ transformBox: 'fill-box', transformOrigin: 'center' }}>
+                            <path d="M-40 -20 Q 0 -60 40 -20 Q 0 20 -40 -20" fill="none" stroke={portalSwirl1} strokeWidth="4" opacity="0.8" />
+                            <path d="M-20 40 Q 60 0 20 -40" fill="none" stroke={portalSwirl2} strokeWidth="3" opacity="0.7" transform="rotate(90)" />
+                        </g>
+                    </g>
+
+                    {/* Stuck Arrows on Statue */}
+                    {stuckArrows.map(arrow => (
+                        <g key={arrow.id} transform={`translate(${arrow.x * 2.2}, ${arrow.y * 3.8}) rotate(${arrow.angle})`}>
+                            <line x1="0" y1="0" x2="-25" y2="0" stroke="white" strokeWidth="2" />
+                            <path d="M-25 0 L -30 -4 L -30 4 Z" fill="#facc15" />
+                        </g>
+                    ))}
                 </svg>
             </div>
         </div>
     );
 };
 
+const TICK_RATE = 20; 
+const DEATH_DURATION = 1500;
+const UNIT_AGILITY: Record<string, number> = {
+  [UnitType.WORKER]: 5.0,
+  [UnitType.SMALL]: 6.0,
+  [UnitType.TOXIC]: 10.0,
+  [UnitType.ARCHER]: 3.5,
+  [UnitType.MAGE]: 2.5,
+  [UnitType.PALADIN]: 2.0,
+  [UnitType.BOSS]: 1.0
+};
+
 export const App: React.FC = () => {
-    const [view, setView] = useState<'LOADING' | 'INTRO' | 'MAP_SELECT' | 'GAME' | 'END'>('LOADING');
-    const [gameState, setGameState] = useState<GameState>({
-        units: [],
-        projectiles: [],
-        playerStatueHP: STATUE_HP,
-        enemyStatueHP: STATUE_HP,
-        p1Gold: INITIAL_GOLD,
-        p2Gold: INITIAL_GOLD,
-        p1Command: GameCommand.ATTACK,
-        p2Command: GameCommand.ATTACK,
-        lastTick: Date.now(),
-        gameStatus: 'PLAYING',
-        mapId: MapId.FOREST
-    });
+  const [appMode, setAppMode] = useState<'INTRO' | 'LANDING' | 'MAP_SELECT' | 'GAME'>('INTRO');
+  const [role, setRole] = useState<PlayerRole>(PlayerRole.HOST);
+  const [isSurgeMode, setIsSurgeMode] = useState(false);
+  const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showSurrenderConfirm, setShowSurrenderConfirm] = useState(false);
+  
+  // Game State
+  const [gameState, setGameState] = useState<GameState>({
+    units: [],
+    projectiles: [],
+    playerStatueHP: STATUE_HP,
+    enemyStatueHP: STATUE_HP,
+    playerStatueStuckArrows: [],
+    enemyStatueStuckArrows: [],
+    p1Gold: INITIAL_GOLD,
+    p2Gold: INITIAL_GOLD,
+    p1Command: GameCommand.DEFEND,
+    p2Command: GameCommand.DEFEND,
+    lastTick: Date.now(),
+    gameStatus: 'PLAYING',
+    mapId: MapId.FOREST
+  });
 
-    const [mapId, setMapId] = useState<MapId>(MapId.FOREST);
-    const [showSettings, setShowSettings] = useState(false);
-    const [surgeMode, setSurgeMode] = useState(false);
-    const [playerRole, setPlayerRole] = useState<PlayerRole>(PlayerRole.OFFLINE);
-    const [playerId, setPlayerId] = useState<string>('player');
-    
-    // Game Loop Refs
-    const requestRef = useRef<number>();
-    const lastTickRef = useRef<number>(Date.now());
+  const stateRef = useRef(gameState);
+  const aiStateRef = useRef({ lastDecisionTime: 0, state: 'GATHERING' });
+  const actionQueueRef = useRef<any[]>([]);
+  
+  // Ref sync
+  useEffect(() => { stateRef.current = gameState; }, [gameState]);
 
-    // Game Loop
-    const gameLoop = useCallback(() => {
-        const now = Date.now();
-        const dt = now - lastTickRef.current;
+  // Audio Logic
+  useEffect(() => {
+    if (appMode === 'GAME') AudioService.startMusic(gameState.mapId);
+    else AudioService.stopMusic();
+  }, [appMode, gameState.mapId]);
+
+  const isMirrored = role === PlayerRole.CLIENT;
+  const currentGold = role === PlayerRole.HOST || role === PlayerRole.OFFLINE ? gameState.p1Gold : gameState.p2Gold;
+  const getVisualX = useCallback((x: number) => isMirrored ? 100 - x : x, [isMirrored]);
+
+  const handleReturnToMenu = useCallback(() => {
+    setIsSurgeMode(false);
+    mpService.destroy();
+    setAppMode('LANDING');
+    setShowSettings(false);
+  }, []);
+
+  const handleLeaveGame = () => {
+      setShowSettings(false);
+      setShowSurrenderConfirm(true);
+  };
+
+  // Damage Logic
+  const applyDamage = (target: GameUnit, rawDamage: number, now: number, isBossAttack: boolean, allUnits: GameUnit[]) => {
+      let damageDealt = rawDamage;
+      if (target.type === UnitType.PALADIN) damageDealt *= 0.7; 
+      if (target.type === UnitType.BOSS) {
+          const lowHp = target.hp < target.maxHp * 0.4;
+          damageDealt *= (1 - (lowHp ? 0.20 : 0.15));
+      }
+      // Imperial Slime Phalanx
+      if (target.type === UnitType.TOXIC) {
+          const nearbyAllies = allUnits.filter(u => u.side === target.side && u.type === UnitType.TOXIC && u.id !== target.id && Math.abs(u.x - target.x) < 5).length;
+          damageDealt *= (1 - Math.min(nearbyAllies * 0.1, 0.3));
+      }
+      target.hp -= damageDealt;
+      target.lastDamageTime = now;
+      target.lastDamageAmount = Math.floor(damageDealt);
+  };
+
+  // Add Stuck Arrow Logic
+  const addStuckArrow = (targetUnit: GameUnit | null, isStatueHit: boolean, side: 'player' | 'enemy', angle: number, targetX: number) => {
+      // 1. Arrow stuck in Unit
+      if (targetUnit) {
+          if (!targetUnit.stuckArrows) targetUnit.stuckArrows = [];
+          if (targetUnit.stuckArrows.length < 5) { // Limit arrows
+              targetUnit.stuckArrows.push({
+                  id: Math.random().toString(36),
+                  x: Math.random() * 40 - 20, // Random offset on body
+                  y: Math.random() * 60 - 30,
+                  angle: angle + (Math.random() * 20 - 10),
+                  variant: 'phys'
+              });
+          }
+      }
+      // 2. Arrow stuck in Statue
+      else if (isStatueHit) {
+          const isPlayerStatue = side === 'player'; // Attacking enemy statue means side='player' projectiles hit ENEMY statue? No.
+          // Projectile side='player' hits Enemy Statue.
+          const isTargetEnemyStatue = side === 'player';
+          
+          const newArrow: StuckArrow = {
+              id: Math.random().toString(36),
+              x: Math.random() * 60 + 20, // Random spread on tower
+              y: Math.random() * 60 + 20,
+              angle: (Math.random() * 30 - 15),
+              variant: 'phys'
+          };
+
+          if (isTargetEnemyStatue) {
+              if (!stateRef.current.enemyStatueStuckArrows) stateRef.current.enemyStatueStuckArrows = [];
+              stateRef.current.enemyStatueStuckArrows.push(newArrow);
+          } else {
+              if (!stateRef.current.playerStatueStuckArrows) stateRef.current.playerStatueStuckArrows = [];
+              stateRef.current.playerStatueStuckArrows.push(newArrow);
+          }
+      }
+  };
+
+  // GAME LOOP
+  useEffect(() => {
+    if ((role !== PlayerRole.HOST && role !== PlayerRole.OFFLINE) || appMode !== 'GAME') return;
+    const mapDifficulty = MAP_CONFIGS[stateRef.current.mapId]?.difficulty || 'Medium';
+
+    const intervalId = setInterval(() => {
+      const now = Date.now();
+      const deltaTime = Math.min((now - stateRef.current.lastTick) / 1000, 0.05);
+      let { units, projectiles, playerStatueHP, enemyStatueHP, p1Gold, p2Gold, p1Command, p2Command, gameStatus, playerStatueStuckArrows, enemyStatueStuckArrows } = stateRef.current;
+      
+      if (gameStatus !== 'PLAYING') return;
+
+      let nextUnits = units.map(u => ({ ...u }));
+      let nextProjectiles = projectiles ? projectiles.map(p => ({ ...p })) : [];
+      let newSummons: GameUnit[] = [];
+
+      // Process Actions
+      while (actionQueueRef.current.length > 0) {
+        const action = actionQueueRef.current.shift();
+        if (action.type === 'RECRUIT') {
+          const config = UNIT_CONFIGS[action.unitType as UnitType];
+          const isP1 = action.side === 'player';
+          const sideUnits = nextUnits.filter(u => u.side === action.side && u.state !== 'DYING').length;
+          if (sideUnits < MAX_UNITS && (isP1 ? p1Gold : p2Gold) >= config.cost) {
+            if (isP1) p1Gold -= config.cost; else p2Gold -= config.cost;
+            nextUnits.push({
+              id: Math.random().toString(36).substr(2, 9),
+              type: action.unitType,
+              side: action.side,
+              x: action.side === 'player' ? SPAWN_X_PLAYER : SPAWN_X_ENEMY,
+              hp: config.stats.hp,
+              maxHp: config.stats.hp,
+              state: 'WALKING',
+              lastAttackTime: 0,
+              currentSpeed: 0,
+              hasGold: false,
+              stuckArrows: []
+            });
+            AudioService.playRecruit();
+          }
+        } else if (action.type === 'CHANGE_COMMAND') {
+          if (action.side === 'player') p1Command = action.command; else p2Command = action.command;
+        }
+      }
+
+      // Process Projectiles
+      nextProjectiles = nextProjectiles.filter(p => {
+          const dir = p.targetX > p.x ? 1 : -1;
+          p.x += dir * p.speed * deltaTime;
+          if (p.x < 0 || p.x > 100) return false;
+
+          const dist = Math.abs(p.x - p.targetX);
+          if (dist < 1.5) {
+              let targetUnit = nextUnits.find(u => u.id === p.targetId && u.state !== 'DYING' && u.state !== 'GARRISONED');
+              let hit = false;
+
+              if (p.visualType === 'ARROW') {
+                  if (targetUnit) {
+                      hit = true;
+                      applyDamage(targetUnit, p.damage, now, false, nextUnits);
+                      addStuckArrow(targetUnit, false, p.side, dir === 1 ? -10 : 190, p.x); // Simple angle approximation
+                      AudioService.playImpact('PHYSICAL');
+                  } else {
+                      // Check Statue Hit
+                      const targetStatueX = p.side === 'player' ? STATUE_ENEMY_POS : STATUE_PLAYER_POS;
+                      if (Math.abs(p.x - targetStatueX) < 3) {
+                           hit = true;
+                           if (p.side === 'player') enemyStatueHP -= p.damage; else playerStatueHP -= p.damage;
+                           addStuckArrow(null, true, p.side, dir === 1 ? 0 : 180, p.x);
+                           AudioService.playImpact('PHYSICAL');
+                      } else {
+                           hit = true; // Missed everything
+                      }
+                  }
+              } else {
+                  // Magic (Splash)
+                  if (!targetUnit) targetUnit = nextUnits.find(u => u.side !== p.side && u.state !== 'DYING' && Math.abs(u.x - p.x) < 2);
+                  if (targetUnit) {
+                      hit = true;
+                      applyDamage(targetUnit, p.damage, now, false, nextUnits);
+                      AudioService.playImpact('MAGIC');
+                  } else {
+                     const statueX = p.side === 'player' ? STATUE_ENEMY_POS : STATUE_PLAYER_POS;
+                     if (Math.abs(p.x - statueX) < 3) {
+                         hit = true;
+                         if (p.side === 'player') enemyStatueHP -= p.damage; else playerStatueHP -= p.damage;
+                         AudioService.playImpact('MAGIC');
+                     }
+                  }
+              }
+              return !hit;
+          }
+          return true;
+      });
+
+      // Unit Logic
+      nextUnits.forEach(unit => {
+        if (unit.state === 'DYING') return;
+        const config = UNIT_CONFIGS[unit.type];
+        const isPlayer = unit.side === 'player';
+        const cmd = isPlayer ? p1Command : p2Command;
         
-        // Skip excessively long frames (tab backgrounding)
-        if (dt > 1000) {
-            lastTickRef.current = now;
-            requestRef.current = requestAnimationFrame(gameLoop);
+        // Status Effects
+        if (unit.stunnedUntil && unit.stunnedUntil > now) { unit.state = 'IDLE'; return; }
+        if (unit.rootedUntil && unit.rootedUntil > now) { 
+            unit.currentSpeed = 0;
+            unit.hp -= 0.1; // Root DoT
+        }
+
+        // Mage Summon
+        if (unit.type === UnitType.MAGE && now - (unit.lastSummonTime || 0) > 10000) {
+             const allies = nextUnits.filter(u => u.side === unit.side && u.state !== 'DYING').length;
+             if (allies < MAX_UNITS) {
+                newSummons.push({
+                   id: Math.random().toString(36), type: UnitType.SMALL, side: unit.side,
+                   x: unit.x + (isPlayer ? 5 : -5), hp: 60, maxHp: 60, state: 'WALKING',
+                   lastAttackTime: 0, currentSpeed: 0
+                });
+                unit.lastSummonTime = now;
+                AudioService.playSummon();
+             }
+        }
+
+        // Retreat Logic
+        if (cmd === GameCommand.RETREAT) {
+             const homeX = isPlayer ? STATUE_PLAYER_POS : STATUE_ENEMY_POS;
+             if (Math.abs(unit.x - homeX) < 2) {
+                 unit.state = 'GARRISONED';
+                 unit.hp = Math.min(unit.hp + unit.maxHp * 0.005, unit.maxHp);
+             } else {
+                 unit.state = 'WALKING';
+                 unit.currentSpeed += ((unit.x < homeX ? 1 : -1) * config.stats.speed - unit.currentSpeed) * 0.1;
+                 unit.x += unit.currentSpeed * deltaTime;
+             }
+             return;
+        } else if (unit.state === 'GARRISONED') {
+            unit.state = 'IDLE';
+        }
+
+        // Worker Logic
+        if (unit.type === UnitType.WORKER) {
+            const mineX = isPlayer ? GOLD_MINE_PLAYER_X : GOLD_MINE_ENEMY_X;
+            const statueX = isPlayer ? STATUE_PLAYER_POS : STATUE_ENEMY_POS;
+            if (unit.state === 'MINING') {
+                if (now - unit.lastAttackTime > config.stats.attackSpeed) { unit.hasGold = true; unit.state = 'WALKING'; }
+            } else if (unit.state === 'DEPOSITING') {
+                if (now - unit.lastAttackTime > 500) {
+                    if (isPlayer) p1Gold += 20; else p2Gold += 20;
+                    unit.hasGold = false; unit.state = 'WALKING';
+                }
+            } else {
+                const target = unit.hasGold ? statueX : mineX;
+                if (Math.abs(unit.x - target) < 2) {
+                    unit.state = unit.hasGold ? 'DEPOSITING' : 'MINING';
+                    unit.lastAttackTime = now;
+                } else {
+                    unit.currentSpeed += ((unit.x < target ? 1 : -1) * config.stats.speed - unit.currentSpeed) * 0.1;
+                    unit.x += unit.currentSpeed * deltaTime;
+                }
+            }
             return;
         }
 
-        // --- UPDATE LOGIC SIMPLIFIED ---
-        setGameState(prev => {
-            if (prev.gameStatus !== 'PLAYING') return prev;
+        // Combat Logic
+        const dir = isPlayer ? 1 : -1;
+        const targets = nextUnits.filter(u => u.side !== unit.side && u.state !== 'DYING' && u.state !== 'GARRISONED');
+        const visibleTargets = targets.filter(u => Math.abs(u.x - unit.x) < 30);
+        
+        // Sorting targets
+        visibleTargets.sort((a, b) => Math.abs(a.x - unit.x) - Math.abs(b.x - unit.x));
+        const primaryTarget = visibleTargets.find(u => Math.abs(u.x - unit.x) <= config.stats.range);
+        const statueTargetX = isPlayer ? STATUE_ENEMY_POS : STATUE_PLAYER_POS;
+        const canSiege = cmd === GameCommand.ATTACK && Math.abs(unit.x - statueTargetX) < config.stats.range + 1;
 
-            const nextUnits = prev.units.map(u => {
-                // Simplified Movement Logic
-                let speed = u.state === 'WALKING' || u.state === 'ATTACKING' ? 0.05 : 0; // Approx speed factor
-                if (u.type === UnitType.WORKER) speed *= 0.8;
-                
-                // Direction
-                const dir = u.side === 'player' ? 1 : -1;
-                let nextX = u.x + (speed * dir);
-                
-                // Collision with Statue/End
-                if (u.side === 'player' && nextX > STATUE_ENEMY_POS - 5) nextX = STATUE_ENEMY_POS - 5;
-                if (u.side === 'enemy' && nextX < STATUE_PLAYER_POS + 5) nextX = STATUE_PLAYER_POS + 5;
-                
-                return { ...u, x: nextX };
-            });
-
-            // Gold accumulation
-            const goldInc = dt * 0.005; 
-
-            return {
-                ...prev,
-                units: nextUnits,
-                p1Gold: Math.min(9999, prev.p1Gold + goldInc),
-                p2Gold: Math.min(9999, prev.p2Gold + goldInc),
-                lastTick: now
-            };
-        });
-
-        lastTickRef.current = now;
-        requestRef.current = requestAnimationFrame(gameLoop);
-    }, []);
-
-    useEffect(() => {
-        if (view === 'GAME') {
-            lastTickRef.current = Date.now();
-            requestRef.current = requestAnimationFrame(gameLoop);
-            AudioService.startMusic(mapId);
-        } else {
-            if (requestRef.current) cancelAnimationFrame(requestRef.current);
-            AudioService.stopMusic();
-        }
-        return () => {
-            if (requestRef.current) cancelAnimationFrame(requestRef.current);
-        };
-    }, [view, mapId, gameLoop]);
-
-    const handleStartHost = (surge: boolean) => {
-        setSurgeMode(surge);
-        setPlayerRole(PlayerRole.HOST);
-        setView('MAP_SELECT');
-    };
-
-    const handleStartClient = (hostId: string) => {
-        setPlayerRole(PlayerRole.CLIENT);
-        setPlayerId('enemy'); // Client plays as 'enemy' (red) logically for mirroring? Or we invert view.
-        // For simplicity, let's say client always sees themselves as blue (left) but sends commands for 'enemy' side
-        setView('GAME');
-    };
-
-    const handleStartOffline = (surge: boolean) => {
-        setSurgeMode(surge);
-        setPlayerRole(PlayerRole.OFFLINE);
-        setView('MAP_SELECT');
-    };
-
-    const handleMapSelect = (id: MapId) => {
-        setMapId(id);
-        const startGold = surgeMode ? INITIAL_GOLD_SURGE : INITIAL_GOLD;
-        setGameState(prev => ({
-            ...prev,
-            mapId: id,
-            p1Gold: startGold,
-            p2Gold: startGold,
-            units: [],
-            playerStatueHP: STATUE_HP,
-            enemyStatueHP: STATUE_HP,
-            gameStatus: 'PLAYING'
-        }));
-        setView('GAME');
-    };
-
-    const handleRecruit = (type: UnitType) => {
-        const cost = UNIT_CONFIGS[type].cost;
-        if (gameState.p1Gold >= cost) {
-            AudioService.playRecruit();
-            setGameState(prev => ({
-                ...prev,
-                p1Gold: prev.p1Gold - cost,
-                units: [
-                    ...prev.units,
-                    {
-                        id: `p1-${Date.now()}-${Math.random()}`,
-                        type,
-                        side: 'player',
-                        x: SPAWN_X_PLAYER,
-                        hp: UNIT_CONFIGS[type].stats.maxHp,
-                        maxHp: UNIT_CONFIGS[type].stats.maxHp,
-                        state: 'WALKING',
-                        lastAttackTime: 0,
-                        currentSpeed: UNIT_CONFIGS[type].stats.speed
+        if (primaryTarget || canSiege) {
+            unit.state = 'ATTACKING';
+            unit.currentSpeed = 0;
+            if (now - unit.lastAttackTime > config.stats.attackSpeed) {
+                if (unit.type === UnitType.ARCHER) {
+                    nextProjectiles.push({
+                        id: `arrow-${unit.id}-${now}`, x: unit.x, startX: unit.x,
+                        targetX: primaryTarget ? primaryTarget.x : statueTargetX,
+                        targetId: primaryTarget?.id, damage: config.stats.damage,
+                        speed: 45 + Math.random() * 5, side: unit.side, visualType: 'ARROW', createdAt: now
+                    });
+                } else {
+                    // Melee/Mage Instant
+                    if (primaryTarget) {
+                        applyDamage(primaryTarget, config.stats.damage, now, false, nextUnits);
+                        if (unit.type === UnitType.BOSS) { // Cleave
+                             visibleTargets.filter(t => Math.abs(t.x - unit.x) < 4).forEach(t => applyDamage(t, 20, now, true, nextUnits));
+                        }
+                    } else if (canSiege) {
+                        if (isPlayer) enemyStatueHP -= config.stats.damage; else playerStatueHP -= config.stats.damage;
                     }
-                ]
-            }));
-            // If multiplayer, send recruit msg
+                }
+                AudioService.playAttack(unit.type);
+                unit.lastAttackTime = now;
+            }
+        } else {
+            // Movement
+            unit.state = 'WALKING';
+            let targetV = 0;
+            if (cmd === GameCommand.DEFEND) {
+                const defX = isPlayer ? GOLD_MINE_PLAYER_X + 15 : GOLD_MINE_ENEMY_X - 15;
+                const offset = FORMATION_OFFSETS[unit.type] || 0;
+                const tx = isPlayer ? defX - offset : defX + offset;
+                if (Math.abs(unit.x - tx) > 1) targetV = (unit.x < tx ? 1 : -1) * config.stats.speed;
+            } else {
+                // Attack move or chase
+                if (visibleTargets.length > 0) {
+                    targetV = (unit.x < visibleTargets[0].x ? 1 : -1) * config.stats.speed;
+                } else {
+                    targetV = dir * config.stats.speed;
+                }
+            }
+            if (unit.rootedUntil && unit.rootedUntil > now) targetV = 0;
+            const agility = UNIT_AGILITY[unit.type] || 5;
+            unit.currentSpeed += (targetV - unit.currentSpeed) * (1 - Math.exp(-agility * deltaTime));
+            unit.x += unit.currentSpeed * deltaTime;
         }
-    };
+      });
 
-    const handleCommand = (cmd: GameCommand) => {
-        AudioService.playSelect();
-        setGameState(prev => ({ ...prev, p1Command: cmd }));
-    };
+      // AI Logic
+      if (role === PlayerRole.HOST || role === PlayerRole.OFFLINE) {
+          if (now - aiStateRef.current.lastDecisionTime > 2000) {
+              const aiWorkers = nextUnits.filter(u => u.side === 'enemy' && u.type === UnitType.WORKER).length;
+              if (aiWorkers < 6 && p2Gold >= UNIT_CONFIGS[UnitType.WORKER].cost) {
+                  actionQueueRef.current.push({ type: 'RECRUIT', unitType: UnitType.WORKER, side: 'enemy' });
+              } else if (p2Gold >= 150) {
+                  const types = [UnitType.TOXIC, UnitType.ARCHER, UnitType.PALADIN, UnitType.MAGE, UnitType.BOSS];
+                  const rnd = types[Math.floor(Math.random() * types.length)];
+                  if (p2Gold >= UNIT_CONFIGS[rnd].cost) {
+                      actionQueueRef.current.push({ type: 'RECRUIT', unitType: rnd, side: 'enemy' });
+                  }
+              }
+              // Simple AI State Switch
+              const armySize = nextUnits.filter(u => u.side === 'enemy' && u.type !== UnitType.WORKER).length;
+              if (aiStateRef.current.state === 'GATHERING' && armySize > 5) {
+                  aiStateRef.current.state = 'ATTACKING';
+                  actionQueueRef.current.push({ type: 'CHANGE_COMMAND', side: 'enemy', command: GameCommand.ATTACK });
+              } else if (aiStateRef.current.state === 'ATTACKING' && armySize < 2) {
+                  aiStateRef.current.state = 'GATHERING';
+                  actionQueueRef.current.push({ type: 'CHANGE_COMMAND', side: 'enemy', command: GameCommand.DEFEND });
+              }
+              aiStateRef.current.lastDecisionTime = now;
+          }
+      }
 
-    return (
-        <div className="w-full h-[100dvh] overflow-hidden bg-black font-sans select-none relative">
-             {view === 'LOADING' && <LandingPage onStartHost={handleStartHost} onStartClient={handleStartClient} onStartOffline={handleStartOffline} />}
-             {view === 'INTRO' && <IntroSequence onComplete={() => setView('LOADING')} />}
-             {view === 'MAP_SELECT' && <MapSelection onSelectMap={handleMapSelect} onBack={() => setView('LOADING')} />}
-             
-             {view === 'GAME' && (
-                 <>
-                    <BattlefieldBackground mapId={mapId} />
-                    
-                    {/* Statues & Crystals */}
-                    <BaseStatue x={STATUE_PLAYER_POS} hp={gameState.playerStatueHP} variant="BLUE" />
-                    <BaseStatue x={STATUE_ENEMY_POS} hp={gameState.enemyStatueHP} variant="RED" isFlipped />
-                    <CrystalRock x={GOLD_MINE_PLAYER_X} />
-                    <CrystalRock x={GOLD_MINE_ENEMY_X} isFlipped />
+      // Merge Summons
+      if (nextUnits.length < MAX_UNITS * 2) nextUnits.push(...newSummons);
 
-                    <ArmyVisuals 
-                        units={gameState.units} 
-                        projectiles={gameState.projectiles}
-                        p1Command={gameState.p1Command}
-                        p2Command={gameState.p2Command}
-                    />
+      // Cleanup Dead
+      nextUnits = nextUnits.filter(u => {
+          if (u.hp <= 0 && u.state !== 'DYING') { u.state = 'DYING'; u.deathTime = now; AudioService.playDeath(); }
+          return !(u.state === 'DYING' && now - (u.deathTime || 0) > DEATH_DURATION);
+      });
 
-                    {/* HUD */}
-                    <div className="absolute top-0 left-0 w-full p-2 flex justify-between items-start pointer-events-none">
-                        <div className="flex gap-4 pointer-events-auto">
-                            <div className="bg-stone-900/80 p-2 rounded border border-yellow-500/50 flex items-center gap-2">
-                                <Gem className="text-yellow-400" size={20} />
-                                <span className="text-yellow-100 font-bold text-lg">{Math.floor(gameState.p1Gold)}</span>
-                            </div>
-                        </div>
-                        <button onClick={() => setShowSettings(true)} className="pointer-events-auto p-2 bg-stone-900/50 rounded-full border border-white/10 text-white">
-                            <Settings size={24} />
-                        </button>
-                    </div>
+      // Update State
+      const nextStatus = playerStatueHP <= 0 ? 'DEFEAT' : (enemyStatueHP <= 0 ? 'VICTORY' : 'PLAYING');
+      if (nextStatus !== gameStatus) AudioService.playFanfare(nextStatus === 'VICTORY');
 
-                    {/* Controls */}
-                    <div className="absolute bottom-0 left-0 w-full p-2 bg-gradient-to-t from-black via-stone-900/90 to-transparent pt-12 pb-safe">
-                        <div className="flex justify-center gap-2 mb-2">
-                             {[GameCommand.ATTACK, GameCommand.DEFEND, GameCommand.RETREAT].map(cmd => (
-                                 <button 
-                                    key={cmd}
-                                    onClick={() => handleCommand(cmd)}
-                                    className={`px-4 py-2 rounded font-bold text-xs sm:text-sm flex items-center gap-2 border-b-4 active:border-b-0 active:translate-y-1 transition-all ${gameState.p1Command === cmd ? 'bg-yellow-600 border-yellow-800 text-white' : 'bg-stone-700 border-stone-900 text-stone-400'}`}
-                                 >
-                                     {cmd === 'ATTACK' && <Swords size={16}/>}
-                                     {cmd === 'DEFEND' && <Shield size={16}/>}
-                                     {cmd === 'RETREAT' && <CornerDownLeft size={16}/>}
-                                     {cmd}
-                                 </button>
-                             ))}
-                        </div>
-                        
-                        <div className="flex overflow-x-auto gap-2 pb-2 px-2 no-scrollbar justify-start sm:justify-center">
-                            {Object.values(UNIT_CONFIGS).filter(u => u.type !== UnitType.SMALL && u.type !== UnitType.BOSS).map(u => (
-                                <UnitCard 
-                                    key={u.type}
-                                    unit={u}
-                                    count={gameState.units.filter(unit => unit.side === 'player' && unit.type === u.type).length}
-                                    canAfford={gameState.p1Gold >= u.cost}
-                                    onRecruit={handleRecruit}
-                                />
-                            ))}
-                        </div>
-                    </div>
+      setGameState({
+          ...stateRef.current,
+          units: nextUnits,
+          projectiles: nextProjectiles,
+          playerStatueHP, enemyStatueHP,
+          p1Gold, p2Gold, p1Command, p2Command, gameStatus: nextStatus,
+          playerStatueStuckArrows, enemyStatueStuckArrows,
+          lastTick: now
+      });
 
-                    {showSettings && <SettingsModal onClose={() => setShowSettings(false)} onLeaveGame={() => setView('LOADING')} />}
-                 </>
-             )}
+    }, TICK_RATE);
+    return () => clearInterval(intervalId);
+  }, [role, appMode]);
+
+  // RENDER UI
+  if (appMode === 'INTRO') return <IntroSequence onComplete={() => setAppMode('LANDING')} />;
+  if (appMode === 'LANDING') return <LandingPage 
+      onStartHost={(s) => { setRole(PlayerRole.HOST); setIsSurgeMode(s); setAppMode('MAP_SELECT'); }} 
+      onStartClient={() => { setRole(PlayerRole.CLIENT); setAppMode('GAME'); }} 
+      onStartOffline={(s) => { setRole(PlayerRole.OFFLINE); setIsSurgeMode(s); setAppMode('MAP_SELECT'); }} 
+  />;
+  if (appMode === 'MAP_SELECT') return <MapSelection 
+      onSelectMap={(m) => { 
+          setGameState(prev => ({ ...prev, mapId: m, p1Gold: isSurgeMode ? INITIAL_GOLD_SURGE : INITIAL_GOLD, p2Gold: isSurgeMode ? INITIAL_GOLD_SURGE : INITIAL_GOLD }));
+          setAppMode('GAME'); 
+      }} 
+      onBack={() => setAppMode('LANDING')} 
+  />;
+
+  return (
+    <div className="h-[100dvh] w-screen bg-black overflow-hidden relative">
+      <div 
+        ref={useRef(null)}
+        className={`absolute inset-0 flex flex-col bg-inamorta select-none overflow-x-auto overflow-y-hidden touch-pan-x z-0 isolation-isolate`}
+      >
+          <div className="relative h-full w-[200vw] overflow-hidden">
+            <BattlefieldBackground mapId={gameState.mapId} />
+            <BaseStatue 
+                x={getVisualX(STATUE_PLAYER_POS)} 
+                hp={gameState.playerStatueHP} 
+                variant="BLUE" 
+                isFlipped={isMirrored} 
+                isRetreating={gameState.p1Command === GameCommand.RETREAT}
+                stuckArrows={isMirrored ? gameState.enemyStatueStuckArrows : gameState.playerStatueStuckArrows}
+            />
+            <CrystalRock x={getVisualX(GOLD_MINE_PLAYER_X)} isFlipped={isMirrored} />
+            <CrystalRock x={getVisualX(GOLD_MINE_ENEMY_X)} isFlipped={!isMirrored} />
+            <BaseStatue 
+                x={getVisualX(STATUE_ENEMY_POS)} 
+                hp={gameState.enemyStatueHP} 
+                variant="RED" 
+                isFlipped={!isMirrored} 
+                isRetreating={gameState.p2Command === GameCommand.RETREAT} 
+                stuckArrows={!isMirrored ? gameState.enemyStatueStuckArrows : gameState.playerStatueStuckArrows}
+            />
+            <ArmyVisuals 
+                units={gameState.units} 
+                projectiles={gameState.projectiles}
+                selectedUnitId={selectedUnitId} 
+                onSelectUnit={setSelectedUnitId} 
+                isMirrored={isMirrored}
+                p1Command={gameState.p1Command}
+                p2Command={gameState.p2Command}
+            />
+          </div>
+      </div>
+
+      {/* TOP RIGHT: Resources */}
+      <div className="fixed top-4 right-4 z-40 bg-black/70 px-4 py-2 rounded-full border border-white/10 flex gap-4 items-center">
+         <div className="flex items-center gap-2"><Gem className="text-cyan-400" size={18} /><span className="text-cyan-100 font-bold">{Math.floor(currentGold)}</span></div>
+         <div className="flex items-center gap-2"><Users className="text-stone-400" size={18} /><span className="text-stone-100 font-bold">{gameState.units.filter(u => u.side === (isMirrored ? 'enemy' : 'player') && u.state !== 'DYING').length}/{MAX_UNITS}</span></div>
+      </div>
+
+      <div className="fixed top-16 right-4 z-40 flex gap-2">
+          <button onClick={() => { AudioService.playSelect(); setShowSettings(true); }} className="p-2 bg-black/60 rounded-full border border-white/20 text-stone-300 hover:text-white shadow-lg active:scale-95"><Settings size={20} /></button>
+      </div>
+      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} onLeaveGame={handleLeaveGame} />}
+
+      {/* RECRUITMENT BAR */}
+      <div className="fixed top-2 left-1/2 -translate-x-1/2 z-40 bg-black/80 p-2 rounded-xl flex gap-2 border border-white/10 max-w-[90vw] overflow-x-auto no-scrollbar">
+          {Object.values(UNIT_CONFIGS).filter(u => u.cost > 0).map(u => (
+              <button 
+                  key={u.type} 
+                  disabled={currentGold < u.cost}
+                  onClick={() => actionQueueRef.current.push({type: 'RECRUIT', unitType: u.type, side: isMirrored ? 'enemy' : 'player'})}
+                  className={`p-2 rounded border flex flex-col items-center min-w-[64px] transition-all ${currentGold >= u.cost ? 'bg-stone-800 border-white/5 active:scale-95' : 'bg-stone-900 opacity-40 border-transparent grayscale'}`}
+              >
+                  <div className="scale-50 h-8 w-8 flex items-center justify-center">
+                    <StickmanRender type={u.type} isPlayer={!isMirrored} />
+                  </div>
+                  <span className="text-[10px] text-cyan-400 font-bold">{u.cost}</span>
+              </button>
+          ))}
+      </div>
+
+      {/* COMMANDS */}
+      <div className="fixed bottom-4 right-4 z-40 flex flex-col gap-2">
+          {[GameCommand.ATTACK, GameCommand.DEFEND, GameCommand.RETREAT].map(cmd => (
+              <button 
+                key={cmd}
+                onClick={() => actionQueueRef.current.push({type: 'CHANGE_COMMAND', side: isMirrored ? 'enemy' : 'player', command: cmd})} 
+                className={`p-3 rounded-full border-2 shadow-lg active:scale-95 transition-all duration-200 ${gameState.p1Command === cmd ? 'bg-blue-600 border-white scale-110' : 'bg-stone-900/40 border-white/10'}`}
+              >
+                {cmd === GameCommand.ATTACK && <Swords size={24} />}
+                {cmd === GameCommand.DEFEND && <Shield size={24} />}
+                {cmd === GameCommand.RETREAT && <CornerDownLeft size={24} />}
+              </button>
+          ))}
+      </div>
+      
+      {showSurrenderConfirm && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <div className="bg-stone-900 p-8 rounded-2xl border-2 border-red-500/30 shadow-2xl text-center">
+                <h2 className="text-2xl font-epic text-red-500 mb-4">SURRENDER?</h2>
+                <div className="flex gap-4 justify-center">
+                    <button onClick={() => setShowSurrenderConfirm(false)} className="px-6 py-2 rounded bg-stone-700 font-bold">CANCEL</button>
+                    <button onClick={() => { setGameState(prev => ({ ...prev, playerStatueHP: 0 })); setShowSurrenderConfirm(false); }} className="px-6 py-2 rounded bg-red-900 font-bold text-red-100">SURRENDER</button>
+                </div>
+            </div>
         </div>
-    );
+      )}
+
+      {gameState.gameStatus !== 'PLAYING' && (
+         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-intro-fade">
+             <div className="bg-stone-900 p-12 rounded-2xl border-4 text-center shadow-2xl animate-victory-modal">
+                 <h1 className={`text-6xl font-epic mb-4 animate-flourish ${gameState.gameStatus === 'VICTORY' ? 'text-yellow-400' : 'text-red-600'}`}>
+                     {gameState.gameStatus === 'VICTORY' ? 'VICTORY!' : 'DEFEAT'}
+                 </h1>
+                 <button onClick={handleReturnToMenu} className="px-8 py-3 rounded-lg font-bold text-lg bg-stone-700 hover:bg-stone-600 text-white border-stone-900">RETURN TO BASE</button>
+             </div>
+         </div>
+      )}
+    </div>
+  );
 };

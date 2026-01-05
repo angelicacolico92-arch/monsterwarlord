@@ -230,6 +230,8 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({
                 isFirebursting={isFirebursting}
                 isBossAbility={isBossAbility}
                 isRooted={isRooted}
+                lastAttackTime={unit.lastAttackTime}
+                stuckArrows={unit.stuckArrows}
             />
           </div>
         );
