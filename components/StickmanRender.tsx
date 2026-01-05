@@ -54,7 +54,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
   } else if (isSummoning && type === UnitType.MAGE) {
       animClass = "animate-mage-float"; 
   } else if (isAttacking || isMining) {
-      if (type === UnitType.TOXIC) animClass = "animate-slime-attack"; 
+      if (type === UnitType.TOXIC) animClass = ""; // Knight uses custom SVG transform for attack, no css body wobble
       else if (type === UnitType.ARCHER) animClass = "animate-archer-body"; 
       else if (type === UnitType.BOSS) animClass = "animate-boss-stomp";
       else if (type === UnitType.WORKER && isMining) animClass = "animate-miner-work";
@@ -62,11 +62,11 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       else animClass = "animate-slime-attack";
   } else if (isMoving || isDepositing) {
       if (type === UnitType.MAGE || type === UnitType.SMALL) animClass = "animate-mage-float";
+      else if (type === UnitType.TOXIC) animClass = "animate-idle-breathe"; // Noble march, less bounce
       else if (type === UnitType.ARCHER) animClass = "animate-slime-bounce"; 
       else animClass = "animate-slime-bounce";
   } else {
       if (type === UnitType.MAGE || type === UnitType.SMALL) animClass = "animate-mage-float";
-      else if (type === UnitType.ARCHER) animClass = "animate-idle-breathe";
       else animClass = "animate-idle-breathe";
   }
 
@@ -86,7 +86,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
           baseColor = isPlayer ? "#a16207" : "#7f1d1d"; 
           secondaryColor = isPlayer ? "#713f12" : "#450a0a";
           break;
-      case UnitType.TOXIC: // Imperial Slime (Frontliner)
+      case UnitType.TOXIC: // Imperial Knight
           baseColor = isPlayer ? "#2563eb" : "#9f1239"; 
           secondaryColor = isPlayer ? "#1e3a8a" : "#881337"; 
           break;
@@ -128,22 +128,49 @@ export const StickmanRender: React.FC<StickmanProps> = ({
   };
 
   const renderAccessories = () => {
-      // IMPERIAL SLIME (Frontliner) Armor & Sword
+      // IMPERIAL KNIGHT SLIME (Elite Frontliner)
       if (type === UnitType.TOXIC) {
           return (
               <g>
-                  {/* Imperial Chest Armor with Gold Trim - NOT covering face */}
+                  {/* Imperial Silver/Gold Chest Armor */}
+                  {/* Rounded Pauldrons (Shoulders) */}
+                  <circle cx="28" cy="62" r="8" fill={armorColor} stroke={armorTrim} strokeWidth="1.5" />
+                  <circle cx="72" cy="62" r="8" fill={armorColor} stroke={armorTrim} strokeWidth="1.5" />
+                  
+                  {/* Chest Plate - Shield shape, preserving face visibility */}
                   <path 
-                      d="M25 75 Q 50 95 75 75 L 75 85 Q 50 105 25 85 Z" 
+                      d="M32 70 Q 50 65 68 70 L 68 85 Q 50 100 32 85 Z" 
                       fill={armorColor} 
                       stroke={armorTrim} 
-                      strokeWidth="2" 
+                      strokeWidth="1.5" 
                   />
-                  {/* Attached Sword - Synced with attack */}
-                  <g className={isAttacking ? "animate-sword-swing" : ""} transform="translate(10, 10)">
-                      <path d="M75 60 L 95 40" stroke="#eab308" strokeWidth="4" />
-                      <path d="M88 53 L 98 43 L 102 47" fill="#cbd5e1" stroke="#475569" strokeWidth="1" /> 
+                  
+                  {/* Waist Guard */}
+                  <path d="M40 88 L 60 88 L 55 95 L 45 95 Z" fill={armorColor} stroke={armorTrim} strokeWidth="1" />
+
+                  {/* Noble Sword - Held Upright or Slashing */}
+                  <g 
+                    transform={isAttacking ? "rotate(70 85 60)" : "rotate(0 85 60)"} 
+                    className={isAttacking ? "animate-sword-slash-fast" : "transition-transform duration-500"}
+                    style={{ transformOrigin: "85px 60px" }}
+                  >
+                      {/* Blade */}
+                      <path d="M85 60 L 85 20 L 88 15 L 91 20 L 91 60 Z" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+                      {/* Hilt */}
+                      <line x1="80" y1="60" x2="96" y2="60" stroke={armorTrim} strokeWidth="3" />
+                      <line x1="88" y1="60" x2="88" y2="70" stroke="#78350f" strokeWidth="2" />
                   </g>
+                  
+                  {/* Style definitions for specific animations */}
+                  <style>{`
+                    @keyframes swordSlash {
+                        0% { transform: rotate(0deg) translate(0,0); }
+                        20% { transform: rotate(-20deg) translate(-2px, 2px); }
+                        40% { transform: rotate(100deg) translate(5px, -5px); }
+                        100% { transform: rotate(0deg) translate(0,0); }
+                    }
+                    .animate-sword-slash-fast { animation: swordSlash 0.6s cubic-bezier(0.18, 0.89, 0.32, 1.28) infinite; }
+                  `}</style>
               </g>
           );
       }
@@ -206,6 +233,18 @@ export const StickmanRender: React.FC<StickmanProps> = ({
     if (type === UnitType.BOSS) {
          return <path d="M10 100 C 10 100 10 30 50 30 C 90 30 90 100 90 100 Z" fill={baseColor} stroke={secondaryColor} strokeWidth="4" />;
     }
+    // Imperial Knight - Firmer, taller, noble posture
+    if (type === UnitType.TOXIC) {
+        return (
+             <path 
+                d="M20 100 L 20 60 Q 20 35 50 35 Q 80 35 80 60 L 80 100 Z" 
+                fill={baseColor} 
+                stroke={secondaryColor} 
+                strokeWidth="3"
+                filter="drop-shadow(0px 0px 4px rgba(255, 255, 255, 0.2))" // Subtle aura
+            />
+        );
+    }
     return (
       <path 
         d="M15 100 C 15 100 15 40 50 40 C 85 40 85 100 85 100 Z" 
@@ -218,12 +257,17 @@ export const StickmanRender: React.FC<StickmanProps> = ({
   };
   
   const renderEyes = () => {
-    // Imperial Slime (Frontliner): Dash Eyes (— —)
+    // Imperial Knight (Frontliner): Soft Anime Eyes ( ◕ ◕ )
     if (type === UnitType.TOXIC) {
         return (
             <g transform="translate(0, -5)">
-                <line x1="30" y1="60" x2="42" y2="60" stroke="white" strokeWidth="3" strokeLinecap="round" />
-                <line x1="58" y1="60" x2="70" y2="60" stroke="white" strokeWidth="3" strokeLinecap="round" />
+                {/* Left Eye */}
+                <ellipse cx="38" cy="55" rx="5" ry="7" fill="black" />
+                <circle cx="40" cy="52" r="2.5" fill="white" /> {/* Shine */}
+                
+                {/* Right Eye */}
+                <ellipse cx="62" cy="55" rx="5" ry="7" fill="black" />
+                <circle cx="64" cy="52" r="2.5" fill="white" /> {/* Shine */}
             </g>
         );
     }

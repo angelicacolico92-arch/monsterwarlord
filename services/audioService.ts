@@ -114,6 +114,45 @@ const playMeleeHit = (time: number, targetNode: GainNode | null) => {
     oscMetal.stop(time + 0.1);
 };
 
+// Knight: Metallic Shing
+const playKnightSlash = (time: number, targetNode: GainNode | null) => {
+    const ctx = getCtx();
+    if (!ctx || !targetNode) return;
+
+    // Metal Ring/Shine
+    const oscRing = ctx.createOscillator();
+    const gRing = ctx.createGain();
+    oscRing.type = 'sine';
+    oscRing.frequency.setValueAtTime(2000, time);
+    oscRing.frequency.exponentialRampToValueAtTime(4000, time + 0.1); // Quick up-sweep for "Shing"
+    gRing.gain.setValueAtTime(0.1, time);
+    gRing.gain.exponentialRampToValueAtTime(0.001, time + 0.3);
+    
+    // Noise scrape
+    const bufferSize = ctx.sampleRate * 0.1;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.value = 2000;
+    const gNoise = ctx.createGain();
+    gNoise.gain.setValueAtTime(0.2, time);
+    gNoise.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
+    
+    noise.connect(filter);
+    filter.connect(gNoise);
+    gNoise.connect(targetNode);
+    noise.start(time);
+
+    oscRing.connect(gRing);
+    gRing.connect(targetNode);
+    oscRing.start(time);
+    oscRing.stop(time + 0.3);
+}
+
 // Boss: Low Boom-Thump
 const playHeavyHit = (time: number, targetNode: GainNode | null) => {
     const ctx = getCtx();
@@ -619,6 +658,7 @@ export const AudioService = {
       case UnitType.BOSS: playHeavyHit(time, sfxGain); break;
       case UnitType.ARCHER: playArcherRelease(time, sfxGain); break;
       case UnitType.MAGE: playMagicCast(time, sfxGain); break;
+      case UnitType.TOXIC: playKnightSlash(time, sfxGain); break; // Imperial Knight Sound
       default: playMeleeHit(time, sfxGain); // Warrior, Paladin, Worker, Minion
     }
   },

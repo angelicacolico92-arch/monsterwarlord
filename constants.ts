@@ -25,7 +25,7 @@ export const INITIAL_GOLD_SURGE = 2000;
 
 // Formation Offsets: Relative distance (%) from the frontline unit
 export const FORMATION_OFFSETS: Record<UnitType, number> = {
-  [UnitType.TOXIC]: 0,    // Frontline
+  [UnitType.TOXIC]: 0,    // Frontline (Knight)
   [UnitType.SMALL]: 2,    // Skirmishers
   [UnitType.PALADIN]: 6,  // Second Row
   [UnitType.ARCHER]: 12,  // Third Row
@@ -44,10 +44,10 @@ export const UNIT_CONFIGS: Record<UnitType, UnitConfig> = {
   },
   [UnitType.TOXIC]: {
     type: UnitType.TOXIC,
-    name: 'Imperial Slime',
-    cost: 120,
-    stats: { hp: 450, maxHp: 450, damage: 45, range: 1.5, speed: 3.0, attackSpeed: 1400 }, // Slower speed (3.0) for disciplined march
-    description: 'Disciplined frontline unit. Gold armor.'
+    name: 'Imperial Knight',
+    cost: 130,
+    stats: { hp: 500, maxHp: 500, damage: 50, range: 1.5, speed: 2.8, attackSpeed: 1300 }, // Slightly tankier and stronger than before
+    description: 'Elite noble knight. Anime style.'
   },
   [UnitType.PALADIN]: {
     type: UnitType.PALADIN,
