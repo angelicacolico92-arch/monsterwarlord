@@ -1,6 +1,8 @@
+
 import React from 'react';
 import { UnitType, UnitConfig } from '../types';
 import { StickmanRender } from './StickmanRender';
+import { Gem } from 'lucide-react';
 
 interface UnitCardProps {
   unit: UnitConfig;
@@ -51,10 +53,9 @@ export const UnitCard: React.FC<UnitCardProps> = ({ unit, count, canAfford, onRe
         
         {/* Cost Button Area */}
         <div className="flex flex-col items-end justify-center pl-2 border-l border-white/10">
-            <div className={`text-xs sm:text-sm font-bold ${canAfford ? 'text-cyan-400' : 'text-gray-500'}`}>
-                {unit.cost} 
+            <div className={`flex items-center gap-1 text-xs sm:text-sm font-bold ${canAfford ? 'text-cyan-400' : 'text-gray-500'}`}>
+                <Gem size={12} fill="currentColor" /> {unit.cost} 
             </div>
-            <div className="text-[8px] sm:text-[10px] text-gray-400 uppercase tracking-wider">Crystals</div>
         </div>
       </div>
     </div>

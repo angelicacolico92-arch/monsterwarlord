@@ -305,7 +305,6 @@ export const App: React.FC = () => {
                       hit = true;
                       applyDamage(targetUnit, p.damage, now, false, nextUnits);
                       // Add Stuck Arrow to Unit
-                      // Safe mutation because nextUnits contains shallow copies and we are creating a new array for stuckArrows
                       const currentArrows = targetUnit.stuckArrows || [];
                       if (currentArrows.length < 5) {
                           targetUnit.stuckArrows = [...currentArrows, {
@@ -320,6 +319,7 @@ export const App: React.FC = () => {
                   } else {
                       // Check Statue Hit
                       const targetStatueX = p.side === 'player' ? STATUE_ENEMY_POS : STATUE_PLAYER_POS;
+                      // Archers range is high, ensure they can hit
                       if (Math.abs(p.x - targetStatueX) < 3) {
                            hit = true;
                            if (p.side === 'player') enemyStatueHP -= p.damage; else playerStatueHP -= p.damage;
@@ -336,7 +336,8 @@ export const App: React.FC = () => {
                            
                            AudioService.playImpact('PHYSICAL');
                       } else {
-                           hit = true; // Missed
+                           // Logic to remove arrow if it flew past statue?
+                           // For now, let it fly off screen or hit wall
                       }
                   }
               } else {
@@ -393,6 +394,7 @@ export const App: React.FC = () => {
              const homeX = isPlayer ? STATUE_PLAYER_POS : STATUE_ENEMY_POS;
              if (Math.abs(unit.x - homeX) < 2) {
                  unit.state = 'GARRISONED';
+                 // Garrison healing
                  unit.hp = Math.min(unit.hp + unit.maxHp * 0.005, unit.maxHp);
              } else {
                  unit.state = 'WALKING';
@@ -640,7 +642,12 @@ export const App: React.FC = () => {
                             unit={u}
                             count={gameState.units.filter(unit => unit.side === (isMirrored ? 'enemy' : 'player') && unit.type === u.type).length}
                             canAfford={currentGold >= u.cost}
-                            onRecruit={() => actionQueueRef.current.push({type: 'RECRUIT', unitType: u.type, side: isMirrored ? 'enemy' : 'player'})}
+                            onRecruit={() => {
+                                if (currentGold >= u.cost) {
+                                  AudioService.playSelect(); // Soft crystal tap sound
+                                  actionQueueRef.current.push({type: 'RECRUIT', unitType: u.type, side: isMirrored ? 'enemy' : 'player'});
+                                }
+                            }}
                             variant={isMirrored ? "RED" : "BLUE"}
                         />
                     </div>
