@@ -26,6 +26,14 @@ export interface UnitConfig {
   description: string;
 }
 
+export interface StuckArrow {
+  id: string;
+  x: number; // Relative X on the target (0-100 or specific viewBox coords)
+  y: number; // Relative Y
+  angle: number; // Rotation in degrees
+  variant: 'phys' | 'magic'; // For potential future visual variety
+}
+
 // Represents a single unit on the field
 export interface GameUnit {
   id: string;
@@ -48,6 +56,7 @@ export interface GameUnit {
   // Tactical Effects
   poisonTicks?: number;
   lastPoisonTickTime?: number;
+  stuckArrows?: StuckArrow[]; // Visual stuck projectiles
   
   // Boss & Mage Abilities & Status
   lastAbility1Time?: number; // Boss: Slime Wave | Mage: Mystic Fireburst
@@ -94,6 +103,8 @@ export interface GameState {
   projectiles: GameProjectile[];
   playerStatueHP: number;
   enemyStatueHP: number;
+  playerStatueStuckArrows?: StuckArrow[];
+  enemyStatueStuckArrows?: StuckArrow[];
   p1Gold: number;
   p2Gold: number;
   p1Command: GameCommand;
