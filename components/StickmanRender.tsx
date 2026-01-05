@@ -508,7 +508,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       if (type === UnitType.ARCHER) {
           return (
              <g>
-                  {/* Imperial Bow - CORRECT ORIENTATION */}
+                  {/* Imperial Bow - HIGH VISIBILITY - Scaled Up 2.5x */}
                   <g transform="translate(70, 70)">
                       <g 
                         className={isAttacking ? "animate-archer-bow" : ""} 
@@ -517,31 +517,31 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                           {/* Hand */}
                           <circle cx="0" cy="0" r="3" fill={baseColor} />
 
-                          {/* Bow Limbs - Curving towards target (Right) */}
-                          {/* D-Shape: Ends are slightly back/left relative to center when unstrung, but string is Left of wood */}
-                          {/* Wood Curve: ) */}
-                          <path d="M0 -5 Q 10 0 0 5" stroke="#78350f" strokeWidth="3" fill="none" strokeLinecap="round" />
+                          {/* Bow Limbs - Large Warbow */}
+                          {/* Scaled from -5/5 to -15/15 height */}
+                          <path d="M0 -15 Q 18 0 0 15" stroke="#78350f" strokeWidth="4" fill="none" strokeLinecap="round" />
+                          <path d="M0 -15 Q 18 0 0 15" stroke="#5c3a1e" strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.6" />
                           
                           {/* Tips (Ends of limbs) */}
-                          <circle cx="0" cy="-5" r="2" fill={hoodColor} />
-                          <circle cx="0" cy="5" r="2" fill={hoodColor} />
+                          <circle cx="0" cy="-15" r="2.5" fill={hoodColor} stroke="#fff" strokeWidth="0.5" />
+                          <circle cx="0" cy="15" r="2.5" fill={hoodColor} stroke="#fff" strokeWidth="0.5" />
 
                           {/* String - Pulled back to Left when drawn */}
                           {isAttacking ? (
                               // Drawn String (<)
-                              <polyline points="0,-5 -10,0 0,5" stroke="#bef264" strokeWidth="1" fill="none" strokeOpacity="0.8" className="animate-pulse" />
+                              <polyline points="0,-15 -12,0 0,15" stroke="#bef264" strokeWidth="1.5" fill="none" strokeOpacity="0.9" className="animate-pulse" />
                           ) : (
                               // Resting String (|)
-                              <line x1="0" y1="-5" x2="0" y2="5" stroke="#bef264" strokeWidth="1" strokeOpacity="0.6" />
+                              <line x1="0" y1="-15" x2="0" y2="15" stroke="#bef264" strokeWidth="1.5" strokeOpacity="0.7" />
                           )}
                           
                           {isAttacking && (
                               <g className="animate-archer-reload" style={{ animationDuration: '2.5s' }}>
-                                  {/* Arrow sitting on string */}
-                                  <line x1="-10" y1="0" x2="15" y2="0" stroke="#bef264" strokeWidth="2" />
-                                  <path d="M15 0 L 10 -3 L 10 3 Z" fill="#ecfccb" />
-                                  <path d="M-10 0 L -13 -3 L -13 3 Z" fill={hoodColor} />
-                                  <circle cx="15" cy="0" r="4" fill="#bef264" opacity="0.5" className="animate-ping" />
+                                  {/* Arrow sitting on string - Longer */}
+                                  <line x1="-12" y1="0" x2="22" y2="0" stroke="#d1fae5" strokeWidth="2.5" />
+                                  <path d="M22 0 L 16 -4 L 16 4 Z" fill="#10b981" />
+                                  <path d="M-12 0 L -16 -4 L -16 4 Z" fill={hoodColor} />
+                                  <circle cx="18" cy="0" r="5" fill="#bef264" opacity="0.6" className="animate-ping" />
                               </g>
                           )}
                       </g>

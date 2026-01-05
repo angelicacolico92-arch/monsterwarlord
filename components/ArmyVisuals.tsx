@@ -74,11 +74,11 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({
                   const progress = Math.min(1, Math.max(0, currentDist / totalDist));
                   
                   // Parabolic height: 4 * h * x * (1 - x)
-                  // Significantly flattened arc for "fired" look (max 50px height)
-                  const maxArcHeight = Math.min(50, totalDist * 3); 
+                  // Extremely flattened arc for "fired" look (almost straight line)
+                  const maxArcHeight = Math.min(10, totalDist * 0.2); 
                   const arcY = 4 * maxArcHeight * progress * (1 - progress);
                   
-                  yOffset = -20 - arcY;
+                  yOffset = -35 - arcY; // Higher base offset for headshot height
 
                   // Calculate rotation based on derivative: 4h(1 - 2x)
                   // Slope is height change per progress unit.
@@ -92,27 +92,27 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({
           return (
              <div 
                key={p.id}
-               className="absolute bottom-16 w-14 h-3 transition-transform duration-100 will-change-transform z-[110]"
+               className="absolute bottom-16 w-20 h-4 transition-transform duration-100 will-change-transform z-[110]"
                style={{
                    left: `${visualX}%`,
                    transform: `translate3d(-50%, ${yOffset}px, 0) scaleX(${facingScale}) rotate(${rotation}deg)`,
                }}
              >
-                 {/* High-Contrast Imperial Slime Arrow - Extended Length */}
-                 <svg viewBox="0 0 60 10" className="w-full h-full overflow-visible drop-shadow-md">
-                    {/* Glowing Trail */}
-                    <line x1="0" y1="5" x2="40" y2="5" stroke="#10b981" strokeWidth="2" strokeOpacity="0.5" />
+                 {/* High-Contrast Imperial Arrow - Larger, Brighter */}
+                 <svg viewBox="0 0 80 12" className="w-full h-full overflow-visible drop-shadow-md">
+                    {/* Glowing Trail (Speed lines) */}
+                    <line x1="-10" y1="6" x2="40" y2="6" stroke="#fff" strokeWidth="1" strokeOpacity="0.3" strokeDasharray="10 5" />
                     
-                    {/* Shaft */}
-                    <line x1="5" y1="5" x2="55" y2="5" stroke="#d1fae5" strokeWidth="1.5" strokeLinecap="round" />
+                    {/* Shaft - Thick White Core */}
+                    <line x1="5" y1="6" x2="70" y2="6" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" />
                     
-                    {/* Emerald Head */}
-                    <path d="M52 2 L 60 5 L 52 8 L 54 5 Z" fill="#059669" stroke="none" />
-                    <circle cx="58" cy="5" r="4" fill="#10b981" opacity="0.4" className="animate-pulse" />
+                    {/* Emerald Head - Glowing */}
+                    <path d="M65 2 L 80 6 L 65 10 L 68 6 Z" fill="#34d399" stroke="#fff" strokeWidth="1" />
+                    <circle cx="75" cy="6" r="3" fill="#bef264" opacity="0.8" className="animate-pulse" />
                     
-                    {/* Gold Fletching */}
-                    <path d="M8 5 L 0 2 L 2 5 Z" fill="#fbbf24" />
-                    <path d="M8 5 L 0 8 L 2 5 Z" fill="#fbbf24" />
+                    {/* Gold Fletching - Neon */}
+                    <path d="M15 6 L 5 1 L 5 11 Z" fill="#facc15" stroke="#a16207" strokeWidth="0.5" />
+                    <path d="M12 6 L 2 2 L 2 10 Z" fill="#facc15" stroke="#a16207" strokeWidth="0.5" />
                  </svg>
              </div>
           );

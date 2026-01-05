@@ -384,34 +384,49 @@ export const App: React.FC = () => {
           const dist = Math.abs(p.x - p.targetX);
           
           if (dist < 1) {
-              hit = true;
               
               // Apply damage
               // Try to find the specific target first (skip GARRISONED)
               let targetUnit = processedUnits.find(u => u.id === p.targetId && u.state !== 'DYING' && u.state !== 'GARRISONED');
               
-              // If specific target is dead/gone, hit ANY enemy unit near the impact zone
-              if (!targetUnit) {
-                  targetUnit = processedUnits.find(u => 
-                      u.side !== p.side && 
-                      u.state !== 'DYING' && 
-                      u.state !== 'GARRISONED' &&
-                      u.hp > 0 &&
-                      Math.abs(u.x - p.x) < 2
-                  );
-              }
+              // Specific Arrow Logic: If target is dead, arrow usually disappears (misses)
+              if (p.visualType === 'ARROW') {
+                  if (targetUnit) {
+                      hit = true;
+                      applyDamage(targetUnit, p.damage, now, false, processedUnits);
+                      AudioService.playImpact('PHYSICAL');
+                  } else {
+                      // Target is dead/gone. Arrow misses and hits nothing.
+                      // Remove it without impact sound or damage.
+                      hit = true; 
+                  }
+              } 
+              else {
+                  // Standard Magic/Other Projectiles: Hit ANY enemy if main target gone (Splash-like)
+                  if (!targetUnit) {
+                      targetUnit = processedUnits.find(u => 
+                          u.side !== p.side && 
+                          u.state !== 'DYING' && 
+                          u.state !== 'GARRISONED' &&
+                          u.hp > 0 &&
+                          Math.abs(u.x - p.x) < 2
+                      );
+                  }
 
-              if (targetUnit) {
-                  applyDamage(targetUnit, p.damage, now, false, processedUnits);
-                  AudioService.playImpact('PHYSICAL');
-              } else {
-                 // Hit Statue?
-                 const isPlayerProjectile = p.side === 'player';
-                 const statueX = isPlayerProjectile ? STATUE_ENEMY_POS : STATUE_PLAYER_POS;
-                 if (Math.abs(p.x - statueX) < 3) {
-                     if (isPlayerProjectile) eStatueHP -= p.damage; else pStatueHP -= p.damage;
-                     AudioService.playImpact('PHYSICAL');
-                 }
+                  if (targetUnit) {
+                      hit = true;
+                      applyDamage(targetUnit, p.damage, now, false, processedUnits);
+                      AudioService.playImpact(p.visualType === 'MAGIC' ? 'MAGIC' : 'PHYSICAL');
+                  } else {
+                     // Hit Statue?
+                     const isPlayerProjectile = p.side === 'player';
+                     const statueX = isPlayerProjectile ? STATUE_ENEMY_POS : STATUE_PLAYER_POS;
+                     if (Math.abs(p.x - statueX) < 3) {
+                         hit = true;
+                         if (isPlayerProjectile) eStatueHP -= p.damage; else pStatueHP -= p.damage;
+                         AudioService.playImpact(p.visualType === 'MAGIC' ? 'MAGIC' : 'PHYSICAL');
+                     }
+                  }
               }
           }
           
@@ -739,7 +754,7 @@ export const App: React.FC = () => {
                                 targetX: primaryTarget.x,
                                 targetId: primaryTarget.id,
                                 damage: currentDamage,
-                                speed: 25, // Fast arrow speed
+                                speed: 45, // High speed arrow
                                 side: unit.side,
                                 visualType: 'ARROW',
                                 createdAt: now
@@ -770,7 +785,7 @@ export const App: React.FC = () => {
                                 startX: unit.x, // Store startX for Arc
                                 targetX: targetStatueX,
                                 damage: currentDamage,
-                                speed: 25,
+                                speed: 45, // High speed arrow
                                 side: unit.side,
                                 visualType: 'ARROW',
                                 createdAt: now

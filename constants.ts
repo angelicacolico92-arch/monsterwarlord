@@ -1,3 +1,4 @@
+
 import { UnitType, UnitConfig, MapId } from './types';
 
 // Field settings
@@ -16,7 +17,7 @@ export const GOLD_MINE_PLAYER_X = 15;
 export const GOLD_MINE_ENEMY_X = 85;
 
 export const ATTACK_RANGE_MELEE = 1.5; 
-export const ATTACK_RANGE_RANGED = 15; 
+export const ATTACK_RANGE_RANGED = 35; // Significantly increased for Archers
 export const ATTACK_RANGE_MAGIC = 12;
 
 export const INITIAL_GOLD = 50;
