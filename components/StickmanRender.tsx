@@ -202,32 +202,57 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                  <rect x="30" y="82" width="40" height="6" rx="2" fill="#78350f" stroke="#451a03" strokeWidth="1" />
                  <circle cx="50" cy="85" r="2" fill="#facc15" /> {/* Belt Buckle */}
 
-                 {/* Imperial Pickaxe */}
+                 {/* CARRYING CRYSTAL (When hasGold is true) */}
+                 {hasGold && (
+                     <g transform="translate(45, 45)" className="animate-gold-carry">
+                         {/* Glowing Crystal Chunk */}
+                         <path d="M0 10 L 10 0 L 20 10 L 10 25 Z" fill="#22d3ee" stroke="#cffafe" strokeWidth="1.5" />
+                         <path d="M5 10 L 10 5 L 15 10 L 10 18 Z" fill="#a5f3fc" opacity="0.8" />
+                         {/* Sparkles */}
+                         <circle cx="0" cy="5" r="1" fill="white" className="animate-ping" style={{ animationDuration: '1.5s' }} />
+                         <circle cx="20" cy="15" r="1" fill="white" className="animate-ping" style={{ animationDuration: '2s' }} />
+                     </g>
+                 )}
+
+                 {/* IMPERIAL PICKAXE */}
                  <g 
-                    className={isMining ? "animate-pickaxe-swing" : ""}
-                    style={{ transformOrigin: "80px 65px" }}
+                    className={isMining ? "animate-pickaxe-swing" : "transition-transform duration-500"}
+                    style={{ 
+                        transformOrigin: "80px 65px",
+                        transform: hasGold ? "rotate(160deg) translate(0, 10px)" : (isMining ? "" : "rotate(0deg)")
+                    }}
                  >
-                     {/* Handle (Bronze/Wood) */}
-                     <path d="M75 70 L 90 40" stroke="#78350f" strokeWidth="3" strokeLinecap="round" />
+                     {/* Handle - Dark Wood/Bronze - Long & Sturdy */}
+                     <path d="M75 75 L 95 35" stroke="#5D4037" strokeWidth="3.5" strokeLinecap="round" />
                      
-                     {/* Head (Silver with Gold Tip) */}
-                     {/* Main Pick Head */}
-                     <path d="M82 44 L 98 36" stroke="#94a3b8" strokeWidth="4" strokeLinecap="round" />
-                     {/* Sharp Point (Gold) */}
-                     <path d="M78 46 L 82 44" stroke="#facc15" strokeWidth="4" strokeLinecap="round" />
-                     {/* Back Hammer */}
-                     <path d="M98 36 L 102 34" stroke="#94a3b8" strokeWidth="4" strokeLinecap="square" />
+                     {/* Metal Head - Curved Imperial Style */}
+                     {/* Main heavy arc */}
+                     <path d="M82 40 Q 95 30 108 40" fill="none" stroke="#94a3b8" strokeWidth="4" strokeLinecap="round" />
+                     
+                     {/* Tips - Dipped in Gold (High Durability) */}
+                     <path d="M82 40 L 80 42" stroke="#facc15" strokeWidth="4" strokeLinecap="round" />
+                     <path d="M108 40 L 110 42" stroke="#facc15" strokeWidth="4" strokeLinecap="round" />
+                     
+                     {/* Central Hub/Insignia */}
+                     <circle cx="95" cy="35" r="3.5" fill="#facc15" stroke="#b45309" strokeWidth="1" />
+                     <path d="M95 32 L 95 38 M 92 35 L 98 35" stroke="#b45309" strokeWidth="1" />
                  </g>
                  
                  <style>{`
                     @keyframes pickaxeSwing {
                         0% { transform: rotate(0deg); }
-                        25% { transform: rotate(-30deg); } /* Wind up */
-                        50% { transform: rotate(45deg); }  /* Strike */
-                        75% { transform: rotate(45deg); }  /* Hold strike/Impact */
+                        25% { transform: rotate(-45deg); } /* Higher Wind up */
+                        50% { transform: rotate(60deg); }  /* Deep Strike */
+                        60% { transform: rotate(55deg); }  /* Impact shudder */
                         100% { transform: rotate(0deg); }
                     }
-                    .animate-pickaxe-swing { animation: pickaxeSwing 1.0s ease-in-out infinite; }
+                    .animate-pickaxe-swing { animation: pickaxeSwing 1.2s cubic-bezier(0.36, 0, 0.66, -0.56) infinite; }
+                    
+                    @keyframes goldCarry {
+                        0%, 100% { transform: translate(45px, 45px) rotate(0deg); }
+                        50% { transform: translate(45px, 42px) rotate(2deg); } /* Heavy bob */
+                    }
+                    .animate-gold-carry { animation: goldCarry 1s ease-in-out infinite; }
                  `}</style>
              </g>
         );
