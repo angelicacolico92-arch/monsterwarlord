@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -81,6 +82,20 @@
         60% { transform: translate3d(10px, 0, 0) scale(1.05, 0.95); }
       }
       .animate-slime-attack { transform-origin: bottom center; animation: slime-attack-lunge 0.8s ease-in-out infinite; }
+
+      /* Death Animations */
+      @keyframes death-puddle {
+        0% { transform: scale(1, 1); opacity: 1; }
+        100% { transform: scale(1.5, 0.2); opacity: 0; }
+      }
+      .animate-death-puddle { transform-origin: bottom center; animation: death-puddle 0.8s ease-out forwards; }
+
+      @keyframes knight-death {
+        0% { transform: scale(1); filter: brightness(1) sepia(0); opacity: 1; }
+        30% { transform: scale(1.05) translateY(-5px); filter: brightness(1.5) sepia(0.5) drop-shadow(0 0 10px gold); opacity: 0.9; }
+        100% { transform: scale(0.8) translateY(-30px); filter: brightness(2) blur(4px) sepia(1); opacity: 0; }
+      }
+      .animate-knight-death { transform-origin: bottom center; animation: knight-death 1.5s ease-out forwards; }
 
       @keyframes shockwave-expand {
         0%, 35% { transform: scale(0.1); opacity: 0; stroke-width: 0; }

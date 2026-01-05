@@ -48,7 +48,9 @@ export const StickmanRender: React.FC<StickmanProps> = ({
   // -- ANIMATION CLASS SELECTOR --
   let animClass = "";
   if (isDying) {
-      animClass = "animate-death-puddle";
+      // Special death animation for Imperial Knights (Ascension)
+      if (type === UnitType.TOXIC) animClass = "animate-knight-death";
+      else animClass = "animate-death-puddle";
   } else if (isRooted) {
       animClass = "animate-idle-breathe"; 
   } else if (isSummoning && type === UnitType.MAGE) {
@@ -57,7 +59,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
       if (type === UnitType.TOXIC) animClass = ""; // Knight uses custom SVG transform for attack, no css body wobble
       else if (type === UnitType.ARCHER) animClass = "animate-archer-body"; 
       else if (type === UnitType.BOSS) animClass = "animate-boss-stomp";
-      else if (type === UnitType.WORKER && isMining) animClass = "animate-miner-work";
+      else if (type === UnitType.WORKER && isMining) animClass = ""; // Miner uses custom SVG transform for pickaxe
       else if (type === UnitType.PALADIN) animClass = "animate-paladin-attack"; 
       else animClass = "animate-slime-attack";
   } else if (isMoving || isDepositing) {
@@ -82,9 +84,9 @@ export const StickmanRender: React.FC<StickmanProps> = ({
   let armorTrim = "#facc15"; // Gold trim for Imperial
 
   switch(type) {
-      case UnitType.WORKER:
-          baseColor = isPlayer ? "#a16207" : "#7f1d1d"; 
-          secondaryColor = isPlayer ? "#713f12" : "#450a0a";
+      case UnitType.WORKER: // Imperial Miner
+          baseColor = isPlayer ? "#3b82f6" : "#ef4444"; // Consistent with Knight but maybe slightly darker or same? Standard team color
+          secondaryColor = isPlayer ? "#1e40af" : "#991b1b";
           break;
       case UnitType.TOXIC: // Imperial Knight
           baseColor = isPlayer ? "#2563eb" : "#9f1239"; 
@@ -133,20 +135,24 @@ export const StickmanRender: React.FC<StickmanProps> = ({
           return (
               <g>
                   {/* Imperial Silver/Gold Chest Armor */}
-                  {/* Rounded Pauldrons (Shoulders) */}
-                  <circle cx="28" cy="62" r="8" fill={armorColor} stroke={armorTrim} strokeWidth="1.5" />
-                  <circle cx="72" cy="62" r="8" fill={armorColor} stroke={armorTrim} strokeWidth="1.5" />
                   
-                  {/* Chest Plate - Shield shape, preserving face visibility */}
+                  {/* Rounded Pauldrons (Shoulders) - Fitted to corners of body curve */}
+                  <circle cx="22" cy="60" r="7" fill={armorColor} stroke={armorTrim} strokeWidth="1.5" />
+                  <circle cx="78" cy="60" r="7" fill={armorColor} stroke={armorTrim} strokeWidth="1.5" />
+                  
+                  {/* Chest Plate - Fitted wider to cover slime chest */}
                   <path 
-                      d="M32 70 Q 50 65 68 70 L 68 85 Q 50 100 32 85 Z" 
+                      d="M26 68 Q 50 62 74 68 L 70 88 Q 50 100 30 88 Z" 
                       fill={armorColor} 
                       stroke={armorTrim} 
                       strokeWidth="1.5" 
                   />
                   
-                  {/* Waist Guard */}
-                  <path d="M40 88 L 60 88 L 55 95 L 45 95 Z" fill={armorColor} stroke={armorTrim} strokeWidth="1" />
+                  {/* Imperial Emblem (Diamond) */}
+                  <path d="M50 72 L 54 78 L 50 84 L 46 78 Z" fill={armorTrim} />
+
+                  {/* Waist Guard - Fitted to bottom of chest plate */}
+                  <path d="M38 90 L 62 90 L 58 96 L 42 96 Z" fill={armorColor} stroke={armorTrim} strokeWidth="1" />
 
                   {/* Noble Sword - Held Upright or Slashing */}
                   <g 
@@ -161,7 +167,6 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                       <line x1="88" y1="60" x2="88" y2="70" stroke="#78350f" strokeWidth="2" />
                   </g>
                   
-                  {/* Style definitions for specific animations */}
                   <style>{`
                     @keyframes swordSlash {
                         0% { transform: rotate(0deg) translate(0,0); }
@@ -173,6 +178,59 @@ export const StickmanRender: React.FC<StickmanProps> = ({
                   `}</style>
               </g>
           );
+      }
+
+      // IMPERIAL MINER KNIGHT (Worker)
+      if (type === UnitType.WORKER) {
+        return (
+             <g>
+                 {/* Light Imperial Armor (Worker Class) */}
+                 
+                 {/* Small Pauldrons */}
+                 <circle cx="25" cy="65" r="5" fill={armorColor} stroke={armorTrim} strokeWidth="1" />
+                 <circle cx="75" cy="65" r="5" fill={armorColor} stroke={armorTrim} strokeWidth="1" />
+
+                 {/* Small Chest Plate */}
+                 <path 
+                    d="M35 70 Q 50 68 65 70 L 62 80 Q 50 85 38 80 Z" 
+                    fill={armorColor} 
+                    stroke={armorTrim} 
+                    strokeWidth="1"
+                 />
+                 
+                 {/* Utility Belt (Bronze/Leather) */}
+                 <rect x="30" y="82" width="40" height="6" rx="2" fill="#78350f" stroke="#451a03" strokeWidth="1" />
+                 <circle cx="50" cy="85" r="2" fill="#facc15" /> {/* Belt Buckle */}
+
+                 {/* Imperial Pickaxe */}
+                 <g 
+                    className={isMining ? "animate-pickaxe-swing" : ""}
+                    style={{ transformOrigin: "80px 65px" }}
+                 >
+                     {/* Handle (Bronze/Wood) */}
+                     <path d="M75 70 L 90 40" stroke="#78350f" strokeWidth="3" strokeLinecap="round" />
+                     
+                     {/* Head (Silver with Gold Tip) */}
+                     {/* Main Pick Head */}
+                     <path d="M82 44 L 98 36" stroke="#94a3b8" strokeWidth="4" strokeLinecap="round" />
+                     {/* Sharp Point (Gold) */}
+                     <path d="M78 46 L 82 44" stroke="#facc15" strokeWidth="4" strokeLinecap="round" />
+                     {/* Back Hammer */}
+                     <path d="M98 36 L 102 34" stroke="#94a3b8" strokeWidth="4" strokeLinecap="square" />
+                 </g>
+                 
+                 <style>{`
+                    @keyframes pickaxeSwing {
+                        0% { transform: rotate(0deg); }
+                        25% { transform: rotate(-30deg); } /* Wind up */
+                        50% { transform: rotate(45deg); }  /* Strike */
+                        75% { transform: rotate(45deg); }  /* Hold strike/Impact */
+                        100% { transform: rotate(0deg); }
+                    }
+                    .animate-pickaxe-swing { animation: pickaxeSwing 1.0s ease-in-out infinite; }
+                 `}</style>
+             </g>
+        );
       }
 
       // IMPERIAL ARCHER Bow & Quiver
@@ -214,17 +272,6 @@ export const StickmanRender: React.FC<StickmanProps> = ({
            );
       }
 
-      // MINER - Pickaxe
-      if (type === UnitType.WORKER) {
-        return (
-             <g className={isMining ? "animate-mining-swing" : ""}>
-                 <path d="M65 60 L 85 40" stroke="#78350f" strokeWidth="3" />
-                 <path d="M85 40 L 90 35" stroke="#94a3b8" strokeWidth="4" />
-                 <path d="M80 35 Q 85 40 95 35" stroke="#94a3b8" strokeWidth="3" fill="none" />
-             </g>
-        );
-      }
-
       return null;
   };
 
@@ -245,6 +292,17 @@ export const StickmanRender: React.FC<StickmanProps> = ({
             />
         );
     }
+    // Imperial Miner - Sturdier, wider base, slightly shorter than Knight
+    if (type === UnitType.WORKER) {
+        return (
+            <path 
+                d="M15 100 L 15 65 Q 15 40 50 40 Q 85 40 85 65 L 85 100 Z" 
+                fill={baseColor} 
+                stroke={secondaryColor} 
+                strokeWidth="3"
+            />
+        );
+    }
     return (
       <path 
         d="M15 100 C 15 100 15 40 50 40 C 85 40 85 100 85 100 Z" 
@@ -257,10 +315,14 @@ export const StickmanRender: React.FC<StickmanProps> = ({
   };
   
   const renderEyes = () => {
-    // Imperial Knight (Frontliner): Soft Anime Eyes ( ◕ ◕ )
-    if (type === UnitType.TOXIC) {
+    // Imperial Knight (Frontliner) & Imperial Miner (Worker): Soft Anime Eyes ( ◕ ◕ )
+    if (type === UnitType.TOXIC || type === UnitType.WORKER) {
+        // Adjust eye position slightly lower for the sturdier miner if needed, 
+        // but standard position works well for consistency.
+        const yOffset = type === UnitType.WORKER ? 0 : -5;
+        
         return (
-            <g transform="translate(0, -5)">
+            <g transform={`translate(0, ${yOffset})`}>
                 {/* Left Eye */}
                 <ellipse cx="38" cy="55" rx="5" ry="7" fill="black" />
                 <circle cx="40" cy="52" r="2.5" fill="white" /> {/* Shine */}

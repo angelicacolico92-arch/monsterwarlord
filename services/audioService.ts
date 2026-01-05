@@ -153,6 +153,33 @@ const playKnightSlash = (time: number, targetNode: GainNode | null) => {
     oscRing.stop(time + 0.3);
 }
 
+// Miner: Soft Clink
+const playMiningHit = (time: number, targetNode: GainNode | null) => {
+    const ctx = getCtx();
+    if (!ctx || !targetNode) return;
+
+    // High pitched metal clink (short decay)
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = 'square'; // Sharper sound
+    osc.frequency.setValueAtTime(2200, time);
+    
+    g.gain.setValueAtTime(0.15, time);
+    g.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
+    
+    // Filter to remove harshness
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 2500;
+    filter.Q.value = 2;
+
+    osc.connect(filter);
+    filter.connect(g);
+    g.connect(targetNode);
+    osc.start(time);
+    osc.stop(time + 0.15);
+};
+
 // Boss: Low Boom-Thump
 const playHeavyHit = (time: number, targetNode: GainNode | null) => {
     const ctx = getCtx();
@@ -659,7 +686,8 @@ export const AudioService = {
       case UnitType.ARCHER: playArcherRelease(time, sfxGain); break;
       case UnitType.MAGE: playMagicCast(time, sfxGain); break;
       case UnitType.TOXIC: playKnightSlash(time, sfxGain); break; // Imperial Knight Sound
-      default: playMeleeHit(time, sfxGain); // Warrior, Paladin, Worker, Minion
+      case UnitType.WORKER: playMiningHit(time, sfxGain); break; // Imperial Miner Sound
+      default: playMeleeHit(time, sfxGain); // Paladin, Minion
     }
   },
 

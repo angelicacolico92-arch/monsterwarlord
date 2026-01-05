@@ -37,10 +37,10 @@ export const FORMATION_OFFSETS: Record<UnitType, number> = {
 export const UNIT_CONFIGS: Record<UnitType, UnitConfig> = {
   [UnitType.WORKER]: {
     type: UnitType.WORKER,
-    name: 'Slime Miner',
+    name: 'Imperial Miner',
     cost: 50,
     stats: { hp: 120, maxHp: 120, damage: 15, range: ATTACK_RANGE_MELEE, speed: 4, attackSpeed: 3000 },
-    description: 'Harvests crystal shards'
+    description: 'Disciplined resource gatherer.'
   },
   [UnitType.TOXIC]: {
     type: UnitType.TOXIC,
