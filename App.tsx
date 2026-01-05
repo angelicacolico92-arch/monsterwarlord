@@ -13,8 +13,7 @@ import {
   MAX_UNITS,
   INITIAL_GOLD,
   INITIAL_GOLD_SURGE,
-  FORMATION_OFFSETS,
-  MAP_CONFIGS
+  FORMATION_OFFSETS
 } from './constants';
 import { StickmanRender } from './components/StickmanRender';
 import { ArmyVisuals } from './components/ArmyVisuals';
@@ -27,6 +26,8 @@ import { mpService } from './services/multiplayerService';
 import { Gem, Shield, Swords, CornerDownLeft, Users, Settings } from 'lucide-react';
 import { SettingsModal } from './components/SettingsModal';
 import { UnitCard } from './components/UnitCard';
+
+// --- VISUAL COMPONENTS ---
 
 const CrystalRock: React.FC<{ x: number; isFlipped?: boolean }> = ({ x, isFlipped }) => (
   <div 
@@ -139,7 +140,7 @@ const BaseStatue: React.FC<{ x: number; hp: number; variant: 'BLUE' | 'RED'; isF
                     {stuckArrows.map(arrow => (
                         <g key={arrow.id} transform={`translate(${arrow.x * 2.2}, ${arrow.y * 3.8}) rotate(${arrow.angle})`}>
                             <line x1="0" y1="0" x2="-25" y2="0" stroke="white" strokeWidth="2" />
-                            <path d="M-25 0 L -30 -4 L -30 4 Z" fill="#facc15" />
+                            <path d="M-25 0 L -30 -4 L -30 4 Z" fill="#facc15" stroke="none" />
                         </g>
                     ))}
                 </svg>
@@ -148,6 +149,7 @@ const BaseStatue: React.FC<{ x: number; hp: number; variant: 'BLUE' | 'RED'; isF
     );
 };
 
+// --- GAME LOGIC CONSTANTS ---
 const TICK_RATE = 20; 
 const DEATH_DURATION = 1500;
 const UNIT_AGILITY: Record<string, number> = {
@@ -161,14 +163,16 @@ const UNIT_AGILITY: Record<string, number> = {
 };
 
 export const App: React.FC = () => {
+  // Navigation State
   const [appMode, setAppMode] = useState<'INTRO' | 'LANDING' | 'MAP_SELECT' | 'GAME'>('INTRO');
   const [role, setRole] = useState<PlayerRole>(PlayerRole.HOST);
   const [isSurgeMode, setIsSurgeMode] = useState(false);
-  const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showSurrenderConfirm, setShowSurrenderConfirm] = useState(false);
   
-  // Game State
+  // Game Logic State
+  const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
+  
   const [gameState, setGameState] = useState<GameState>({
     units: [],
     projectiles: [],
@@ -185,14 +189,16 @@ export const App: React.FC = () => {
     mapId: MapId.FOREST
   });
 
+  // Refs for Game Loop to access latest state without closure staleness
   const stateRef = useRef(gameState);
   const aiStateRef = useRef({ lastDecisionTime: 0, state: 'GATHERING' });
   const actionQueueRef = useRef<any[]>([]);
+  // Fix: Move useRef to top level to avoid conditional hook call error #310
+  const viewportRef = useRef<HTMLDivElement>(null);
   
-  // Ref sync
   useEffect(() => { stateRef.current = gameState; }, [gameState]);
 
-  // Audio Logic
+  // Audio Control
   useEffect(() => {
     if (appMode === 'GAME') AudioService.startMusic(gameState.mapId);
     else AudioService.stopMusic();
@@ -214,7 +220,7 @@ export const App: React.FC = () => {
       setShowSurrenderConfirm(true);
   };
 
-  // Damage Logic
+  // Helper: Damage Calculation
   const applyDamage = (target: GameUnit, rawDamage: number, now: number, isBossAttack: boolean, allUnits: GameUnit[]) => {
       let damageDealt = rawDamage;
       if (target.type === UnitType.PALADIN) damageDealt *= 0.7; 
@@ -232,69 +238,36 @@ export const App: React.FC = () => {
       target.lastDamageAmount = Math.floor(damageDealt);
   };
 
-  // Add Stuck Arrow Logic
-  const addStuckArrow = (targetUnit: GameUnit | null, isStatueHit: boolean, side: 'player' | 'enemy', angle: number, targetX: number) => {
-      // 1. Arrow stuck in Unit
-      if (targetUnit) {
-          if (!targetUnit.stuckArrows) targetUnit.stuckArrows = [];
-          if (targetUnit.stuckArrows.length < 5) { // Limit arrows
-              targetUnit.stuckArrows.push({
-                  id: Math.random().toString(36),
-                  x: Math.random() * 40 - 20, // Random offset on body
-                  y: Math.random() * 60 - 30,
-                  angle: angle + (Math.random() * 20 - 10),
-                  variant: 'phys'
-              });
-          }
-      }
-      // 2. Arrow stuck in Statue
-      else if (isStatueHit) {
-          const isPlayerStatue = side === 'player'; // Attacking enemy statue means side='player' projectiles hit ENEMY statue? No.
-          // Projectile side='player' hits Enemy Statue.
-          const isTargetEnemyStatue = side === 'player';
-          
-          const newArrow: StuckArrow = {
-              id: Math.random().toString(36),
-              x: Math.random() * 60 + 20, // Random spread on tower
-              y: Math.random() * 60 + 20,
-              angle: (Math.random() * 30 - 15),
-              variant: 'phys'
-          };
-
-          if (isTargetEnemyStatue) {
-              if (!stateRef.current.enemyStatueStuckArrows) stateRef.current.enemyStatueStuckArrows = [];
-              stateRef.current.enemyStatueStuckArrows.push(newArrow);
-          } else {
-              if (!stateRef.current.playerStatueStuckArrows) stateRef.current.playerStatueStuckArrows = [];
-              stateRef.current.playerStatueStuckArrows.push(newArrow);
-          }
-      }
-  };
-
-  // GAME LOOP
+  // --- MAIN GAME LOOP ---
   useEffect(() => {
     if ((role !== PlayerRole.HOST && role !== PlayerRole.OFFLINE) || appMode !== 'GAME') return;
-    const mapDifficulty = MAP_CONFIGS[stateRef.current.mapId]?.difficulty || 'Medium';
 
     const intervalId = setInterval(() => {
       const now = Date.now();
-      const deltaTime = Math.min((now - stateRef.current.lastTick) / 1000, 0.05);
-      let { units, projectiles, playerStatueHP, enemyStatueHP, p1Gold, p2Gold, p1Command, p2Command, gameStatus, playerStatueStuckArrows, enemyStatueStuckArrows } = stateRef.current;
+      const currentState = stateRef.current;
+      const deltaTime = Math.min((now - currentState.lastTick) / 1000, 0.05);
       
-      if (gameStatus !== 'PLAYING') return;
+      if (currentState.gameStatus !== 'PLAYING') return;
 
-      let nextUnits = units.map(u => ({ ...u }));
-      let nextProjectiles = projectiles ? projectiles.map(p => ({ ...p })) : [];
+      // Shallow copies for mutation during this tick
+      let nextUnits = currentState.units.map(u => ({ ...u }));
+      let nextProjectiles = currentState.projectiles ? currentState.projectiles.map(p => ({ ...p })) : [];
+      let nextPlayerStatueStuckArrows = [...(currentState.playerStatueStuckArrows || [])];
+      let nextEnemyStatueStuckArrows = [...(currentState.enemyStatueStuckArrows || [])];
+      
+      let { playerStatueHP, enemyStatueHP, p1Gold, p2Gold, p1Command, p2Command } = currentState;
       let newSummons: GameUnit[] = [];
 
-      // Process Actions
+      // 1. Process Action Queue
       while (actionQueueRef.current.length > 0) {
         const action = actionQueueRef.current.shift();
         if (action.type === 'RECRUIT') {
           const config = UNIT_CONFIGS[action.unitType as UnitType];
           const isP1 = action.side === 'player';
           const sideUnits = nextUnits.filter(u => u.side === action.side && u.state !== 'DYING').length;
-          if (sideUnits < MAX_UNITS && (isP1 ? p1Gold : p2Gold) >= config.cost) {
+          const currentSideGold = isP1 ? p1Gold : p2Gold;
+          
+          if (sideUnits < MAX_UNITS && currentSideGold >= config.cost) {
             if (isP1) p1Gold -= config.cost; else p2Gold -= config.cost;
             nextUnits.push({
               id: Math.random().toString(36).substr(2, 9),
@@ -316,10 +289,12 @@ export const App: React.FC = () => {
         }
       }
 
-      // Process Projectiles
+      // 2. Process Projectiles
       nextProjectiles = nextProjectiles.filter(p => {
           const dir = p.targetX > p.x ? 1 : -1;
           p.x += dir * p.speed * deltaTime;
+          
+          // Bounds check
           if (p.x < 0 || p.x > 100) return false;
 
           const dist = Math.abs(p.x - p.targetX);
@@ -331,7 +306,18 @@ export const App: React.FC = () => {
                   if (targetUnit) {
                       hit = true;
                       applyDamage(targetUnit, p.damage, now, false, nextUnits);
-                      addStuckArrow(targetUnit, false, p.side, dir === 1 ? -10 : 190, p.x); // Simple angle approximation
+                      // Add Stuck Arrow to Unit
+                      // Safe mutation because nextUnits contains shallow copies and we are creating a new array for stuckArrows
+                      const currentArrows = targetUnit.stuckArrows || [];
+                      if (currentArrows.length < 5) {
+                          targetUnit.stuckArrows = [...currentArrows, {
+                              id: Math.random().toString(36),
+                              x: Math.random() * 40 - 20,
+                              y: Math.random() * 60 - 30,
+                              angle: (dir === 1 ? -10 : 190) + (Math.random() * 20 - 10),
+                              variant: 'phys'
+                          }];
+                      }
                       AudioService.playImpact('PHYSICAL');
                   } else {
                       // Check Statue Hit
@@ -339,10 +325,20 @@ export const App: React.FC = () => {
                       if (Math.abs(p.x - targetStatueX) < 3) {
                            hit = true;
                            if (p.side === 'player') enemyStatueHP -= p.damage; else playerStatueHP -= p.damage;
-                           addStuckArrow(null, true, p.side, dir === 1 ? 0 : 180, p.x);
+                           // Add Stuck Arrow to Statue
+                           const arrow = {
+                               id: Math.random().toString(36),
+                               x: Math.random() * 60 + 20,
+                               y: Math.random() * 60 + 20,
+                               angle: (Math.random() * 30 - 15),
+                               variant: 'phys' as const
+                           };
+                           if (p.side === 'player') nextEnemyStatueStuckArrows.push(arrow);
+                           else nextPlayerStatueStuckArrows.push(arrow);
+                           
                            AudioService.playImpact('PHYSICAL');
                       } else {
-                           hit = true; // Missed everything
+                           hit = true; // Missed
                       }
                   }
               } else {
@@ -366,7 +362,7 @@ export const App: React.FC = () => {
           return true;
       });
 
-      // Unit Logic
+      // 3. Update Units
       nextUnits.forEach(unit => {
         if (unit.state === 'DYING') return;
         const config = UNIT_CONFIGS[unit.type];
@@ -380,14 +376,14 @@ export const App: React.FC = () => {
             unit.hp -= 0.1; // Root DoT
         }
 
-        // Mage Summon
+        // Mage Summon Ability
         if (unit.type === UnitType.MAGE && now - (unit.lastSummonTime || 0) > 10000) {
              const allies = nextUnits.filter(u => u.side === unit.side && u.state !== 'DYING').length;
              if (allies < MAX_UNITS) {
                 newSummons.push({
                    id: Math.random().toString(36), type: UnitType.SMALL, side: unit.side,
                    x: unit.x + (isPlayer ? 5 : -5), hp: 60, maxHp: 60, state: 'WALKING',
-                   lastAttackTime: 0, currentSpeed: 0
+                   lastAttackTime: 0, currentSpeed: 0, stuckArrows: []
                 });
                 unit.lastSummonTime = now;
                 AudioService.playSummon();
@@ -410,7 +406,7 @@ export const App: React.FC = () => {
             unit.state = 'IDLE';
         }
 
-        // Worker Logic
+        // Worker Mining Logic
         if (unit.type === UnitType.WORKER) {
             const mineX = isPlayer ? GOLD_MINE_PLAYER_X : GOLD_MINE_ENEMY_X;
             const statueX = isPlayer ? STATUE_PLAYER_POS : STATUE_ENEMY_POS;
@@ -439,9 +435,11 @@ export const App: React.FC = () => {
         const targets = nextUnits.filter(u => u.side !== unit.side && u.state !== 'DYING' && u.state !== 'GARRISONED');
         const visibleTargets = targets.filter(u => Math.abs(u.x - unit.x) < 30);
         
-        // Sorting targets
+        // Target selection
         visibleTargets.sort((a, b) => Math.abs(a.x - unit.x) - Math.abs(b.x - unit.x));
         const primaryTarget = visibleTargets.find(u => Math.abs(u.x - unit.x) <= config.stats.range);
+        
+        // Base Siege
         const statueTargetX = isPlayer ? STATUE_ENEMY_POS : STATUE_PLAYER_POS;
         const canSiege = cmd === GameCommand.ATTACK && Math.abs(unit.x - statueTargetX) < config.stats.range + 1;
 
@@ -450,6 +448,7 @@ export const App: React.FC = () => {
             unit.currentSpeed = 0;
             if (now - unit.lastAttackTime > config.stats.attackSpeed) {
                 if (unit.type === UnitType.ARCHER) {
+                    // Fire Arrow
                     nextProjectiles.push({
                         id: `arrow-${unit.id}-${now}`, x: unit.x, startX: unit.x,
                         targetX: primaryTarget ? primaryTarget.x : statueTargetX,
@@ -457,7 +456,7 @@ export const App: React.FC = () => {
                         speed: 45 + Math.random() * 5, side: unit.side, visualType: 'ARROW', createdAt: now
                     });
                 } else {
-                    // Melee/Mage Instant
+                    // Melee/Mage Instant Damage
                     if (primaryTarget) {
                         applyDamage(primaryTarget, config.stats.damage, now, false, nextUnits);
                         if (unit.type === UnitType.BOSS) { // Cleave
@@ -471,7 +470,7 @@ export const App: React.FC = () => {
                 unit.lastAttackTime = now;
             }
         } else {
-            // Movement
+            // Movement Logic
             unit.state = 'WALKING';
             let targetV = 0;
             if (cmd === GameCommand.DEFEND) {
@@ -480,7 +479,7 @@ export const App: React.FC = () => {
                 const tx = isPlayer ? defX - offset : defX + offset;
                 if (Math.abs(unit.x - tx) > 1) targetV = (unit.x < tx ? 1 : -1) * config.stats.speed;
             } else {
-                // Attack move or chase
+                // Chase or March
                 if (visibleTargets.length > 0) {
                     targetV = (unit.x < visibleTargets[0].x ? 1 : -1) * config.stats.speed;
                 } else {
@@ -488,13 +487,14 @@ export const App: React.FC = () => {
                 }
             }
             if (unit.rootedUntil && unit.rootedUntil > now) targetV = 0;
+            
             const agility = UNIT_AGILITY[unit.type] || 5;
             unit.currentSpeed += (targetV - unit.currentSpeed) * (1 - Math.exp(-agility * deltaTime));
             unit.x += unit.currentSpeed * deltaTime;
         }
       });
 
-      // AI Logic
+      // 4. AI Logic
       if (role === PlayerRole.HOST || role === PlayerRole.OFFLINE) {
           if (now - aiStateRef.current.lastDecisionTime > 2000) {
               const aiWorkers = nextUnits.filter(u => u.side === 'enemy' && u.type === UnitType.WORKER).length;
@@ -507,7 +507,7 @@ export const App: React.FC = () => {
                       actionQueueRef.current.push({ type: 'RECRUIT', unitType: rnd, side: 'enemy' });
                   }
               }
-              // Simple AI State Switch
+              
               const armySize = nextUnits.filter(u => u.side === 'enemy' && u.type !== UnitType.WORKER).length;
               if (aiStateRef.current.state === 'GATHERING' && armySize > 5) {
                   aiStateRef.current.state = 'ATTACKING';
@@ -520,34 +520,40 @@ export const App: React.FC = () => {
           }
       }
 
-      // Merge Summons
+      // 5. Merge & Cleanup
       if (nextUnits.length < MAX_UNITS * 2) nextUnits.push(...newSummons);
 
-      // Cleanup Dead
       nextUnits = nextUnits.filter(u => {
           if (u.hp <= 0 && u.state !== 'DYING') { u.state = 'DYING'; u.deathTime = now; AudioService.playDeath(); }
           return !(u.state === 'DYING' && now - (u.deathTime || 0) > DEATH_DURATION);
       });
 
-      // Update State
       const nextStatus = playerStatueHP <= 0 ? 'DEFEAT' : (enemyStatueHP <= 0 ? 'VICTORY' : 'PLAYING');
-      if (nextStatus !== gameStatus) AudioService.playFanfare(nextStatus === 'VICTORY');
+      if (nextStatus !== currentState.gameStatus) AudioService.playFanfare(nextStatus === 'VICTORY');
 
+      // Final State Update (Safe: explicit object to avoid implicit callback interpretation)
       setGameState({
-          ...stateRef.current,
+          ...currentState,
           units: nextUnits,
           projectiles: nextProjectiles,
-          playerStatueHP, enemyStatueHP,
-          p1Gold, p2Gold, p1Command, p2Command, gameStatus: nextStatus,
-          playerStatueStuckArrows, enemyStatueStuckArrows,
+          playerStatueHP, 
+          enemyStatueHP,
+          p1Gold, 
+          p2Gold, 
+          p1Command, 
+          p2Command, 
+          gameStatus: nextStatus,
+          playerStatueStuckArrows: nextPlayerStatueStuckArrows, 
+          enemyStatueStuckArrows: nextEnemyStatueStuckArrows,
           lastTick: now
       });
 
     }, TICK_RATE);
+    
     return () => clearInterval(intervalId);
   }, [role, appMode]);
 
-  // RENDER UI
+  // --- RENDER UI ---
   if (appMode === 'INTRO') return <IntroSequence onComplete={() => setAppMode('LANDING')} />;
   if (appMode === 'LANDING') return <LandingPage 
       onStartHost={(s) => { setRole(PlayerRole.HOST); setIsSurgeMode(s); setAppMode('MAP_SELECT'); }} 
@@ -565,7 +571,7 @@ export const App: React.FC = () => {
   return (
     <div className="h-[100dvh] w-screen bg-black overflow-hidden relative">
       <div 
-        ref={useRef(null)}
+        ref={viewportRef}
         className={`absolute inset-0 flex flex-col bg-inamorta select-none overflow-x-auto overflow-y-hidden touch-pan-x z-0 isolation-isolate`}
       >
           <div className="relative h-full w-[200vw] overflow-hidden">
@@ -592,7 +598,7 @@ export const App: React.FC = () => {
                 units={gameState.units} 
                 projectiles={gameState.projectiles}
                 selectedUnitId={selectedUnitId} 
-                onSelectUnit={setSelectedUnitId} 
+                onSelectUnit={(id) => setSelectedUnitId(id)} 
                 isMirrored={isMirrored}
                 p1Command={gameState.p1Command}
                 p2Command={gameState.p2Command}
@@ -600,10 +606,21 @@ export const App: React.FC = () => {
           </div>
       </div>
 
+      {/* TOP LEFT: Player Info */}
+      <div className="fixed top-4 left-4 z-40 flex items-center gap-3 bg-black/40 backdrop-blur-md p-1.5 pr-4 rounded-full border border-white/10 shadow-lg select-none">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 border border-blue-300 flex items-center justify-center shadow-inner">
+              <span className="font-epic text-xs text-white font-bold">P1</span>
+          </div>
+          <div className="flex flex-col leading-none">
+              <span className="font-epic text-stone-200 text-xs tracking-wider">COMMANDER</span>
+              <span className="text-[10px] text-blue-400 font-mono">ONLINE</span>
+          </div>
+      </div>
+
       {/* TOP RIGHT: Resources */}
       <div className="fixed top-4 right-4 z-40 bg-black/70 px-4 py-2 rounded-full border border-white/10 flex gap-4 items-center">
          <div className="flex items-center gap-2"><Gem className="text-cyan-400" size={18} /><span className="text-cyan-100 font-bold">{Math.floor(currentGold)}</span></div>
-         <div className="flex items-center gap-2"><Users className="text-stone-400" size={18} /><span className="text-stone-100 font-bold">{gameState.units.filter(u => u.side === (isMirrored ? 'enemy' : 'player') && u.state !== 'DYING').length}/{MAX_UNITS}</span></div>
+         <div className="flex items-center gap-2"><Users className={gameState.units.filter(u => u.side === (isMirrored ? 'enemy' : 'player') && u.state !== 'DYING').length >= MAX_UNITS ? "text-red-500" : "text-stone-400"} size={18} /><span className="text-stone-100 font-bold">{gameState.units.filter(u => u.side === (isMirrored ? 'enemy' : 'player') && u.state !== 'DYING').length}/{MAX_UNITS}</span></div>
       </div>
 
       <div className="fixed top-16 right-4 z-40 flex gap-2">
@@ -614,17 +631,15 @@ export const App: React.FC = () => {
       {/* RECRUITMENT BAR */}
       <div className="fixed top-2 left-1/2 -translate-x-1/2 z-40 bg-black/80 p-2 rounded-xl flex gap-2 border border-white/10 max-w-[90vw] overflow-x-auto no-scrollbar">
           {Object.values(UNIT_CONFIGS).filter(u => u.cost > 0).map(u => (
-              <button 
-                  key={u.type} 
-                  disabled={currentGold < u.cost}
-                  onClick={() => actionQueueRef.current.push({type: 'RECRUIT', unitType: u.type, side: isMirrored ? 'enemy' : 'player'})}
-                  className={`p-2 rounded border flex flex-col items-center min-w-[64px] transition-all ${currentGold >= u.cost ? 'bg-stone-800 border-white/5 active:scale-95' : 'bg-stone-900 opacity-40 border-transparent grayscale'}`}
-              >
-                  <div className="scale-50 h-8 w-8 flex items-center justify-center">
-                    <StickmanRender type={u.type} isPlayer={!isMirrored} />
-                  </div>
-                  <span className="text-[10px] text-cyan-400 font-bold">{u.cost}</span>
-              </button>
+              <div key={u.type} className="transform scale-90 origin-top">
+                <UnitCard
+                    unit={u}
+                    count={gameState.units.filter(unit => unit.side === (isMirrored ? 'enemy' : 'player') && unit.type === u.type).length}
+                    canAfford={currentGold >= u.cost}
+                    onRecruit={() => actionQueueRef.current.push({type: 'RECRUIT', unitType: u.type, side: isMirrored ? 'enemy' : 'player'})}
+                    variant={isMirrored ? "RED" : "BLUE"}
+                />
+              </div>
           ))}
       </div>
 
@@ -634,7 +649,7 @@ export const App: React.FC = () => {
               <button 
                 key={cmd}
                 onClick={() => actionQueueRef.current.push({type: 'CHANGE_COMMAND', side: isMirrored ? 'enemy' : 'player', command: cmd})} 
-                className={`p-3 rounded-full border-2 shadow-lg active:scale-95 transition-all duration-200 ${gameState.p1Command === cmd ? 'bg-blue-600 border-white scale-110' : 'bg-stone-900/40 border-white/10'}`}
+                className={`p-3 rounded-full border-2 shadow-lg active:scale-95 transition-all duration-200 ${gameState.p1Command === cmd ? 'bg-blue-600 border-white scale-110 ring-2 ring-blue-400' : 'bg-stone-900/40 border-white/10'}`}
               >
                 {cmd === GameCommand.ATTACK && <Swords size={24} />}
                 {cmd === GameCommand.DEFEND && <Shield size={24} />}
@@ -644,12 +659,12 @@ export const App: React.FC = () => {
       </div>
       
       {showSurrenderConfirm && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
             <div className="bg-stone-900 p-8 rounded-2xl border-2 border-red-500/30 shadow-2xl text-center">
                 <h2 className="text-2xl font-epic text-red-500 mb-4">SURRENDER?</h2>
                 <div className="flex gap-4 justify-center">
-                    <button onClick={() => setShowSurrenderConfirm(false)} className="px-6 py-2 rounded bg-stone-700 font-bold">CANCEL</button>
-                    <button onClick={() => { setGameState(prev => ({ ...prev, playerStatueHP: 0 })); setShowSurrenderConfirm(false); }} className="px-6 py-2 rounded bg-red-900 font-bold text-red-100">SURRENDER</button>
+                    <button onClick={() => setShowSurrenderConfirm(false)} className="px-6 py-2 rounded bg-stone-700 font-bold hover:bg-stone-600">CANCEL</button>
+                    <button onClick={() => { setGameState(prev => ({ ...prev, playerStatueHP: 0 })); setShowSurrenderConfirm(false); }} className="px-6 py-2 rounded bg-red-900 font-bold text-red-100 hover:bg-red-700">SURRENDER</button>
                 </div>
             </div>
         </div>
@@ -661,7 +676,7 @@ export const App: React.FC = () => {
                  <h1 className={`text-6xl font-epic mb-4 animate-flourish ${gameState.gameStatus === 'VICTORY' ? 'text-yellow-400' : 'text-red-600'}`}>
                      {gameState.gameStatus === 'VICTORY' ? 'VICTORY!' : 'DEFEAT'}
                  </h1>
-                 <button onClick={handleReturnToMenu} className="px-8 py-3 rounded-lg font-bold text-lg bg-stone-700 hover:bg-stone-600 text-white border-stone-900">RETURN TO BASE</button>
+                 <button onClick={handleReturnToMenu} className="px-8 py-3 rounded-lg font-bold text-lg bg-stone-700 hover:bg-stone-600 text-white border-stone-900 border-b-4 active:border-b-0 active:translate-y-1 transition-all">RETURN TO BASE</button>
              </div>
          </div>
       )}
