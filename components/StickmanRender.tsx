@@ -49,23 +49,23 @@ export const StickmanRender: React.FC<StickmanProps> = ({
   let animClass = "";
   if (isDying) {
       // Special death animation for Imperial Knights (Ascension)
-      if (type === UnitType.TOXIC) animClass = "animate-knight-death";
+      if (type === UnitType.TOXIC || type === UnitType.ARCHER) animClass = "animate-knight-death";
       else animClass = "animate-death-puddle";
   } else if (isRooted) {
       animClass = "animate-idle-breathe"; 
   } else if (isSummoning && type === UnitType.MAGE) {
       animClass = "animate-mage-float"; 
   } else if (isAttacking || isMining) {
-      if (type === UnitType.TOXIC) animClass = ""; // Knight uses custom SVG transform for attack, no css body wobble
-      else if (type === UnitType.ARCHER) animClass = "animate-archer-body"; 
+      if (type === UnitType.TOXIC) animClass = ""; // Knight uses custom SVG transform for attack
+      else if (type === UnitType.ARCHER) animClass = ""; // Archer uses internal SVG animation for focus/recoil
       else if (type === UnitType.BOSS) animClass = "animate-boss-stomp";
       else if (type === UnitType.WORKER && isMining) animClass = ""; // Miner uses custom SVG transform for pickaxe
       else if (type === UnitType.PALADIN) animClass = "animate-paladin-attack"; 
       else animClass = "animate-slime-attack";
   } else if (isMoving || isDepositing) {
       if (type === UnitType.MAGE || type === UnitType.SMALL) animClass = "animate-mage-float";
-      else if (type === UnitType.TOXIC) animClass = "animate-idle-breathe"; // Noble march, less bounce
-      else if (type === UnitType.ARCHER) animClass = "animate-slime-bounce"; 
+      else if (type === UnitType.TOXIC) animClass = "animate-idle-breathe"; // Noble march
+      else if (type === UnitType.ARCHER) animClass = "animate-idle-breathe"; // Calm march
       else animClass = "animate-slime-bounce";
   } else {
       if (type === UnitType.MAGE || type === UnitType.SMALL) animClass = "animate-mage-float";
@@ -85,7 +85,7 @@ export const StickmanRender: React.FC<StickmanProps> = ({
 
   switch(type) {
       case UnitType.WORKER: // Imperial Miner
-          baseColor = isPlayer ? "#3b82f6" : "#ef4444"; // Consistent with Knight but maybe slightly darker or same? Standard team color
+          baseColor = isPlayer ? "#3b82f6" : "#ef4444"; 
           secondaryColor = isPlayer ? "#1e40af" : "#991b1b";
           break;
       case UnitType.TOXIC: // Imperial Knight
@@ -93,8 +93,8 @@ export const StickmanRender: React.FC<StickmanProps> = ({
           secondaryColor = isPlayer ? "#1e3a8a" : "#881337"; 
           break;
       case UnitType.ARCHER: // Imperial Archer
-          baseColor = isPlayer ? "#047857" : "#7f1d1d"; 
-          secondaryColor = isPlayer ? "#064e3b" : "#450a0a"; 
+          baseColor = isPlayer ? "#1d4ed8" : "#be123c"; // Slightly lighter than Knight for "Leather/Cloth" feel
+          secondaryColor = isPlayer ? "#1e3a8a" : "#881337"; 
           break;
       case UnitType.PALADIN:
           baseColor = isPlayer ? "#f8fafc" : "#475569"; 
@@ -258,25 +258,96 @@ export const StickmanRender: React.FC<StickmanProps> = ({
         );
       }
 
-      // IMPERIAL ARCHER Bow & Quiver
+      // IMPERIAL KNIGHT ARCHER (Anime Style)
       if (type === UnitType.ARCHER) {
           return (
               <g>
-                  {/* Quiver on Back */}
-                  <rect x="25" y="55" width="10" height="20" rx="2" transform="rotate(-15 30 65)" fill="#78350f" stroke="#451a03" />
-                  <path d="M28 52 L 28 45 M 32 54 L 32 42" stroke="white" strokeWidth="1" />
+                  {/* -- BASE ARMOR -- */}
                   
-                  {/* Attached Bow - Side of body */}
-                  <g className={isAttacking ? "animate-archer-bow" : ""} transformOrigin="50px 70px" transform="translate(10, 0)">
-                      <path d="M65 40 Q 95 70 65 100" fill="none" stroke="#78350f" strokeWidth="3" />
-                      <line x1="65" y1="40" x2="65" y2="100" stroke="#fefce8" strokeWidth="0.5" opacity="0.8" />
-                      {isAttacking && (
-                          <g className="animate-archer-reload">
-                              <line x1="35" y1="70" x2="75" y2="70" stroke="white" strokeWidth="2" />
-                              <path d="M70 70 L 65 67 L 65 73 Z" fill="#34d399" />
-                          </g>
-                      )}
+                  {/* Small Cape/Hood (Back) */}
+                  <path d="M30 60 Q 50 65 70 60 L 75 90 Q 50 100 25 90 Z" fill={secondaryColor} opacity="0.6" />
+                  
+                  {/* Light Chest Plate (Slimmer than Knight) */}
+                  <path 
+                      d="M32 65 Q 50 60 68 65 L 64 85 Q 50 95 36 85 Z" 
+                      fill={armorColor} 
+                      stroke={armorTrim} 
+                      strokeWidth="1" 
+                  />
+                  
+                  {/* Arm Bracer (Bow Arm - Right side for viewer) */}
+                  <rect x="70" y="65" width="8" height="15" rx="2" fill="#78350f" stroke={armorTrim} strokeWidth="1" transform="rotate(-5 74 72)" />
+
+                  {/* Quiver (Peeking from back) */}
+                  <g transform="translate(15, 55) rotate(-20)">
+                      <rect x="0" y="0" width="8" height="20" rx="2" fill="#5D4037" stroke="#3E2723" />
+                      {/* Feathers */}
+                      <path d="M2 -5 L 4 0 L 6 -5" stroke="white" strokeWidth="1" fill="none" />
+                      <path d="M0 -3 L 4 2 L 8 -3" stroke="white" strokeWidth="1" fill="none" />
                   </g>
+
+                  {/* -- ANIME BOW ANIMATION -- */}
+                  <g 
+                    className={isAttacking ? "animate-bow-draw" : "transition-transform duration-700"}
+                    style={{ 
+                        transformOrigin: "75px 65px",
+                        transform: isAttacking ? "rotate(0deg)" : "rotate(25deg) translate(0, 5px)"
+                    }}
+                  >
+                      {/* Realistic Recurve Bow */}
+                      <path 
+                        d="M60 30 C 50 40, 75 50, 75 65 C 75 80, 50 90, 60 100" 
+                        fill="none" 
+                        stroke="#8B4513" 
+                        strokeWidth="3" 
+                        strokeLinecap="round"
+                      />
+                      {/* Handle Grip */}
+                      <path d="M72 60 L 72 70" stroke="#facc15" strokeWidth="3.5" />
+
+                      {/* Bow String - Dynamic Draw */}
+                      <path 
+                        className={isAttacking ? "animate-string-draw" : ""}
+                        d="M60 30 L 60 100" 
+                        fill="none" 
+                        stroke="#fff" 
+                        strokeWidth="0.5" 
+                        opacity="0.6"
+                      />
+
+                      {/* Arrow - Only visible during draw/attack */}
+                      <g className={isAttacking ? "animate-arrow-appear" : "opacity-0"}>
+                          <line x1="40" y1="65" x2="80" y2="65" stroke="#e2e8f0" strokeWidth="1.5" />
+                          <path d="M80 65 L 75 62 L 75 68 Z" fill="#e2e8f0" /> {/* Single Head */}
+                          <path d="M40 65 L 35 62 L 35 68 Z" fill="white" /> {/* Feathers */}
+                      </g>
+                  </g>
+
+                  <style>{`
+                    @keyframes bowDraw {
+                        0% { transform: rotate(20deg); }
+                        20% { transform: rotate(-5deg); } /* Raise */
+                        90% { transform: rotate(-5deg); } /* Hold Aim */
+                        100% { transform: rotate(0deg); } /* Recoil/Relax */
+                    }
+                    @keyframes stringDraw {
+                        0% { d: path("M60 30 L 60 100"); }
+                        40% { d: path("M60 30 L 35 65 L 60 100"); } /* Draw Back */
+                        90% { d: path("M60 30 L 35 65 L 60 100"); } /* Hold */
+                        95% { d: path("M60 30 L 65 65 L 60 100"); } /* Release Snap */
+                        100% { d: path("M60 30 L 60 100"); }
+                    }
+                    @keyframes arrowAppear {
+                        0% { opacity: 0; transform: translate(10px, 0); }
+                        20% { opacity: 1; transform: translate(0, 0); } /* Nock */
+                        40% { opacity: 1; transform: translate(-25px, 0); } /* Draw */
+                        90% { opacity: 1; transform: translate(-25px, 0); } /* Hold */
+                        100% { opacity: 0; transform: translate(0, 0); } /* Fire */
+                    }
+                    .animate-bow-draw { animation: bowDraw 2s ease-in-out infinite; }
+                    .animate-string-draw { animation: stringDraw 2s ease-in-out infinite; }
+                    .animate-arrow-appear { animation: arrowAppear 2s ease-in-out infinite; }
+                  `}</style>
               </g>
           );
       }
@@ -317,6 +388,18 @@ export const StickmanRender: React.FC<StickmanProps> = ({
             />
         );
     }
+    // Imperial Archer - Slimmer, Elegant, Taller
+    if (type === UnitType.ARCHER) {
+        return (
+            <path 
+                d="M30 100 L 30 65 Q 30 40 50 40 Q 70 40 70 65 L 70 100 Z" 
+                fill={baseColor} 
+                stroke={secondaryColor} 
+                strokeWidth="3"
+                opacity="0.95"
+            />
+        );
+    }
     // Imperial Miner - Sturdier, wider base, slightly shorter than Knight
     if (type === UnitType.WORKER) {
         return (
@@ -342,31 +425,44 @@ export const StickmanRender: React.FC<StickmanProps> = ({
   const renderEyes = () => {
     // Imperial Knight (Frontliner) & Imperial Miner (Worker): Soft Anime Eyes ( ◕ ◕ )
     if (type === UnitType.TOXIC || type === UnitType.WORKER) {
-        // Adjust eye position slightly lower for the sturdier miner if needed, 
-        // but standard position works well for consistency.
         const yOffset = type === UnitType.WORKER ? 0 : -5;
-        
         return (
             <g transform={`translate(0, ${yOffset})`}>
-                {/* Left Eye */}
                 <ellipse cx="38" cy="55" rx="5" ry="7" fill="black" />
-                <circle cx="40" cy="52" r="2.5" fill="white" /> {/* Shine */}
-                
-                {/* Right Eye */}
+                <circle cx="40" cy="52" r="2.5" fill="white" /> 
                 <ellipse cx="62" cy="55" rx="5" ry="7" fill="black" />
-                <circle cx="64" cy="52" r="2.5" fill="white" /> {/* Shine */}
+                <circle cx="64" cy="52" r="2.5" fill="white" /> 
             </g>
         );
     }
-    // Imperial Archer: Sharp Oval Eyes (● ●)
+    
+    // Imperial Archer: Zen Mode (Idle) vs Focused (Attack)
     if (type === UnitType.ARCHER) {
-        return (
-            <g transform="translate(0, -5)">
-                 <ellipse cx="38" cy="60" rx="4" ry="7" fill="black" stroke="white" strokeWidth="1" />
-                 <ellipse cx="62" cy="60" rx="4" ry="7" fill="black" stroke="white" strokeWidth="1" />
-            </g>
-        )
+        if (isAttacking) {
+            // FOCUSED ANIME EYES ( ◕ ◕ ) - Sharp
+            return (
+                <g transform="translate(0, -5)">
+                    <ellipse cx="40" cy="55" rx="4" ry="6" fill="black" />
+                    <circle cx="42" cy="53" r="2" fill="white" />
+                    {/* Angry Eyebrows for focus */}
+                    <path d="M36 48 L 44 50" stroke="black" strokeWidth="1" />
+                    
+                    <ellipse cx="60" cy="55" rx="4" ry="6" fill="black" />
+                    <circle cx="62" cy="53" r="2" fill="white" />
+                    <path d="M64 48 L 56 50" stroke="black" strokeWidth="1" />
+                </g>
+            );
+        } else {
+            // ZEN/CALM EYES ( ˘ ˘ )
+            return (
+                <g transform="translate(0, -5)">
+                     <path d="M36 55 Q 40 58 44 55" fill="none" stroke="black" strokeWidth="1.5" strokeLinecap="round" />
+                     <path d="M56 55 Q 60 58 64 55" fill="none" stroke="black" strokeWidth="1.5" strokeLinecap="round" />
+                </g>
+            );
+        }
     }
+
     // Mage: Glowing round eyes
     if (type === UnitType.MAGE) {
         return (

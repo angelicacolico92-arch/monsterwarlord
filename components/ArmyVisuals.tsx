@@ -48,12 +48,6 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({
           const visualX = isMirrored ? 100 - p.x : p.x;
           
           // Visual Facing: Player arrows always face RIGHT, Enemy arrows always face LEFT (unless mirrored view flips it)
-          // Actually, let's strictly follow the rule: "Player arrows face right, enemy arrows face left" relative to the game logic
-          // If mirrored (Client view): Player (Host) is on right, Enemy (Client) is on left? No, Client is usually P2.
-          // Let's stick to: visual direction matches movement.
-          // If p.targetX > p.x (Moving Right) -> Face Right.
-          // If p.targetX < p.x (Moving Left) -> Face Left.
-          
           const moveDir = p.targetX > p.x ? 1 : -1;
           const visualDir = moveDir * (isMirrored ? -1 : 1); // Flip visual direction if view is mirrored
 
@@ -97,10 +91,13 @@ export const ArmyVisuals: React.FC<ArmyVisualsProps> = ({
              >
                  {p.visualType === 'ARROW' ? (
                      <svg viewBox="0 0 40 10" className="w-full h-full overflow-visible drop-shadow-sm">
-                        <line x1="-5" y1="5" x2="20" y2="5" stroke="#fff" strokeWidth="0.5" strokeOpacity="0.4" strokeDasharray="4 2" />
-                        <line x1="2" y1="5" x2="35" y2="5" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
-                        <path d="M32 3 L 40 5 L 32 7 L 34 5 Z" fill="#34d399" stroke="none" /> {/* Single Head */}
-                        <path d="M8 5 L 2 2 L 2 8 Z" fill="#facc15" stroke="#a16207" strokeWidth="0.2" />
+                        {/* Streamlined Single-Head Arrow */}
+                        <line x1="0" y1="5" x2="35" y2="5" stroke="#e2e8f0" strokeWidth="1.5" strokeLinecap="round" />
+                        {/* Sharp Head */}
+                        <path d="M32 2 L 40 5 L 32 8 L 34 5 Z" fill="#e2e8f0" stroke="none" /> 
+                        {/* Feather Fletching (White/Grey) */}
+                        <path d="M5 5 L 0 2 L 0 8 Z" fill="#cbd5e1" />
+                        <path d="M10 5 L 5 2 L 5 8 Z" fill="#cbd5e1" />
                      </svg>
                  ) : (
                      <div className="w-4 h-4 rounded-full bg-purple-500 blur-sm animate-pulse shadow-[0_0_10px_#a855f7]"></div>

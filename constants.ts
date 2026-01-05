@@ -61,7 +61,7 @@ export const UNIT_CONFIGS: Record<UnitType, UnitConfig> = {
     name: 'Imperial Archer',
     cost: 140,
     stats: { hp: 250, maxHp: 250, damage: 85, range: ATTACK_RANGE_RANGED, speed: 2.8, attackSpeed: 2500 }, // Slower speed for disciplined march
-    description: 'Elite ranged support. Sharp accuracy.'
+    description: 'Elite precision archer. Zen focus.'
   },
   [UnitType.MAGE]: {
     type: UnitType.MAGE,

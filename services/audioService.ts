@@ -198,13 +198,13 @@ const playHeavyHit = (time: number, targetNode: GainNode | null) => {
     osc.stop(time + 0.5);
 };
 
-// Archer: Quick Fwip (Release)
+// Archer: Light Fwip (Release)
 const playArcherRelease = (time: number, targetNode: GainNode | null) => {
     const ctx = getCtx();
     if (!ctx || !targetNode) return;
 
-    // Filtered Noise Swipe
-    const bufferSize = ctx.sampleRate * 0.1; // 0.1s
+    // Soft High-Pass Noise (Air cutting)
+    const bufferSize = ctx.sampleRate * 0.1; 
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     const data = buffer.getChannelData(0);
     for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
@@ -214,18 +214,31 @@ const playArcherRelease = (time: number, targetNode: GainNode | null) => {
 
     const filter = ctx.createBiquadFilter();
     filter.type = 'bandpass';
-    filter.Q.value = 1;
-    filter.frequency.setValueAtTime(1500, time);
-    filter.frequency.exponentialRampToValueAtTime(300, time + 0.1);
+    filter.Q.value = 0.5;
+    filter.frequency.setValueAtTime(2000, time);
+    filter.frequency.linearRampToValueAtTime(500, time + 0.1); // Quick pitch drop "Fwip"
 
     const g = ctx.createGain();
-    g.gain.setValueAtTime(0.4, time);
+    g.gain.setValueAtTime(0.3, time);
     g.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
 
     noise.connect(filter);
     filter.connect(g);
     g.connect(targetNode);
     noise.start(time);
+    
+    // Tiny string twang
+    const osc = ctx.createOscillator();
+    const gOsc = ctx.createGain();
+    osc.frequency.setValueAtTime(400, time);
+    osc.frequency.exponentialRampToValueAtTime(200, time + 0.1);
+    gOsc.gain.setValueAtTime(0.1, time);
+    gOsc.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
+    
+    osc.connect(gOsc);
+    gOsc.connect(targetNode);
+    osc.start(time);
+    osc.stop(time + 0.1);
 };
 
 // Mage: Low Woom + Shimmer
