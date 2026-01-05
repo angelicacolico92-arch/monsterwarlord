@@ -12,52 +12,39 @@ interface UnitCardProps {
   variant?: 'BLUE' | 'RED';
 }
 
-export const UnitCard: React.FC<UnitCardProps> = ({ unit, count, canAfford, onRecruit, variant = 'BLUE' }) => {
+export const UnitCard: React.FC<UnitCardProps> = ({ unit, canAfford, onRecruit, variant = 'BLUE' }) => {
   const isRed = variant === 'RED';
   
   return (
-    <div 
+    <button
       className={`
-        relative p-2 rounded-lg border-b-4 active:border-b-0 active:translate-y-1 transition-all select-none
+        group relative flex flex-col items-center justify-center p-1.5 rounded-lg border-b-[3px] active:border-b-0 active:translate-y-[3px] transition-all select-none
         ${canAfford 
-            ? 'bg-stone-700 border-stone-900 hover:bg-stone-600 cursor-pointer shadow-lg' 
-            : 'bg-stone-900 border-black opacity-50 cursor-not-allowed'}
+            ? 'bg-stone-800 border-stone-950 hover:bg-stone-700 cursor-pointer shadow-lg active:shadow-none' 
+            : 'bg-stone-900 border-black opacity-40 cursor-not-allowed filter grayscale'}
+        w-[72px] h-[80px]
       `}
       onClick={() => canAfford && onRecruit(unit.type)}
     >
-      <div className="flex items-center gap-2 sm:gap-3">
-        {/* Unit Icon Container */}
-        <div className={`
-            h-12 w-12 sm:h-16 sm:w-16 flex-shrink-0 rounded border-2 
-            ${isRed ? 'bg-gradient-to-br from-red-300 to-red-500' : 'bg-gradient-to-br from-blue-200 to-blue-400'}
-            ${canAfford ? 'border-cyan-500' : 'border-gray-700'} 
-            flex items-center justify-center overflow-hidden
-        `}>
-             <StickmanRender type={unit.type} scale={0.7} color="#000" isPlayer={!isRed} />
-        </div>
-
-        {/* Info */}
-        <div className="flex-1 min-w-0">
-            <div className="flex justify-between items-start">
-                <h3 className="text-xs sm:text-sm font-bold font-epic text-cyan-100 truncate">{unit.name}</h3>
-                <span className="text-[10px] sm:text-xs font-mono bg-black/40 px-1 rounded text-white">{count}</span>
-            </div>
-            
-            <p className="hidden sm:block text-[10px] text-stone-300 leading-tight truncate mb-1">{unit.description}</p>
-            
-            <div className="flex items-center gap-2 text-[10px] text-stone-400 mt-1 sm:mt-0">
-                <span className="flex items-center gap-0.5"><span className="text-red-400">⚔</span> {unit.stats.damage}</span>
-                <span className="flex items-center gap-0.5"><span className="text-green-400">❤</span> {unit.stats.hp}</span>
-            </div>
-        </div>
-        
-        {/* Cost Button Area */}
-        <div className="flex flex-col items-end justify-center pl-2 border-l border-white/10">
-            <div className={`flex items-center gap-1 text-xs sm:text-sm font-bold ${canAfford ? 'text-cyan-400' : 'text-gray-500'}`}>
-                <Gem size={12} fill="currentColor" /> {unit.cost} 
-            </div>
-        </div>
+      {/* Unit Icon Container */}
+      <div className={`
+          relative h-10 w-10 rounded border mb-1.5 overflow-hidden
+          ${isRed ? 'bg-gradient-to-br from-red-900/40 to-red-800/40 border-red-500/30' : 'bg-gradient-to-br from-blue-900/40 to-blue-800/40 border-blue-500/30'}
+          flex items-center justify-center
+      `}>
+           <div className="transform translate-y-1">
+              <StickmanRender type={unit.type} scale={0.6} color="#000" isPlayer={!isRed} />
+           </div>
       </div>
-    </div>
+
+      {/* Cost Label */}
+      <div className={`
+          flex items-center gap-1 text-[11px] font-bold font-mono leading-none
+          ${canAfford ? 'text-cyan-300' : 'text-stone-500'}
+      `}>
+          <Gem size={10} className={canAfford ? "text-cyan-400" : "text-stone-600"} fill="currentColor" /> 
+          {unit.cost}
+      </div>
+    </button>
   );
 };
