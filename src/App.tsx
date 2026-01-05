@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { UnitType, GameUnit, GameState, GameCommand, PlayerRole, MapId, GameProjectile, StuckArrow, EnemyArmy, BattleLogEntry } from './types';
+import { UnitType, GameUnit, GameState, GameCommand, PlayerRole, MapId, GameProjectile, StuckArrow, EnemyArmy, BattleLogEntry, UnitConfig } from './types';
 import { 
   FIELD_WIDTH, STATUE_HP, SPAWN_X_PLAYER, SPAWN_X_ENEMY, 
   STATUE_PLAYER_POS, STATUE_ENEMY_POS, MAX_UNITS, 
@@ -18,7 +18,6 @@ import { BattlefieldBackground } from './components/BattlefieldBackground';
 import { ArmyVisuals } from './components/ArmyVisuals';
 import { UnitCard } from './components/UnitCard';
 import { SettingsModal } from './components/SettingsModal';
-import { StickmanRender } from './components/StickmanRender';
 import { Sword, Shield, Flag, RefreshCw } from 'lucide-react';
 
 const TICK_RATE = 50;
@@ -107,8 +106,6 @@ export const App: React.FC = () => {
       mapId: MapId.FOREST
   });
   const [showSettings, setShowSettings] = useState(false);
-  const [winner, setWinner] = useState<string | null>(null);
-  const [battleReport, setBattleReport] = useState<string | null>(null);
 
   // Refs
   const stateRef = useRef(gameState);
@@ -570,7 +567,7 @@ export const App: React.FC = () => {
                </div>
 
                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 bg-stone-900/90 p-2 rounded-xl border border-stone-600 shadow-2xl z-40 pointer-events-auto backdrop-blur-md overflow-x-auto max-w-[95vw]">
-                   {Object.values(UNIT_CONFIGS).filter(u => u.type !== UnitType.SMALL && u.type !== UnitType.BOSS).map(u => (
+                   {(Object.values(UNIT_CONFIGS) as UnitConfig[]).filter(u => u.type !== UnitType.SMALL && u.type !== UnitType.BOSS).map(u => (
                        <UnitCard 
                          key={u.type} 
                          unit={u} 
